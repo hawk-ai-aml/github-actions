@@ -42,6 +42,70 @@ component:
       path: plattform/processing/customer-risk-rating-decision-engine
       overlays: *defaultOverlays
 
+  feature-enrichment:
+    ecr:
+      repository: hawk-feature-enrichment
+      <<: *defaultECR
+    kustomize:
+      path: plattform/processing/feature-enrichment
+      overlays: *defaultOverlays
+
+  label-engine:
+    ecr:
+      repository: hawk-label-engine
+      <<: *defaultECR
+    kustomize:
+      path: plattform/processing/features/label-engine
+      overlays: *defaultOverlays
+
+  reprocessing:
+    ecr:
+      repository: hawk-reprocessing
+      <<: *defaultECR
+    kustomize:
+      path: plattform/processing/reprocessing
+      overlays: *defaultOverlays
+
+  secure-storage:
+    ecr:
+      repository: hawk-current-secure-storage
+      <<: *defaultECR
+    kustomize:
+      path: plattform/utility/secure-storage
+      overlays: *defaultOverlays
+
+  tenant-management:
+    ecr:
+      repository: hawk-hawkai-tenant-management
+      <<: *defaultECR
+    kustomize:
+      path: plattform/utility/tenant-management
+      overlays: *defaultOverlays
+
+  transaction-announced-event-reducer:
+    ecr:
+      repository: hawk-transaction-announced-event-reducer
+      <<: *defaultECR
+    kustomize:
+      path: plattform/processing/transaction-announced-event-reducer
+      overlays: *defaultOverlays
+
+  blacklist:
+    ecr:
+      repository: hawk-hawkai-blacklist-msg
+      <<: *defaultECR
+    kustomize:
+      path: plattform/processing/features/blacklist
+      overlays: *defaultOverlays
+
+  regulatory-check:
+    ecr:
+      repository: hawk-regulatory-check
+      <<: *defaultECR
+    kustomize:
+      path: plattform/processing/regulatory-check
+      overlays: *defaultOverlays
+
   backend_msg: &backend_msg
     ecr:
       repository: hawkai-case-manager-backend-msg

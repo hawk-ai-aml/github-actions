@@ -47,6 +47,70 @@ component:
       path: plattform/processing/customer-risk-rating-decision-engine
       overlays: *defaultOverlays
 
+  feature-enrichment:
+    ecr:
+      repository: feature-enrichment
+      <<: *defaultECR
+    kustomize:
+      path: plattform/processing/feature-enrichment
+      overlays: *defaultOverlays
+
+  label-engine:
+    ecr:
+      repository: label-engine
+      <<: *defaultECR
+    kustomize:
+      path: plattform/processing/features/label-engine
+      overlays: *defaultOverlays
+
+  reprocessing:
+    ecr:
+      repository: reprocessing
+      <<: *defaultECR
+    kustomize:
+      path: plattform/processing/reprocessing
+      overlays: *defaultOverlays
+
+  secure-storage:
+    ecr:
+      repository: current-secure-storage
+      <<: *defaultECR
+    kustomize:
+      path: plattform/utility/secure-storage
+      overlays: *defaultOverlays
+
+  tenant-management:
+    ecr:
+      repository: tenant-management
+      <<: *defaultECR
+    kustomize:
+      path: plattform/utility/tenant-management
+      overlays: *defaultOverlays
+
+  transaction-announced-event-reducer:
+    ecr:
+      repository: transaction-announced-event-reducer
+      <<: *defaultECR
+    kustomize:
+      path: plattform/processing/transaction-announced-event-reducer
+      overlays: *defaultOverlays
+
+  blacklist:
+    ecr:
+      repository: hawkai-blacklist-msg
+      <<: *defaultECR
+    kustomize:
+      path: plattform/processing/features/blacklist
+      overlays: *defaultOverlays
+
+  regulatory-check:
+    ecr:
+      repository: regulatory-check
+      <<: *defaultECR
+    kustomize:
+      path: plattform/processing/regulatory-check
+      overlays: *defaultOverlays
+
   backend_msg: &backend_msg
     ecr:
       repository: hawk-hawkai-case-manager-backend-msg
