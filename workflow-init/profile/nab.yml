@@ -8,6 +8,7 @@ overlays: &defaultOverlays
 ecr: &defaultECR
   registry: "569345997196"
   region: us-east-1
+  repository-prefix: ''
 
 component:
   audit-trail2:
@@ -77,6 +78,7 @@ component:
   tenant-management:
     ecr:
       repository: hawk-hawkai-tenant-management
+      repository-prefix: hawk-hawkai-
       <<: *defaultECR
     kustomize:
       path: plattform/utility/tenant-management

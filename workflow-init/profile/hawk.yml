@@ -13,6 +13,7 @@ overlays: &defaultOverlays
 ecr: &defaultECR
   registry: "860641649575"
   region: eu-central-1
+  repository-prefix: ''
 
 component:
   audit-trail2:
