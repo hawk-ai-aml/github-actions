@@ -106,7 +106,7 @@ jobs:
 
       - name: Upload Reports to S3
         id: reports
-        if: success() || failure()
+        if: needs.init.outputs.skip-tests != 'true' && (success() || failure())
         uses: hawk-ai-aml/upload-s3-action@master
         with:
           aws_key_id: ${{ secrets.AWS_DEV_ACCESS_KEY_ID }}
@@ -116,7 +116,7 @@ jobs:
           destination_dir: ${{ github.event.repository.name }}-${{ github.run_id }}
 
       - name: Provide Links to Reports
-        if: success() || failure()
+        if: needs.init.outputs.skip-tests != 'true' && (success() || failure())
         run: |
           echo "### Test Reports" | tee -a ${GITHUB_STEP_SUMMARY}
           report_url=https://github-actions-static-html-2.s3.amazonaws.com/${{ github.event.repository.name }}-${{ github.run_id }}/
