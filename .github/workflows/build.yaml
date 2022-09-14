@@ -61,7 +61,7 @@ jobs:
       - name: Set up JDK 11
         uses: actions/setup-java@v3
         with:
-          java-version: 11
+          java-version: ${{ fromJson(needs.init.outputs.parameters).java-version }}
           distribution: temurin
           cache: gradle
 
@@ -71,17 +71,29 @@ jobs:
           GRADLE_BUILD_ACTION_CACHE_DEBUG_ENABLED: true
 
       - name: Gradle Assemble
+        env: 
+          ARTIFACTORY_CONTEXT_URL: ${{ secrets.ARTIFACTORY_CONTEXT_URL }}
+          ARTIFACTORY_USERNAME: ${{ secrets.ARTIFACTORY_USERNAME }}
+          ARTIFACTORY_PASSWORD: ${{ secrets.ARTIFACTORY_PASSWORD }}      
         run: ./gradlew clean assemble testClasses -isS
 
       - name: License Report
         run: ./gradlew licenseReport
 
       - name: Check Quality
+        env: 
+          ARTIFACTORY_CONTEXT_URL: ${{ secrets.ARTIFACTORY_CONTEXT_URL }}
+          ARTIFACTORY_USERNAME: ${{ secrets.ARTIFACTORY_USERNAME }}
+          ARTIFACTORY_PASSWORD: ${{ secrets.ARTIFACTORY_PASSWORD }}        
         run: ./gradlew checkQualityMain
 
       - name: Run Tests
+        env: 
+          ARTIFACTORY_CONTEXT_URL: ${{ secrets.ARTIFACTORY_CONTEXT_URL }}
+          ARTIFACTORY_USERNAME: ${{ secrets.ARTIFACTORY_USERNAME }}
+          ARTIFACTORY_PASSWORD: ${{ secrets.ARTIFACTORY_PASSWORD }}        
         if: ${{ needs.init.outputs.skip-tests != 'true' }}
-        run: ./gradlew check -isS
+        run: ./gradlew test -isS
 
       - name: Upload Reports to S3
         id: reports
@@ -147,7 +159,6 @@ jobs:
   update-overlays:
     needs: [ init, build ]
     if: ${{ needs.init.outputs.update-kustomize == 'true' }}
-    # uses: hawk-ai-aml/github-actions/.github/workflows/tag-kustomize-action.yaml@master
     runs-on: [ "self-hosted", "builder" ]
     strategy:
       # Avoid race condition issues with github
@@ -181,7 +192,7 @@ jobs:
           component-metadata: ${{ needs.init.outputs.metadata }}
           component-overlay: ${{ matrix.overlay }}
           component-tag: ${{ env.HAWK_IMAGE_TAG }}
-          kustomize-repo: ${{ fromJson(needs.init.outputs.parameters).kustomize == 'bitbucket-fake' && "git@bitbucket.org:hawkai/kustomize2.git" || "git@bitbucket.org:hawkai/kustomize2.git" }} git@bitbucket.org:hawkai/kustomize2.git
+          kustomize-repo: ${{ fromJson(needs.init.outputs.parameters).kustomize == 'bitbucket-fake' && "git@bitbucket.org:hawkai/kustomize2.git" || "git@bitbucket.org:hawkai/kustomize.git" }}
           kustomize-ssh-key: ${{ secrets.KUSTOMIZE_DEPLOY_PRIVATE_KEY }}
           aws-access-key-id: ${{ inputs.profile == 'nab' && secrets.AWS_NAB_DEV_ECR_ACCESS_KEY_ID || secrets.AWS_ORG_ECR_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ inputs.profile == 'nab' && secrets.AWS_NAB_DEV_ECR_SECRET_ACCESS_KEY || secrets.AWS_ORG_ECR_SECRET_ACCESS_KEY }}
