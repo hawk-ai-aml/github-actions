@@ -10,8 +10,14 @@ ecr: &defaultECR
   region: us-east-1
   repository-prefix: ''
 
+parameters: &defaultParameters
+  java-version: 11
+  # bitbucket, bitbucket-fake, github, github-fake
+  kustomize: bitbucket-fake
+
 component:
   audit-trail2:
+    parameters: *defaultParameters
     ecr:
       repository: hawk-audit-trail
       <<: *defaultECR
@@ -20,6 +26,7 @@ component:
       overlays: *defaultOverlays
 
   audit-trail:
+    parameters: *defaultParameters
     ecr:
       repository: hawk-audit-trail
       <<: *defaultECR
@@ -28,6 +35,7 @@ component:
       overlays: *defaultOverlays
 
   customer-risk-rating-events-sink:
+    parameters: *defaultParameters
     ecr:
       repository: hawk-customer-risk-rating-events-sink
       <<: *defaultECR
@@ -36,6 +44,7 @@ component:
       overlays: *defaultOverlays
 
   customer-risk-rating-decision-engine:
+    parameters: *defaultParameters
     ecr:
       repository: hawk-customer-risk-rating-decision-engine
       <<: *defaultECR
@@ -44,6 +53,7 @@ component:
       overlays: *defaultOverlays
 
   feature-enrichment:
+    parameters: *defaultParameters
     ecr:
       repository: hawk-feature-enrichment
       <<: *defaultECR
@@ -52,6 +62,7 @@ component:
       overlays: *defaultOverlays
 
   label-engine:
+    parameters: *defaultParameters
     ecr:
       repository: hawk-label-engine
       <<: *defaultECR
@@ -60,6 +71,7 @@ component:
       overlays: *defaultOverlays
 
   reprocessing:
+    parameters: *defaultParameters
     ecr:
       repository: hawk-reprocessing
       <<: *defaultECR
@@ -68,6 +80,7 @@ component:
       overlays: *defaultOverlays
 
   secure-storage:
+    parameters: *defaultParameters
     ecr:
       repository: hawk-current-secure-storage
       <<: *defaultECR
@@ -76,6 +89,7 @@ component:
       overlays: *defaultOverlays
 
   tenant-management:
+    parameters: *defaultParameters
     ecr:
       repository: hawk-hawkai-tenant-management
       repository-prefix: hawk-hawkai-
@@ -85,6 +99,7 @@ component:
       overlays: *defaultOverlays
 
   transaction-announced-event-reducer:
+    parameters: *defaultParameters
     ecr:
       repository: hawk-transaction-announced-event-reducer
       <<: *defaultECR
@@ -93,6 +108,7 @@ component:
       overlays: *defaultOverlays
 
   blacklist:
+    parameters: *defaultParameters
     ecr:
       repository: hawk-hawkai-blacklist-msg
       <<: *defaultECR
@@ -101,6 +117,7 @@ component:
       overlays: *defaultOverlays
 
   regulatory-check:
+    parameters: *defaultParameters
     ecr:
       repository: hawk-regulatory-check
       <<: *defaultECR
@@ -109,6 +126,7 @@ component:
       overlays: *defaultOverlays
 
   backend_msg: &backend_msg
+    parameters: *defaultParameters
     ecr:
       repository: hawkai-case-manager-backend-msg
       <<: *defaultECR
@@ -117,6 +135,7 @@ component:
       overlays: *defaultOverlays
 
   backend_rest: &backend_rest
+    parameters: *defaultParameters
     ecr:
       repository: hawkai-case-manager-backend-rest
       <<: *defaultECR      
@@ -125,6 +144,7 @@ component:
       overlays: *defaultOverlays
 
   backend_grouping: &backend_grouping
+    parameters: *defaultParameters
     ecr:
       repository: backend-grouping
       <<: *defaultECR
@@ -133,6 +153,7 @@ component:
       overlays: *defaultOverlays
 
   backend_search: &backend_search
+    parameters: *defaultParameters
     ecr:
       repository: backend-search
       <<: *defaultECR
@@ -141,6 +162,7 @@ component:
       overlays: *defaultOverlays
 
   backend:
+    parameters: *defaultParameters
     modules:
       - *backend_msg
       - *backend_rest
@@ -148,6 +170,7 @@ component:
       - *backend_search
 
   backend2:
+    parameters: *defaultParameters
     modules:
       - *backend_msg
       - *backend_rest

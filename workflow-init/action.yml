@@ -31,6 +31,10 @@ outputs:
     description: 'repository overlays'
     value: ${{ steps.vars.outputs.overlays }}
 
+  parameters:
+    description: 'repository workflow parameters'
+    value: ${{ steps.vars.outputs.parameters }}
+
   update-kustomize:
     description: 'Hint to update kustomize'
     value: ${{ steps.vars.outputs.update-kustomize }}
@@ -60,6 +64,7 @@ runs:
 
         METADATA_JSON=$(yj -y < ${GITHUB_ACTION_PATH}/profile/${{ inputs.profile }}.yml | jq -cr --arg COMPONENT ${{ inputs.component }} '.component[$COMPONENT]')
         OVERLAYS_JSON=$(yj -y < ${GITHUB_ACTION_PATH}/profile/${{ inputs.profile }}.yml | jq -cr --arg COMPONENT ${{ inputs.component }} --arg OVERLAYS ${KUSTOMIZE_OVERLAYS} '.component[$COMPONENT].kustomize.overlays[$OVERLAYS]')
+        PARAMETERS_JSON=$(yj -y < ${GITHUB_ACTION_PATH}/profile/${{ inputs.profile }}.yml | jq -cr --arg COMPONENT ${{ inputs.component }} '.component[$COMPONENT].parameters')
 
         cat <<EOF | tee -a $GITHUB_STEP_SUMMARY
 
@@ -68,6 +73,7 @@ runs:
         \`\`\`
         metadata::${METADATA_JSON}
         overlays::${OVERLAYS_JSON}
+        parameters::${PARAMETERS_JSON}
         update-kustomize::${UPDATE_KUSTOMIZE}
         skip-tests::${SKIP_TESTS}
         \`\`\`
@@ -75,5 +81,6 @@ runs:
 
         echo "::set-output name=metadata::${METADATA_JSON}"
         echo "::set-output name=overlays::${OVERLAYS_JSON}"
+        echo "::set-output name=parameters::${PARAMETERS_JSON}"
         echo "::set-output name=update-kustomize::${UPDATE_KUSTOMIZE}"
         echo "::set-output name=skip-tests::${SKIP_TESTS}"
