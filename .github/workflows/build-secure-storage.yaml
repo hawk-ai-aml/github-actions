@@ -31,6 +31,7 @@ jobs:
       metadata: ${{ steps.init.outputs.metadata }}
       update-kustomize: ${{ steps.init.outputs.update-kustomize }}
       skip-tests: ${{ steps.init.outputs.skip-tests }}
+      parameters: ${{ steps.init.outputs.parameters }}
     steps:
       - id: init
         name: Init Workflow
@@ -58,10 +59,10 @@ jobs:
 
       - uses: actions/checkout@v3
 
-      - name: Set up JDK 11
+      - name: Set up JDK
         uses: actions/setup-java@v3
         with:
-          java-version: 11
+          java-version: ${{ fromJson(needs.init.outputs.parameters).java-version }}
           distribution: temurin
           cache: gradle
 
@@ -153,7 +154,6 @@ jobs:
   update-overlays:
     needs: [ init, build ]
     if: ${{ needs.init.outputs.update-kustomize == 'true' }}
-    # uses: hawk-ai-aml/github-actions/.github/workflows/tag-kustomize-action.yaml@master
     runs-on: [ "self-hosted", "builder" ]
     strategy:
       # Avoid race condition issues with github
@@ -166,17 +166,28 @@ jobs:
         name: Init Job
         uses: hawk-ai-aml/job-init@master
 
-      - id: udpate-overlay
+      - id: udpate-overlay-github
         name: Update kustomize overlay
-        # uses: hawk-ai-aml/github-actions/kustomize-overlay@master
+        if: fromJson(needs.init.outputs.parameters).kustomize == 'github' || fromJson(needs.init.outputs.parameters).kustomize == 'github-fake'
+        uses: hawk-ai-aml/github-actions/kustomize-overlay@master
+        with:
+          component-metadata: ${{ needs.init.outputs.metadata }}
+          component-overlay: ${{ matrix.overlay }}
+          component-tag: ${{ env.HAWK_IMAGE_TAG }}
+          kustomize-repo: ${{ fromJson(needs.init.outputs.parameters).kustomize == 'github-fake' && 'hawk-ai-aml/kustomize2.git' || 'hawk-ai-aml/kustomize.git' }}
+          kustomize-access-token: ${{ secrets.REPO_ACCESS_PAT }}
+          aws-access-key-id: ${{ inputs.profile == 'nab' && secrets.AWS_NAB_DEV_ECR_ACCESS_KEY_ID || secrets.AWS_ORG_ECR_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ inputs.profile == 'nab' && secrets.AWS_NAB_DEV_ECR_SECRET_ACCESS_KEY || secrets.AWS_ORG_ECR_SECRET_ACCESS_KEY }}
+
+      - id: udpate-overlay-bitbucket
+        name: Update kustomize overlay
+        if: fromJson(needs.init.outputs.parameters).kustomize == 'bitbucket' || fromJson(needs.init.outputs.parameters).kustomize == 'bitbucket-fake'
         uses: hawk-ai-aml/github-actions/kustomize-overlay-ssh@master
         with:
           component-metadata: ${{ needs.init.outputs.metadata }}
           component-overlay: ${{ matrix.overlay }}
           component-tag: ${{ env.HAWK_IMAGE_TAG }}
-          # kustomize-repo: hawk-ai-aml/kustomize2.git
-          kustomize-repo: git@bitbucket.org:hawkai/kustomize2.git
-          # kustomize-access-token: ${{ secrets.REPO_ACCESS_PAT }}
+          kustomize-repo: ${{ fromJson(needs.init.outputs.parameters).kustomize == 'bitbucket-fake' && 'git@bitbucket.org:hawkai/kustomize2.git' || 'git@bitbucket.org:hawkai/kustomize.git' }}
           kustomize-ssh-key: ${{ secrets.KUSTOMIZE_DEPLOY_PRIVATE_KEY }}
           aws-access-key-id: ${{ inputs.profile == 'nab' && secrets.AWS_NAB_DEV_ECR_ACCESS_KEY_ID || secrets.AWS_ORG_ECR_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ inputs.profile == 'nab' && secrets.AWS_NAB_DEV_ECR_SECRET_ACCESS_KEY || secrets.AWS_ORG_ECR_SECRET_ACCESS_KEY }}

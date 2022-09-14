@@ -31,6 +31,7 @@ jobs:
       metadata: ${{ steps.init.outputs.metadata }}
       update-kustomize: ${{ steps.init.outputs.update-kustomize }}
       skip-tests: ${{ steps.init.outputs.skip-tests }}
+      parameters: ${{ steps.init.outputs.parameters }}
     steps:
       - id: init
         name: Init Workflow
@@ -58,11 +59,17 @@ jobs:
 
       - uses: actions/checkout@v3
 
-      - name: Set up JDK 11
-        uses: actions/setup-java@v2
+      - name: Set up JDK
+        uses: actions/setup-java@v3
         with:
-          java-version: 11
-          distribution: "adopt"
+          java-version: ${{ fromJson(needs.init.outputs.parameters).java-version }}
+          distribution: temurin
+          cache: gradle
+
+      - name: Set up Gradle
+        uses: gradle/gradle-build-action@v2
+        env:
+          GRADLE_BUILD_ACTION_CACHE_DEBUG_ENABLED: true
 
       - name: Gradle Assemble
         run: ./gradlew clean assemble testClasses -isS
