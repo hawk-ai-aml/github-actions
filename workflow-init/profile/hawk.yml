@@ -31,7 +31,9 @@ component:
       overlays: *defaultOverlays
 
   audit-trail:
-    parameters: *defaultParameters
+    parameters:
+      <<: *defaultParameters
+      kustomize: bitbucket
     ecr:
       repository: audit-trail
       <<: *defaultECR
@@ -40,7 +42,9 @@ component:
       overlays: *defaultOverlays
 
   customer-risk-rating-events-sink:
-    parameters: *defaultParameters
+    parameters:
+      <<: *defaultParameters
+      kustomize: bitbucket
     ecr:
       repository: customer-risk-rating-events-sink
       <<: *defaultECR
@@ -49,7 +53,9 @@ component:
       overlays: *defaultOverlays
 
   customer-risk-rating-decision-engine:
-    parameters: *defaultParameters
+    parameters:
+      <<: *defaultParameters
+      kustomize: bitbucket
     ecr:
       repository: customer-risk-rating-decision-engine
       <<: *defaultECR
@@ -67,7 +73,9 @@ component:
       overlays: *defaultOverlays
 
   label-engine:
-    parameters: *defaultParameters
+    parameters:
+      <<: *defaultParameters
+      kustomize: bitbucket
     ecr:
       repository: label-engine
       <<: *defaultECR
@@ -85,7 +93,9 @@ component:
       overlays: *defaultOverlays
 
   secure-storage:
-    parameters: *defaultParameters
+    parameters:
+      <<: *defaultParameters
+      kustomize: bitbucket
     ecr:
       repository: current-secure-storage
       <<: *defaultECR
@@ -94,7 +104,9 @@ component:
       overlays: *defaultOverlays
 
   tenant-management:
-    parameters: *defaultParameters
+    parameters:
+      <<: *defaultParameters
+      kustomize: bitbucket
     ecr:
       repository: tenant-management
       <<: *defaultECR

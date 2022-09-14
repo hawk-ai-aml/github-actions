@@ -26,7 +26,9 @@ component:
       overlays: *defaultOverlays
 
   audit-trail:
-    parameters: *defaultParameters
+    parameters:
+      <<: *defaultParameters
+      kustomize: bitbucket
     ecr:
       repository: hawk-audit-trail
       <<: *defaultECR
@@ -35,7 +37,9 @@ component:
       overlays: *defaultOverlays
 
   customer-risk-rating-events-sink:
-    parameters: *defaultParameters
+    parameters:
+      <<: *defaultParameters
+      kustomize: bitbucket
     ecr:
       repository: hawk-customer-risk-rating-events-sink
       <<: *defaultECR
@@ -44,7 +48,9 @@ component:
       overlays: *defaultOverlays
 
   customer-risk-rating-decision-engine:
-    parameters: *defaultParameters
+    parameters:
+      <<: *defaultParameters
+      kustomize: bitbucket
     ecr:
       repository: hawk-customer-risk-rating-decision-engine
       <<: *defaultECR
@@ -62,7 +68,9 @@ component:
       overlays: *defaultOverlays
 
   label-engine:
-    parameters: *defaultParameters
+    parameters:
+      <<: *defaultParameters
+      kustomize: bitbucket
     ecr:
       repository: hawk-label-engine
       <<: *defaultECR
@@ -80,7 +88,9 @@ component:
       overlays: *defaultOverlays
 
   secure-storage:
-    parameters: *defaultParameters
+    parameters:
+      <<: *defaultParameters
+      kustomize: bitbucket
     ecr:
       repository: hawk-current-secure-storage
       <<: *defaultECR
@@ -89,7 +99,9 @@ component:
       overlays: *defaultOverlays
 
   tenant-management:
-    parameters: *defaultParameters
+    parameters:
+      <<: *defaultParameters
+      kustomize: bitbucket
     ecr:
       repository: hawk-hawkai-tenant-management
       repository-prefix: hawk-hawkai-
