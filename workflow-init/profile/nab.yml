@@ -61,7 +61,7 @@ component:
   feature-enrichment:
     parameters:
       <<: *defaultParameters
-      kustomize: bitbucket-fake
+      kustomize: bitbucket
     ecr:
       repository: hawk-feature-enrichment
       <<: *defaultECR
@@ -83,7 +83,7 @@ component:
   reprocessing:
     parameters:
       <<: *defaultParameters
-      kustomize: bitbucket-fake
+      kustomize: bitbucket
     ecr:
       repository: hawk-reprocessing
       <<: *defaultECR
@@ -117,7 +117,7 @@ component:
   transaction-announced-event-reducer:
     parameters:
       <<: *defaultParameters
-      kustomize: bitbucket-fake
+      kustomize: bitbucket
     ecr:
       repository: hawk-transaction-announced-event-reducer
       <<: *defaultECR

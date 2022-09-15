@@ -66,7 +66,7 @@ component:
   feature-enrichment:
     parameters:
       <<: *defaultParameters
-      kustomize: bitbucket-fake
+      kustomize: bitbucket
     ecr:
       repository: feature-enrichment
       <<: *defaultECR
@@ -88,7 +88,7 @@ component:
   reprocessing:
     parameters:
       <<: *defaultParameters
-      kustomize: bitbucket-fake
+      kustomize: bitbucket
     ecr:
       repository: reprocessing
       <<: *defaultECR
@@ -121,7 +121,7 @@ component:
   transaction-announced-event-reducer:
     parameters:
       <<: *defaultParameters
-      kustomize: bitbucket-fake
+      kustomize: bitbucket
     ecr:
       repository: transaction-announced-event-reducer
       <<: *defaultECR
