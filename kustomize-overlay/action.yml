@@ -69,6 +69,6 @@ runs:
           git config --global user.name "GitHub Actions"
           git config --global user.email "github-actions@hawk.ai"
           git add .
-          git commit -m "AUTOMATIC JENKINS COMMIT: Update ${KUSTOMIZE_PATH}/overlays/${OVERLAY} for ${ECR_REPOSITORY} to ${{ env.HAWK_IMAGE_TAG }}"
+          git commit -m "AUTOMATIC COMMIT: Update ${KUSTOMIZE_PATH}/overlays/${OVERLAY} for ${ECR_REPOSITORY} to ${{ env.HAWK_IMAGE_TAG }}"
           git push
         fi
