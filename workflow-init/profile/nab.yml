@@ -126,7 +126,10 @@ component:
       overlays: *defaultOverlays
 
   blacklist:
-    parameters: *defaultParameters
+    parameters:
+      <<: *defaultParameters
+      kustomize: bitbucket-fake
+      java-version: 17
     ecr:
       repository: hawk-hawkai-blacklist-msg
       <<: *defaultECR
@@ -135,7 +138,10 @@ component:
       overlays: *defaultOverlays
 
   regulatory-check:
-    parameters: *defaultParameters
+    parameters:
+      <<: *defaultParameters
+      kustomize: bitbucket-fake
+      java-version: 17
     ecr:
       repository: hawk-regulatory-check
       <<: *defaultECR
