@@ -64,7 +64,9 @@ component:
       overlays: *defaultOverlays
 
   feature-enrichment:
-    parameters: *defaultParameters
+    parameters:
+      <<: *defaultParameters
+      kustomize: bitbucket-fake
     ecr:
       repository: feature-enrichment
       <<: *defaultECR
@@ -84,7 +86,9 @@ component:
       overlays: *defaultOverlays
 
   reprocessing:
-    parameters: *defaultParameters
+    parameters:
+      <<: *defaultParameters
+      kustomize: bitbucket-fake
     ecr:
       repository: reprocessing
       <<: *defaultECR
@@ -115,7 +119,9 @@ component:
       overlays: *defaultOverlays
 
   transaction-announced-event-reducer:
-    parameters: *defaultParameters
+    parameters:
+      <<: *defaultParameters
+      kustomize: bitbucket-fake
     ecr:
       repository: transaction-announced-event-reducer
       <<: *defaultECR
