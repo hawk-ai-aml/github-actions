@@ -133,7 +133,6 @@ component:
     parameters:
       <<: *defaultParameters
       kustomize: bitbucket-fake
-      java-version: 17
     ecr:
       repository: hawkai-blacklist-msg
       <<: *defaultECR
