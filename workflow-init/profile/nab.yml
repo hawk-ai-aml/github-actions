@@ -148,6 +148,39 @@ component:
       path: plattform/processing/regulatory-check
       overlays: *defaultOverlays
 
+  watchtower:
+    parameters:
+      <<: *defaultParameters
+      kustomize: bitbucket-fake
+    ecr:
+      repository: hawk-hawkai-watchtower
+      <<: *defaultECR
+    kustomize:
+      path: plattform/watchtower
+      overlays: *defaultOverlays
+
+  case-sink:
+    parameters:
+      <<: *defaultParameters
+      kustomize: bitbucket-fake
+    ecr:
+      repository: hawk-case-sink
+      <<: *defaultECR
+    kustomize:
+      path: plattform/processing/case-sink
+      overlays: *defaultOverlays
+
+  document-storage:
+    parameters:
+      <<: *defaultParameters
+      kustomize: bitbucket-fake
+    ecr:
+      repository: hawk-document-storage-api
+      <<: *defaultECR
+    kustomize:
+      path: plattform/utility/document-storage
+      overlays: *defaultOverlays
+
   backend_msg: &backend_msg
     parameters: *defaultParameters
     ecr:
