@@ -165,6 +165,7 @@ component:
       kustomize: bitbucket-fake
     ecr:
       repository: hawk-case-sink
+      repository-prefix: hawk-
       <<: *defaultECR
     kustomize:
       path: plattform/processing/case-sink
