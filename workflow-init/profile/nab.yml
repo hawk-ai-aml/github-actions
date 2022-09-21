@@ -131,6 +131,7 @@ component:
       kustomize: bitbucket-fake
     ecr:
       repository: hawk-hawkai-blacklist-msg
+      repository-prefix: hawk-
       <<: *defaultECR
     kustomize:
       path: plattform/processing/features/blacklist
