@@ -24,8 +24,8 @@ component:
   audit-trail2:
     parameters: *defaultParameters
     ecr:
-      repository: audit-trail
       <<: *defaultECR
+      repository: audit-trail
     kustomize:
       path: plattform/utility/audit-trail 
       overlays: *defaultOverlays
@@ -35,8 +35,8 @@ component:
       <<: *defaultParameters
       kustomize: bitbucket
     ecr:
-      repository: audit-trail
       <<: *defaultECR
+      repository: audit-trail
     kustomize:
       path: plattform/utility/audit-trail
       overlays: *defaultOverlays
@@ -46,8 +46,8 @@ component:
       <<: *defaultParameters
       kustomize: bitbucket
     ecr:
-      repository: customer-risk-rating-events-sink
       <<: *defaultECR
+      repository: customer-risk-rating-events-sink
     kustomize:
       path: plattform/processing/customer-risk-rating-events-sink
       overlays: *defaultOverlays
@@ -57,8 +57,8 @@ component:
       <<: *defaultParameters
       kustomize: bitbucket
     ecr:
-      repository: customer-risk-rating-decision-engine
       <<: *defaultECR
+      repository: customer-risk-rating-decision-engine
     kustomize:
       path: plattform/processing/customer-risk-rating-decision-engine
       overlays: *defaultOverlays
@@ -68,8 +68,8 @@ component:
       <<: *defaultParameters
       kustomize: bitbucket
     ecr:
-      repository: feature-enrichment
       <<: *defaultECR
+      repository: feature-enrichment
     kustomize:
       path: plattform/processing/feature-enrichment
       overlays: *defaultOverlays
@@ -79,8 +79,8 @@ component:
       <<: *defaultParameters
       kustomize: bitbucket
     ecr:
-      repository: label-engine
       <<: *defaultECR
+      repository: label-engine
     kustomize:
       path: plattform/processing/features/label-engine
       overlays: *defaultOverlays
@@ -90,8 +90,8 @@ component:
       <<: *defaultParameters
       kustomize: bitbucket
     ecr:
-      repository: reprocessing
       <<: *defaultECR
+      repository: reprocessing
     kustomize:
       path: plattform/processing/reprocessing
       overlays: *defaultOverlays
@@ -101,8 +101,8 @@ component:
       <<: *defaultParameters
       kustomize: bitbucket
     ecr:
-      repository: current-secure-storage
       <<: *defaultECR
+      repository: current-secure-storage
     kustomize:
       path: plattform/utility/secure-storage
       overlays: *defaultOverlays
@@ -112,8 +112,8 @@ component:
       <<: *defaultParameters
       kustomize: bitbucket
     ecr:
-      repository: tenant-management
       <<: *defaultECR
+      repository: tenant-management
     kustomize:
       path: plattform/utility/tenant-management
       overlays: *defaultOverlays
@@ -123,8 +123,8 @@ component:
       <<: *defaultParameters
       kustomize: bitbucket
     ecr:
-      repository: transaction-announced-event-reducer
       <<: *defaultECR
+      repository: transaction-announced-event-reducer
     kustomize:
       path: plattform/processing/transaction-announced-event-reducer
       overlays: *defaultOverlays
@@ -134,8 +134,8 @@ component:
       <<: *defaultParameters
       kustomize: bitbucket-fake
     ecr:
-      repository: hawkai-blacklist-msg
       <<: *defaultECR
+      repository: hawkai-blacklist-msg
     kustomize:
       path: plattform/processing/features/blacklist
       overlays: *defaultOverlays
@@ -146,8 +146,8 @@ component:
       kustomize: bitbucket-fake
       java-version: 17
     ecr:
-      repository: regulatory-check
       <<: *defaultECR
+      repository: regulatory-check
     kustomize:
       path: plattform/processing/regulatory-check
       overlays: *defaultOverlays
@@ -157,8 +157,8 @@ component:
       <<: *defaultParameters
       kustomize: bitbucket-fake
     ecr:
-      repository: watchtower
       <<: *defaultECR
+      repository: watchtower
     kustomize:
       path: plattform/watchtower
       overlays: *defaultOverlays
@@ -168,8 +168,8 @@ component:
       <<: *defaultParameters
       kustomize: bitbucket-fake
     ecr:
-      repository: case-sink
       <<: *defaultECR
+      repository: case-sink
     kustomize:
       path: plattform/processing/case-sink
       overlays: *defaultOverlays
@@ -179,8 +179,8 @@ component:
       <<: *defaultParameters
       kustomize: bitbucket-fake
     ecr:
-      repository: document-storage-api
       <<: *defaultECR
+      repository: document-storage-api
     kustomize:
       path: plattform/utility/document-storage
       overlays: *defaultOverlays
@@ -188,8 +188,8 @@ component:
   backend_msg: &backend_msg
     parameters: *defaultParameters
     ecr:
-      repository: hawk-hawkai-case-manager-backend-msg
       <<: *defaultECR
+      repository: hawk-hawkai-case-manager-backend-msg
     kustomize:
       path: plattform/case-manager/backend
       overlays: *defaultOverlays
@@ -197,8 +197,8 @@ component:
   backend_rest: &backend_rest
     parameters: *defaultParameters
     ecr:
-      repository: hawk-hawkai-case-manager-backend-rest
       <<: *defaultECR      
+      repository: hawk-hawkai-case-manager-backend-rest
     kustomize:
       path: plattform/case-manager/backend
       overlays: *defaultOverlays
@@ -206,8 +206,8 @@ component:
   backend_grouping: &backend_grouping
     parameters: *defaultParameters
     ecr:
-      repository: hawk-backend-grouping
       <<: *defaultECR
+      repository: hawk-backend-grouping
     kustomize:
       path: plattform/case-manager/backend
       overlays: *defaultOverlays
@@ -215,8 +215,8 @@ component:
   backend_search: &backend_search
     parameters: *defaultParameters
     ecr:
-      repository: hawk-backend-search
       <<: *defaultECR
+      repository: hawk-backend-search
     kustomize:
       path: plattform/case-manager/backend
       overlays: *defaultOverlays
