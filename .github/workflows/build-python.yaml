@@ -62,7 +62,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
-          python-version: 'python-3.8.8-linux-20.04-x64.tar.gz'
+          python-version: 3.8.8
           cache: 'pip'
 
       - name: Check Python
