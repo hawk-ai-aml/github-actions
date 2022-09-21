@@ -64,6 +64,8 @@ jobs:
         with:
           python-version: 3.8.9
           cache: 'pip'
+          architecture: x64
+          platform: linux
 
       - name: Check Python
         if: ${{ needs.init.outputs.skip-tests != 'true' }}
