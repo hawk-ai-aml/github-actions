@@ -62,10 +62,9 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
-          python-version: 3.8.9
+          python-version: 3.8.8
           cache: 'pip'
           architecture: x64
-          platform: linux
 
       - name: Check Python
         if: ${{ needs.init.outputs.skip-tests != 'true' }}
