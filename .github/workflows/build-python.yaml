@@ -45,7 +45,7 @@ jobs:
 
   build:
     needs: [ init ]
-    runs-on: ["self-hosted", "builder"]
+    runs-on: ubuntu-22.04
     steps:
       - id: init
         name: Init Job
