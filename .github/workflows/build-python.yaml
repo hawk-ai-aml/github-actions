@@ -70,7 +70,7 @@ jobs:
       - name: Run tests
         run: |
           pipenv install --dev
-          pipenv lock --keep-outdated -r > pipenv-requirements.txt
+          pipenv lock --keep-outdated > pipenv-requirements.txt
           cat pipenv-requirements.txt > requirements.txt
           pipenv run tests
 
