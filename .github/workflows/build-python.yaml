@@ -58,8 +58,7 @@ jobs:
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
       - uses: actions/checkout@v3
-      - run: ls -a . && export AGENT_TOOLSDIRECTORY=/path/to/folder
-
+      - run: ls -a .
       - uses: actions/setup-python@v4
         with:
           python-version: '3.8'
