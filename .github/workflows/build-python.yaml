@@ -64,6 +64,15 @@ jobs:
         with:
           python-version: '3.8'
 
+      - name: Install pipenv
+        run: pip install pipenv
+      - name: Run tests
+        run: |
+          pipenv install --dev
+          pipenv lock --keep-outdated > pipenv-requirements.txt
+          cat pipenv-requirements.txt > requirements.txt
+          pipenv run tests
+
       #      - name: Install pipenv
 #        run: python3.8 install pipenv
 #
