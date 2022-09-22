@@ -60,15 +60,18 @@ jobs:
       - uses: actions/checkout@v3
       - run: ls -a .
 
-      - name: Install pipenv
-        run: ~/.py3/bin/pip install pipenv
+      - run: sudo apt install python3.8 -y
 
-      - name: Run tests
-        run: |
-          ~/.py3/bin/pipenv install --dev
-          ~/.py3/bin/pipenv lock --keep-outdated > pipenv-requirements.txt
-          cat pipenv-requirements.txt > requirements.txt
-          ~/.py3/bin/pipenv run tests
+
+#      - name: Install pipenv
+#        run: python3.8 install pipenv
+#
+#      - name: Run tests
+#        run: |
+#          ~/.py3/bin/pipenv install --dev
+#          ~/.py3/bin/pipenv lock --keep-outdated > pipenv-requirements.txt
+#          cat pipenv-requirements.txt > requirements.txt
+#          ~/.py3/bin/python run tests
 
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v1
