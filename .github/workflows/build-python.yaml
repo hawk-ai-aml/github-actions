@@ -64,7 +64,7 @@ jobs:
           python-version: '3.8'
 
       - name: Install pipenv
-        run: pip install pipenv
+        run: ~/.py3/bin/pip install pipenv
 
       - name: Run tests
         run: |
@@ -72,9 +72,6 @@ jobs:
           pipenv lock --keep-outdated > pipenv-requirements.txt
           cat pipenv-requirements.txt > requirements.txt
           pipenv run tests
-
-      - name: Check Python
-        run: python --version
 
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v1
