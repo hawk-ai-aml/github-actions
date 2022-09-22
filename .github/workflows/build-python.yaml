@@ -74,8 +74,8 @@ jobs:
 #          cat pipenv-requirements.txt > requirements.txt
 #          ~/.py3/bin/python run tests
 
-     - name: lol
-       run: python --version
+      - name: lol
+        run: python --version
 
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v1
