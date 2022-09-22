@@ -58,7 +58,7 @@ jobs:
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
       - uses: actions/checkout@v3
-      - run: ls -a . && export AGENT_TOOLSDIRECTORY=/opt/hostedtoolcache && sleep 30000
+      - run: ls -a .
 
       - name: Install pipenv
         run: ~/.py3/bin/pip install pipenv
