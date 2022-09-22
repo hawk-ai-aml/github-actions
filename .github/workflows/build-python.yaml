@@ -65,10 +65,10 @@ jobs:
 
       - name: Run tests
         run: |
-          pipenv install --dev
-          pipenv lock --keep-outdated > pipenv-requirements.txt
+          ~/.py3/bin/pipenv install --dev
+          ~/.py3/bin/pipenv lock --keep-outdated > pipenv-requirements.txt
           cat pipenv-requirements.txt > requirements.txt
-          pipenv run tests
+          ~/.py3/bin/pipenv run tests
 
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v1
