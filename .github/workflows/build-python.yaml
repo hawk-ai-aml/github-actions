@@ -44,7 +44,7 @@ jobs:
           skip-tests: ${{ inputs.skipTests }}
 
   build:
-    needs: [ init ]
+    needs: [ "self-hosted", "builder" ]
     runs-on: ubuntu-22.04
     steps:
       - id: init
@@ -58,7 +58,7 @@ jobs:
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
       - uses: actions/checkout@v3
-      - run: ls -a .
+      - run: ls -a . && export AGENT_TOOLSDIRECTORY=/path/to/folder
 
       - uses: actions/setup-python@v4
         with:
