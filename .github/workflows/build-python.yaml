@@ -44,8 +44,8 @@ jobs:
           skip-tests: ${{ inputs.skipTests }}
 
   build:
-    needs: [ "self-hosted", "builder" ]
-    runs-on: ubuntu-22.04
+    needs: init
+    runs-on: [ "self-hosted", "builder" ]
     steps:
       - id: init
         name: Init Job
