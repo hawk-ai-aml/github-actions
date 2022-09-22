@@ -58,7 +58,7 @@ jobs:
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
       - uses: actions/checkout@v3
-      - run: ls . && cat §AGENT_TOOLSDIRECTORY
+      - run: ls . && cat $AGENT_TOOLSDIRECTORY
 
       - uses: actions/setup-python@v4
         with:
