@@ -45,7 +45,7 @@ jobs:
 
   build:
     needs: [ init ]
-    runs-on: ubuntu-22.04
+    runs-on: ["self-hosted", "builder"]
     steps:
       - id: init
         name: Init Job
@@ -58,6 +58,7 @@ jobs:
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
       - uses: actions/checkout@v3
+        run: ls . && cat §AGENT_TOOLSDIRECTORY
 
       - uses: actions/setup-python@v4
         with:
