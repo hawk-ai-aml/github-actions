@@ -99,9 +99,9 @@ jobs:
           ARTIFACTORY_USERNAME: ${{ secrets.ARTIFACTORY_USERNAME }}
           ARTIFACTORY_PASSWORD: ${{ secrets.ARTIFACTORY_PASSWORD }}
         run: |
-          ./gradlew check -isS
-          mkdir -p reports/{core,rest}/build
-          cp -r core/build/reports reports/core/build/reports
+          ./gradlew check -isS ;
+          mkdir -p reports/{core,rest}/build &&
+          cp -r core/build/reports reports/core/build/reports ;
           cp -r rest/build/reports reports/rest/build/reports
 
       - name: Upload Reports to S3
