@@ -132,7 +132,7 @@ component:
   blacklist:
     parameters:
       <<: *defaultParameters
-      kustomize: bitbucket-fake
+      kustomize: bitbucket
     ecr:
       <<: *defaultECR
       repository: hawkai-blacklist-msg
@@ -143,7 +143,7 @@ component:
   regulatory-check:
     parameters:
       <<: *defaultParameters
-      kustomize: bitbucket-fake
+      kustomize: bitbucket
       java-version: 17
     ecr:
       <<: *defaultECR
@@ -155,7 +155,7 @@ component:
   watchtower:
     parameters:
       <<: *defaultParameters
-      kustomize: bitbucket-fake
+      kustomize: bitbucket
     ecr:
       <<: *defaultECR
       repository: watchtower
@@ -166,7 +166,7 @@ component:
   case-sink:
     parameters:
       <<: *defaultParameters
-      kustomize: bitbucket-fake
+      kustomize: bitbucket
     ecr:
       <<: *defaultECR
       repository: case-sink
