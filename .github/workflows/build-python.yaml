@@ -90,7 +90,7 @@ jobs:
           ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
           ECR_REPOSITORY: ${{ fromJson(needs.init.outputs.metadata).ecr.repository }}
         run: |
-          pip install -U pip-licenses
+          pipenv install -U pip-licenses
           docker build -t ${ECR_REPOSITORY}:${{ env.HAWK_IMAGE_TAG }} .
           docker push ${ECR_REGISTRY}/${ECR_REPOSITORY}:${{ env.HAWK_IMAGE_TAG }}
 #
