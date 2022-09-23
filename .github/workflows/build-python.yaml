@@ -91,9 +91,22 @@ jobs:
           ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
           ECR_REPOSITORY: ${{ fromJson(needs.init.outputs.metadata).ecr.repository }}
         run: |
-          pipenv install pip-licenses
           DOCKER_BUILDKIT=1 docker build -t ${ECR_REPOSITORY}:${{ env.HAWK_IMAGE_TAG }} .
-          docker push ${ECR_REPOSITORY}:${{ env.HAWK_IMAGE_TAG }}
+
+      - name: Push Image
+        id: push-image
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          ECR_REPOSITORY: ${{ fromJson(needs.init.outputs.metadata).ecr.repository }}
+        run: |
+          export DOCKER_CLI_EXPERIMENTAL=enabled
+          set +e
+          docker manifest inspect ${ECR_REGISTRY}/${ECR_REPOSITORY}:${{ env.HAWK_IMAGE_TAG }} 2>&1> /dev/null
+          inspect_code=$?
+          set -e
+          if [[ "${inspect_code}" != 0 ]]; then
+            docker push ${ECR_REGISTRY}/${ECR_REPOSITORY}:${{ env.HAWK_IMAGE_TAG }}
+          fi
 #
 #  update-overlays:
 #    needs: [ init, build ]
