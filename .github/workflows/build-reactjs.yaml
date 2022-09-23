@@ -58,6 +58,8 @@ jobs:
         uses: borales/actions-yarn@v3.0.0
         with:
           cmd: install
+
+      - name: Build license report
         run: ./node_modules/license-checker/bin/license-checker > licenseReport.txt
 
       - name: Lint
