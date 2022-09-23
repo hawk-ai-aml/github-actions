@@ -70,7 +70,7 @@ jobs:
         run: |
           pipenv install --dev
           pipenv lock --keep-outdated > pipenv-requirements.txt
-          cat pipenv-requirements.txt > requirements.txt
+          pipenv requirements > requirements.txt
           echo requirements.txt
 
       - name: Configure AWS credentials
