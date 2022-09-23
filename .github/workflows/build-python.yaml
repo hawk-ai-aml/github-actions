@@ -71,7 +71,6 @@ jobs:
           pipenv install --dev
           pipenv lock --keep-outdated > pipenv-requirements.txt
           cat pipenv-requirements.txt > requirements.txt
-          pipenv run tests
 
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v1
@@ -88,31 +87,11 @@ jobs:
 
       - name: Build image
         env:
-          ARTIFACTORY_CONTEXT_URL: ${{ secrets.ARTIFACTORY_CONTEXT_URL }}
-          ARTIFACTORY_USERNAME: ${{ secrets.ARTIFACTORY_USERNAME }}
-          ARTIFACTORY_PASSWORD: ${{ secrets.ARTIFACTORY_PASSWORD }}
           ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
           ECR_REPOSITORY: ${{ fromJson(needs.init.outputs.metadata).ecr.repository }}
         run: |
-          ./gradlew build -Dskip.tests=true -x test
-          ./gradlew jibDockerBuild -DIMAGE_NAME="${ECR_REGISTRY}/${ECR_REPOSITORY}" -DTAG_COMMIT=${{ env.HAWK_IMAGE_TAG }}
-
-      - name: Push Image
-        id: push-image
-        env:
-          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
-          ECR_REPOSITORY: ${{ fromJson(needs.init.outputs.metadata).ecr.repository }}
-        run: |
-          export DOCKER_CLI_EXPERIMENTAL=enabled
-
-          set +e
-          docker manifest inspect ${ECR_REGISTRY}/${ECR_REPOSITORY}:${{ env.HAWK_IMAGE_TAG }} 2>&1> /dev/null
-          inspect_code=$?
-          set -e
-
-          if [[ "${inspect_code}" != 0 ]]; then
-            docker push ${ECR_REGISTRY}/${ECR_REPOSITORY}:${{ env.HAWK_IMAGE_TAG }}
-          fi
+          docker build -t ${ECR_REPOSITORY}:${{ env.HAWK_IMAGE_TAG }}
+          docker push ${ECR_REGISTRY}/${ECR_REPOSITORY}:${{ env.HAWK_IMAGE_TAG }}
 #
 #  update-overlays:
 #    needs: [ init, build ]
