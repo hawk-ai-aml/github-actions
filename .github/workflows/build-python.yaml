@@ -93,7 +93,7 @@ jobs:
         run: |
           pipenv install pip-licenses
           DOCKER_BUILDKIT=1 docker build -t ${ECR_REPOSITORY}:${{ env.HAWK_IMAGE_TAG }} .
-          docker push ${ECR_REGISTRY}/${ECR_REPOSITORY}:${{ env.HAWK_IMAGE_TAG }}
+          docker push ${ECR_REPOSITORY}:${{ env.HAWK_IMAGE_TAG }}
 #
 #  update-overlays:
 #    needs: [ init, build ]
