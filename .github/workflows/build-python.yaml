@@ -71,7 +71,7 @@ jobs:
           pipenv install --dev
           pipenv lock --keep-outdated > pipenv-requirements.txt
           pipenv requirements > requirements.txt
-          echo requirements.txt
+          pipenv run tests
 
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v1
