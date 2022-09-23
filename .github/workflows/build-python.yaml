@@ -91,7 +91,7 @@ jobs:
           ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
           ECR_REPOSITORY: ${{ fromJson(needs.init.outputs.metadata).ecr.repository }}
         run: |
-          DOCKER_BUILDKIT=1 docker build -t ${ECR_REPOSITORY}:${{ env.HAWK_IMAGE_TAG }} .
+          DOCKER_BUILDKIT=1 docker build -t ${ECR_REGISTRY}/${ECR_REPOSITORY}:${{ env.HAWK_IMAGE_TAG }} .
 
       - name: Push Image
         id: push-image
