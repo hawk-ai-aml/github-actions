@@ -99,7 +99,7 @@ jobs:
           ARTIFACTORY_USERNAME: ${{ secrets.ARTIFACTORY_USERNAME }}
           ARTIFACTORY_PASSWORD: ${{ secrets.ARTIFACTORY_PASSWORD }}
         run: |
-          ./gradlew check -isS
+          ./gradlew check -isS || true
           mkdir -p reports/{core,rest}/build
           cp -r core/build/reports reports/core/build/reports
           cp -r rest/build/reports reports/rest/build/reports
