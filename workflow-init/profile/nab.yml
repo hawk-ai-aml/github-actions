@@ -179,6 +179,7 @@ component:
     ecr:
       <<: *defaultECR
       repository: hawk-document-storage-api
+      repository-prefix: hawk-
     kustomize:
       path: plattform/utility/document-storage
       overlays: *defaultOverlays
