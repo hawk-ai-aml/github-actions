@@ -119,13 +119,6 @@ jobs:
           source_dir: reports
           destination_dir: ${{ github.event.repository.name }}-${{ github.run_id }}
 
-      - name: Publish artifacts to Artifactory
-        env: 
-          ARTIFACTORY_CONTEXT_URL: ${{ secrets.ARTIFACTORY_CONTEXT_URL }}
-          ARTIFACTORY_USERNAME: ${{ secrets.ARTIFACTORY_DEPLOY_USERNAME }}
-          ARTIFACTORY_PASSWORD: ${{ secrets.ARTIFACTORY_DEPLOY_PASSWORD }}
-        run: ./gradlew :model:artifactoryPublish :client:artifactoryPublish
-
       - name: Provide Links to Reports
         if: needs.init.outputs.skip-tests != 'true' && (success() || failure())
         run: |
