@@ -71,7 +71,7 @@ jobs:
           pipenv install --dev
           pipenv lock --keep-outdated > pipenv-requirements.txt
           pipenv requirements > requirements.txt
-          pipenv run pytest tests --junit=report.xml
+          pipenv run pytest tests --junitxml=report.xml
 
       - name: Upload Reports to S3
         id: reports
