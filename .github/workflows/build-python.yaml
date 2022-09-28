@@ -66,15 +66,14 @@ jobs:
 
       - name: Install pipenv
         run: pip install pipenv
-      - name: Run tests
+      - name: Run Pytest
         run: |
           pipenv install --dev
           pipenv lock --keep-outdated > pipenv-requirements.txt
           pipenv requirements > requirements.txt
           pipenv run pytest tests --junitxml=report.xml
           pipenv run junit2html report.xml report.html
-          mkdir report-dir
-          mv report.html ./report-dir/report.html
+          mkdir report-dir && mv report.html ./report-dir/report.html
 
       - name: Upload Reports to S3
         id: reports
