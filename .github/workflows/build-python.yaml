@@ -86,18 +86,6 @@ jobs:
           source_dir: ./report-dir
           destination_dir: ${{ github.event.repository.name }}-${{ github.run_id }}
 
-      - name: Provide Links to Reports
-        if: needs.init.outputs.skip-tests != 'true' && (success() || failure())
-        run: |
-          echo "### Test Reports" | tee -a ${GITHUB_STEP_SUMMARY}
-          report_url=https://github-actions-static-html-2.s3.amazonaws.com/${{ github.event.repository.name }}-${{ github.run_id }}/
-          for report_file_loc in ${{ join(fromJSON(steps.reports.outputs.object_locations), ' ') }}; do
-            report_basename=${report_file_loc##${report_url}}
-            if [[ ${report_file_loc} == */main.html || ${report_file_loc} == */index.html || ${report_file_loc} == */licenseReport.html ]]; then
-              echo "* [${report_basename}](${report_file_loc})" | tee -a ${GITHUB_STEP_SUMMARY}
-            fi
-          done
-
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v1
         with:
