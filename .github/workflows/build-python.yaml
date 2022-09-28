@@ -83,7 +83,7 @@ jobs:
           aws_key_id: ${{ secrets.AWS_DEV_ACCESS_KEY_ID }}
           aws_secret_access_key: ${{ secrets.AWS_DEV_SECRET_ACCESS_KEY }}
           aws_bucket: github-actions-static-html-2
-          source_dir: .report.html
+          source_dir: ./report.html
           destination_dir: ${{ github.event.repository.name }}-${{ github.run_id }}
 
       - name: Provide Links to Reports
