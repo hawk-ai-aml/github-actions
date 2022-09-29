@@ -185,6 +185,17 @@ component:
       path: plattform/utility/document-storage
       overlays: *defaultOverlays
 
+  entity-resolution:
+    parameters:
+      <<: *defaultParameters
+      kustomize: bitbucket-fake
+    ecr:
+      <<: *defaultECR
+      repository: entity-resolution
+    kustomize:
+      path: plattform/ai/entity-resolution
+      overlays: *defaultOverlays
+
   backend_msg: &backend_msg
     parameters: *defaultParameters
     ecr:
