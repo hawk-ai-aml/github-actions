@@ -128,7 +128,7 @@ component:
   blacklist:
     parameters:
       <<: *defaultParameters
-      kustomize: bitbucket-fake
+      kustomize: bitbucket
     ecr:
       <<: *defaultECR
       repository: hawk-hawkai-blacklist-msg
@@ -140,7 +140,7 @@ component:
   regulatory-check:
     parameters:
       <<: *defaultParameters
-      kustomize: bitbucket-fake
+      kustomize: bitbucket
       java-version: 17
     ecr:
       <<: *defaultECR
@@ -152,7 +152,7 @@ component:
   watchtower:
     parameters:
       <<: *defaultParameters
-      kustomize: bitbucket-fake
+      kustomize: bitbucket
     ecr:
       <<: *defaultECR
       repository: hawk-hawkai-watchtower
@@ -163,7 +163,7 @@ component:
   case-sink:
     parameters:
       <<: *defaultParameters
-      kustomize: bitbucket-fake
+      kustomize: bitbucket
     ecr:
       <<: *defaultECR
       repository: hawk-case-sink
@@ -179,6 +179,7 @@ component:
     ecr:
       <<: *defaultECR
       repository: hawk-document-storage-api
+      repository-prefix: hawk-
     kustomize:
       path: plattform/utility/document-storage
       overlays: *defaultOverlays
