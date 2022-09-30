@@ -260,3 +260,14 @@ component:
     kustomize:
       path: plattform/utility/configuration
       overlays: *defaultOverlays
+
+  frontend:
+    parameters:
+      <<: *defaultParameters
+      kustomize: bitbucket-fake
+    ecr:
+      <<: *defaultECR
+      repository: frontend
+    kustomize:
+      path: plattform/case-manager/frontend
+      overlays: *defaultOverlays
