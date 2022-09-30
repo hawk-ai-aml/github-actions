@@ -266,7 +266,7 @@ component:
       kustomize: bitbucket-fake
     ecr:
       <<: *defaultECR
-      repository: frontend
+      repository: hawkai-case-manager-frontend
     kustomize:
       path: plattform/case-manager/frontend
       overlays: *defaultOverlays
