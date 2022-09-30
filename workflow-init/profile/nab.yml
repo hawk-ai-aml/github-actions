@@ -190,7 +190,8 @@ component:
       kustomize: bitbucket-fake
     ecr:
       <<: *defaultECR
-      repository: entity-resolution
+      repository: hawk-entity-resolution
+      repository-prefix: hawk-
     kustomize:
       path: plattform/ai/entity-resolution
       overlays: *defaultOverlays
