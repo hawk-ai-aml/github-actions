@@ -134,6 +134,9 @@ jobs:
           registries: ${{ fromJson(needs.init.outputs.metadata).ecr.registry }}
 
       - name: Build image
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          ECR_REPOSITORY: ${{ fromJson(needs.init.outputs.metadata).ecr.repository }}
         run: |
           docker build --no-cache -t ${ECR_REGISTRY}/${ECR_REPOSITORY}:${{ env.HAWK_IMAGE_TAG }}
           aws ecr get-login-password --region eu-central-1 docker | login --username AWS --password-stdin ${{ steps.login-ecr.outputs.registry }}.dkr.ecr.eu-central-1.amazonaws.com
