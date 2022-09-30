@@ -247,3 +247,15 @@ component:
       - *backend_rest
       - *backend_grouping
       - *backend_search
+
+  configuration:
+    parameters:
+      <<: *defaultParameters
+      kustomize: bitbucket-fake
+      java-version: 17
+    ecr:
+      <<: *defaultECR
+      repository: configuration
+    kustomize:
+      path: plattform/utility/configuration
+      overlays: *defaultOverlays
