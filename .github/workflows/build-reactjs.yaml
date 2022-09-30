@@ -39,7 +39,12 @@ jobs:
 
   build:
     needs: [ init ]
-    runs-on: [ "self-hosted", "builder" ]
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        node: [ 18.x ]
+
     steps:
       - id: init
         name: Init Job
@@ -53,26 +58,44 @@ jobs:
 
       - uses: actions/checkout@v3
 
-      - name: Yarn install
-        uses: borales/actions-yarn@v3.0.0
+      - name: Get yarn cache
+        id: yarn-cache
+        run: echo "::set-output name=dir::$(yarn cache dir)"
+
+      - uses: actions/cache@v1
         with:
-          cmd: install
+          path: ${{ steps.yarn-cache.outputs.dir }}
+          key: ${{ runner.os }}-yarn-${{ hashFiles('**/yarn.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-yarn-
+
+      - name: Set up Node
+        uses: actions/setup-node@v3
+        with:
+          node-version: ${{ matrix.node }}
+
+      - name: Npm install
+        uses: jaid/action-npm-install@v1.2.1
+
+      - name: Install Yarn
+        run: npm install -g yarn
+
+      - name: Install packages
+        run: yarn install
 
       - name: Build license report
         run: ./node_modules/license-checker/bin/license-checker > licenseReport.txt
 
-      - name: Lint
+      - name: Lint check
         run: yarn run prettier:check
 
       - name: Yarn test
-        uses: borales/actions-yarn@v3.0.0
-        with:
-          cmd: test
+        run: yarn run test
 
       - name: Yarn build
-        uses: borales/actions-yarn@v3.0.0
-        with:
-          cmd: build
+        env:
+          NODE_OPTIONS: "--max_old_space_size=4096"
+        run: yarn run build
 
 #      - name: Upload Reports to S3
 #        id: reports
@@ -96,79 +119,82 @@ jobs:
 #              echo "* [${report_basename}](${report_file_loc})" | tee -a ${GITHUB_STEP_SUMMARY}
 #            fi
 #          done
-#
-#      - name: Configure AWS credentials
-#        uses: aws-actions/configure-aws-credentials@v1
-#        with:
-#          aws-access-key-id: ${{ inputs.profile == 'nab' && secrets.AWS_NAB_DEV_ECR_ACCESS_KEY_ID || secrets.AWS_ORG_ECR_ACCESS_KEY_ID }}
-#          aws-secret-access-key: ${{ inputs.profile == 'nab' && secrets.AWS_NAB_DEV_ECR_SECRET_ACCESS_KEY || secrets.AWS_ORG_ECR_SECRET_ACCESS_KEY }}
-#          aws-region: ${{ fromJson(needs.init.outputs.metadata).ecr.region }}
-#
-#      - name: Login to Amazon ECR
-#        id: login-ecr
-#        uses: aws-actions/amazon-ecr-login@v1
-#        with:
-#          registries: ${{ fromJson(needs.init.outputs.metadata).ecr.registry }}
-#
-#      - name: Build image
-#        run: |
-#          docker build --no-cache -t ${ECR_REGISTRY}/${ECR_REPOSITORY}:${{ env.HAWK_IMAGE_TAG }}
-#          aws ecr get-login-password --region eu-central-1 docker | login --username AWS --password-stdin ${{ steps.login-ecr.outputs.registry }}.dkr.ecr.eu-central-1.amazonaws.com
-#
-#      - name: Push Image
-#        id: push-image
-#        env:
-#          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
-#          ECR_REPOSITORY: ${{ fromJson(needs.init.outputs.metadata).ecr.repository }}
-#        run: |
-#          export DOCKER_CLI_EXPERIMENTAL=enabled
-#
-#          set +e
-#          docker manifest inspect ${ECR_REGISTRY}/${ECR_REPOSITORY}:${{ env.HAWK_IMAGE_TAG }} 2>&1> /dev/null
-#          inspect_code=$?
-#          set -e
-#
-#          if [[ "${inspect_code}" != 0 ]]; then
-#            docker push ${ECR_REGISTRY}/${ECR_REPOSITORY}:${{ env.HAWK_IMAGE_TAG }}
-#          fi
-#
-#  update-overlays:
-#    needs: [ init, build ]
-#    if: ${{ needs.init.outputs.update-kustomize == 'true' }}
-#    runs-on: [ "self-hosted", "builder" ]
-#    strategy:
-#      # Avoid race condition issues with github
-#      max-parallel: 1
-#      matrix:
-#        overlay: ${{fromJson(needs.init.outputs.overlays)}}
-#
-#    steps:
-#      - id: init
-#        name: Init Job
-#        uses: hawk-ai-aml/job-init@master
-#
-#      - id: udpate-overlay-github
-#        name: Update kustomize overlay
-#        if: fromJson(needs.init.outputs.parameters).kustomize == 'github' || fromJson(needs.init.outputs.parameters).kustomize == 'github-fake'
-#        uses: hawk-ai-aml/github-actions/kustomize-overlay@master
-#        with:
-#          component-metadata: ${{ needs.init.outputs.metadata }}
-#          component-overlay: ${{ matrix.overlay }}
-#          component-tag: ${{ env.HAWK_IMAGE_TAG }}
-#          kustomize-repo: ${{ fromJson(needs.init.outputs.parameters).kustomize == 'github-fake' && 'hawk-ai-aml/kustomize2.git' || 'hawk-ai-aml/kustomize.git' }}
-#          kustomize-access-token: ${{ secrets.REPO_ACCESS_PAT }}
-#          aws-access-key-id: ${{ inputs.profile == 'nab' && secrets.AWS_NAB_DEV_ECR_ACCESS_KEY_ID || secrets.AWS_ORG_ECR_ACCESS_KEY_ID }}
-#          aws-secret-access-key: ${{ inputs.profile == 'nab' && secrets.AWS_NAB_DEV_ECR_SECRET_ACCESS_KEY || secrets.AWS_ORG_ECR_SECRET_ACCESS_KEY }}
-#
-#      - id: udpate-overlay-bitbucket
-#        name: Update kustomize overlay
-#        if: fromJson(needs.init.outputs.parameters).kustomize == 'bitbucket' || fromJson(needs.init.outputs.parameters).kustomize == 'bitbucket-fake'
-#        uses: hawk-ai-aml/github-actions/kustomize-overlay-ssh@master
-#        with:
-#          component-metadata: ${{ needs.init.outputs.metadata }}
-#          component-overlay: ${{ matrix.overlay }}
-#          component-tag: ${{ env.HAWK_IMAGE_TAG }}
-#          kustomize-repo: ${{ fromJson(needs.init.outputs.parameters).kustomize == 'bitbucket-fake' && 'git@bitbucket.org:hawkai/kustomize2.git' || 'git@bitbucket.org:hawkai/kustomize.git' }}
-#          kustomize-ssh-key: ${{ secrets.KUSTOMIZE_DEPLOY_PRIVATE_KEY }}
-#          aws-access-key-id: ${{ inputs.profile == 'nab' && secrets.AWS_NAB_DEV_ECR_ACCESS_KEY_ID || secrets.AWS_ORG_ECR_ACCESS_KEY_ID }}
-#          aws-secret-access-key: ${{ inputs.profile == 'nab' && secrets.AWS_NAB_DEV_ECR_SECRET_ACCESS_KEY || secrets.AWS_ORG_ECR_SECRET_ACCESS_KEY }}
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          aws-access-key-id: ${{ inputs.profile == 'nab' && secrets.AWS_NAB_DEV_ECR_ACCESS_KEY_ID || secrets.AWS_ORG_ECR_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ inputs.profile == 'nab' && secrets.AWS_NAB_DEV_ECR_SECRET_ACCESS_KEY || secrets.AWS_ORG_ECR_SECRET_ACCESS_KEY }}
+          aws-region: ${{ fromJson(needs.init.outputs.metadata).ecr.region }}
+
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v1
+        with:
+          registries: ${{ fromJson(needs.init.outputs.metadata).ecr.registry }}
+
+      - name: Build image
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          ECR_REPOSITORY: ${{ fromJson(needs.init.outputs.metadata).ecr.repository }}
+        run: |
+          docker build --no-cache -t ${ECR_REGISTRY}/${ECR_REPOSITORY}:${{ env.HAWK_IMAGE_TAG }}
+          aws ecr get-login-password --region eu-central-1 docker | login --username AWS --password-stdin ${{ steps.login-ecr.outputs.registry }}.dkr.ecr.eu-central-1.amazonaws.com
+
+      - name: Push Image
+        id: push-image
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          ECR_REPOSITORY: ${{ fromJson(needs.init.outputs.metadata).ecr.repository }}
+        run: |
+          export DOCKER_CLI_EXPERIMENTAL=enabled
+
+          set +e
+          docker manifest inspect ${ECR_REGISTRY}/${ECR_REPOSITORY}:${{ env.HAWK_IMAGE_TAG }} 2>&1> /dev/null
+          inspect_code=$?
+          set -e
+
+          if [[ "${inspect_code}" != 0 ]]; then
+            docker push ${ECR_REGISTRY}/${ECR_REPOSITORY}:${{ env.HAWK_IMAGE_TAG }}
+          fi
+
+  update-overlays:
+    needs: [ init, build ]
+    if: ${{ needs.init.outputs.update-kustomize == 'true' }}
+    runs-on: [ "self-hosted", "builder" ]
+    strategy:
+      # Avoid race condition issues with github
+      max-parallel: 1
+      matrix:
+        overlay: ${{fromJson(needs.init.outputs.overlays)}}
+
+    steps:
+      - id: init
+        name: Init Job
+        uses: hawk-ai-aml/job-init@master
+
+      - id: udpate-overlay-github
+        name: Update kustomize overlay
+        if: fromJson(needs.init.outputs.parameters).kustomize == 'github' || fromJson(needs.init.outputs.parameters).kustomize == 'github-fake'
+        uses: hawk-ai-aml/github-actions/kustomize-overlay@master
+        with:
+          component-metadata: ${{ needs.init.outputs.metadata }}
+          component-overlay: ${{ matrix.overlay }}
+          component-tag: ${{ env.HAWK_IMAGE_TAG }}
+          kustomize-repo: ${{ fromJson(needs.init.outputs.parameters).kustomize == 'github-fake' && 'hawk-ai-aml/kustomize2.git' || 'hawk-ai-aml/kustomize.git' }}
+          kustomize-access-token: ${{ secrets.REPO_ACCESS_PAT }}
+          aws-access-key-id: ${{ inputs.profile == 'nab' && secrets.AWS_NAB_DEV_ECR_ACCESS_KEY_ID || secrets.AWS_ORG_ECR_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ inputs.profile == 'nab' && secrets.AWS_NAB_DEV_ECR_SECRET_ACCESS_KEY || secrets.AWS_ORG_ECR_SECRET_ACCESS_KEY }}
+
+      - id: udpate-overlay-bitbucket
+        name: Update kustomize overlay
+        if: fromJson(needs.init.outputs.parameters).kustomize == 'bitbucket' || fromJson(needs.init.outputs.parameters).kustomize == 'bitbucket-fake'
+        uses: hawk-ai-aml/github-actions/kustomize-overlay-ssh@master
+        with:
+          component-metadata: ${{ needs.init.outputs.metadata }}
+          component-overlay: ${{ matrix.overlay }}
+          component-tag: ${{ env.HAWK_IMAGE_TAG }}
+          kustomize-repo: ${{ fromJson(needs.init.outputs.parameters).kustomize == 'bitbucket-fake' && 'git@bitbucket.org:hawkai/kustomize2.git' || 'git@bitbucket.org:hawkai/kustomize.git' }}
+          kustomize-ssh-key: ${{ secrets.KUSTOMIZE_DEPLOY_PRIVATE_KEY }}
+          aws-access-key-id: ${{ inputs.profile == 'nab' && secrets.AWS_NAB_DEV_ECR_ACCESS_KEY_ID || secrets.AWS_ORG_ECR_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ inputs.profile == 'nab' && secrets.AWS_NAB_DEV_ECR_SECRET_ACCESS_KEY || secrets.AWS_ORG_ECR_SECRET_ACCESS_KEY }}
