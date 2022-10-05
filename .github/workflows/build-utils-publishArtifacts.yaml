@@ -8,6 +8,10 @@ on:
         type: boolean
         required: false
         default: false
+      moduleName:
+        description: "The sub project name from utils"
+        type: string
+        required: true
       component:
         type: string
         required: false
@@ -22,7 +26,6 @@ jobs:
       metadata: ${{ steps.init.outputs.metadata }}
       skip-tests: ${{ steps.init.outputs.skip-tests }}
       parameters: ${{ steps.init.outputs.parameters }}
-      module-name: ${{ steps.init.outputs.module-name }}
     steps:
       - id: init
         name: Init Workflow
@@ -32,7 +35,6 @@ jobs:
           component: ${{ inputs.component }}
           update-kustomize: false
           skip-tests: ${{ inputs.skipTests }}
-          module-name: ${{ inputs.moduleName }}
 
   build:
     needs: [ init ]
@@ -96,33 +98,6 @@ jobs:
           ARTIFACTORY_CONTEXT_URL: ${{ secrets.ARTIFACTORY_CONTEXT_URL }}
           ARTIFACTORY_USERNAME: ${{ secrets.ARTIFACTORY_DEPLOY_USERNAME }}
           ARTIFACTORY_PASSWORD: ${{ secrets.ARTIFACTORY_DEPLOY_PASSWORD }}
-        run: ./gradlew :${{ needs.init.outputs.module-name }}:artifactoryPublish
-
-      - name: Aggregate reports for upload
-        if: needs.init.outputs.skip-tests != 'true' && (success() || failure())
         run: |
-          mkdir -p reports/${{ needs.init.outputs.module-name }}/build
-          cp -r ${{ needs.init.outputs.module-name }}/build/reports reports/${{ needs.init.outputs.module-name }}/build/reports
-
-      - name: Upload Reports to S3
-        id: reports
-        if: needs.init.outputs.skip-tests != 'true' && (success() || failure())
-        uses: hawk-ai-aml/upload-s3-action@master
-        with:
-          aws_key_id: ${{ secrets.AWS_DEV_ACCESS_KEY_ID }}
-          aws_secret_access_key: ${{ secrets.AWS_DEV_SECRET_ACCESS_KEY }}
-          aws_bucket: github-actions-static-html-2
-          source_dir: reports
-          destination_dir: ${{ github.event.repository.name }}-${{ github.run_id }}
-
-      - name: Provide Links to Reports
-        if: needs.init.outputs.skip-tests != 'true' && (success() || failure())
-        run: |
-          echo "### Test Reports" | tee -a ${GITHUB_STEP_SUMMARY}
-          report_url=https://github-actions-static-html-2.s3.amazonaws.com/${{ github.event.repository.name }}-${{ github.run_id }}/
-          for report_file_loc in ${{ join(fromJSON(steps.reports.outputs.object_locations), ' ') }}; do
-            report_basename=${report_file_loc##${report_url}}
-            if [[ ${report_file_loc} == */main.html || ${report_file_loc} == */index.html || ${report_file_loc} == */licenseReport.html ]]; then
-              echo "* [${report_basename}](${report_file_loc})" | tee -a ${GITHUB_STEP_SUMMARY}
-            fi
-          done
+          echo "publishing --> ${{ inputs.moduleName }}"
+          ./gradlew :${{ inputs.moduleName }}:artifactoryPublish
