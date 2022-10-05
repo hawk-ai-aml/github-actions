@@ -270,3 +270,8 @@ component:
     kustomize:
       path: plattform/case-manager/frontend
       overlays: *defaultOverlays
+
+  utils:
+    parameters:
+      <<: *defaultParameters
+      kustomize: bitbucket-fake
