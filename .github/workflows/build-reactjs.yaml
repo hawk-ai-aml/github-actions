@@ -66,6 +66,7 @@ jobs:
         uses: actions/setup-node@v3
         with:
           node-version: ${{ matrix.node }}
+          cache: 'yarn'
 
       - name: Npm install
         uses: jaid/action-npm-install@v1.2.1
