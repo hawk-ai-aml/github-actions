@@ -275,3 +275,8 @@ component:
     parameters:
       <<: *defaultParameters
       kustomize: bitbucket-fake
+
+  processing-model:
+    parameters:
+      <<: *defaultParameters
+      kustomize: bitbucket-fake
