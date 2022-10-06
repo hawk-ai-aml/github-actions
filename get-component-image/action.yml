@@ -1,0 +1,44 @@
+name: get-component-image
+description: Get Component Image for specific profile
+
+inputs:
+  component:
+    description: "Component to retrieve metadata"
+    required: true
+
+  profile:
+    description: Metadata profile
+    required: false
+    default: hawk
+
+outputs:
+  image-name:
+    description: 'Component image name'
+    value: ${{ steps.vars.outputs.image-name }}
+
+runs:
+  using: composite
+  steps:
+    - id: get-profile
+      name: Get Profile
+      uses: hawk-ai-aml/github-actions/workflow-init@master
+      with:
+        profile: ${{ inputs.profile }}
+        component: ${{ inputs.component }}
+        update-kustomize: false
+
+    - id: fail-if-no-ecr-block
+      if: ${{ ! fromJson(steps.get-profile.outputs.metadata).ecr }}
+      uses: actions/github-script@v3
+      with:
+        script: |
+          core.setFailed('ECR metadata is not present!')
+
+    - id: vars
+      shell: bash
+      run: |
+        REPOSITORY=${{ fromJson(steps.get-profile.outputs.metadata).ecr.repository }}
+        REGION=${{ fromJson(steps.get-profile.outputs.metadata).ecr.region }}
+        REGISTRY=${{ fromJson(steps.get-profile.outputs.metadata).ecr.registry }}
+
+        echo "::set-output name=image-name::${REGISTRY}.dkr.ecr.${REGION}.amazonaws.com/${REPOSITORY}"
