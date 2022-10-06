@@ -1,3 +1,5 @@
+# This profile is used only for tests
+
 overlays: &defaultOverlays
   dev: [ ]
   test: [ ]
