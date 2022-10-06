@@ -1,1 +1,1 @@
-# kustomize-overlay-action
+# get-component-image

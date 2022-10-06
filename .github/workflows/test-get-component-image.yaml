@@ -1,0 +1,54 @@
+name: test-get-component-image
+on:
+  push:
+    branches:
+      - master
+
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: [ "self-hosted", "builder" ]
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - profile: hawk
+            component: label-engine
+            expected-image-name: 860641649575.dkr.ecr.eu-central-1.amazonaws.com/label-engine
+          - profile: hawk
+            component: secure-storage
+            expected-image-name: 860641649575.dkr.ecr.eu-central-1.amazonaws.com/current-secure-storage
+          - profile: nab
+            component: label-engine
+            expected-image-name: 569345997196.dkr.ecr.us-east-1.amazonaws.com/hawk-label-engine
+          - profile: nab
+            component: secure-storage
+            expected-image-name: 569345997196.dkr.ecr.us-east-1.amazonaws.com/hawk-current-secure-storage
+
+    steps:
+      - id: init
+        name: Get image name
+        uses: hawk-ai-aml/github-actions/get-component-image@master
+        with:
+          profile: ${{ matrix.profile }}
+          component: ${{ matrix.component }}
+      
+      - id: show
+        run: echo ${{ steps.init.outputs.image-name }} | tee -a ${GITHUB_STEP_SUMMARY}
+
+      - id: assert
+        name: Validate
+        uses: actions/github-script@v3
+        env:
+          EXPECTED: ${{ matrix.expected-image-name }}
+          ACTUAL: ${{ steps.init.outputs.image-name }}
+        with:
+          script: |
+            const { EXPECTED, ACTUAL } = process.env
+            if (EXPECTED != ACTUAL ) {
+              core.setFailed(`
+              Expected: ${EXPECTED}
+              Actual:   ${ACTUAL}
+              `)
+            }
