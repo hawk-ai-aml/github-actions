@@ -2,6 +2,10 @@ name: kustomize-overlay
 description: Kustomize Overlay
 
 inputs:
+  component-name:
+    description: "Component name"
+    required: true
+
   component-metadata:
     description: "Component metadata"
     required: true
@@ -14,14 +18,6 @@ inputs:
     description: "New component tag"
     required: true
   
-  aws-access-key-id:
-    description: AWS Access key to access ECR repository
-    required: true
-
-  aws-secret-access-key:
-    description: AWS Secret Access Key to access ECR repository
-    required: true
-
   kustomize-repo:
     description: kustomize repository
     required: true
@@ -33,42 +29,52 @@ inputs:
 runs:
   using: composite
   steps:
-    - name: Configure AWS credentials
-      uses: aws-actions/configure-aws-credentials@v1
+    - name: Get Hawk Image Name
+      id: get-hawk-image-name
+      uses: hawk-ai-aml/github-actions/get-component-image@master
       with:
-        aws-access-key-id: ${{ inputs.aws-access-key-id }}
-        aws-secret-access-key: ${{ inputs.aws-secret-access-key }}
-        aws-region: ${{ fromJson(inputs.component-metadata).ecr.region }}
+        profile: hawk
+        component: ${{ inputs.component-name }}
 
-    - name: Login to Amazon ECR
-      id: login-ecr
-      uses: aws-actions/amazon-ecr-login@v1
+    # https://hawkai.atlassian.net/browse/SRE-629
+    # this relies that all nab overlays are called nab-dev
+    # nicer way is to pass profile, than evaluating overlay
+    - name: Get NAB Image Name
+      id: get-nab-image-name
+      if: inputs.component-overlay == 'nab-dev'
+      uses: hawk-ai-aml/github-actions/get-component-image@master
       with:
-        registries: ${{ fromJson(inputs.component-metadata).ecr.registry }}
+        profile: nab
+        component: ${{ inputs.component-name }}
 
-    # This is from bitbucket actually
     - name: Checkout Kustomize
       uses: actions/checkout@v3
       with:
         repository: ${{ inputs.kustomize-repo }}
         ref: master
         token: ${{ inputs.kustomize-access-token }}
-        # ssh-key: ${{ secrets.KUSTOMIZE_DEPLOY_PRIVATE_KEY }}
 
     - name: Update kustomize Overlay
       shell: bash
       env:
-        ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
-        ECR_REPOSITORY: ${{ fromJson(inputs.component-metadata).ecr.repository }}
+        HAWK_IMAGE_NAME: ${{ steps.get-hawk-image-name.outputs.image-name }}
+        NAB_IMAGE_NAME: ${{ steps.get-nab-image-name.outputs.image-name }}
         KUSTOMIZE_PATH: ${{ fromJson(inputs.component-metadata).kustomize.path }}
         OVERLAY: ${{ inputs.component-overlay }}
       run: |
         cd ${KUSTOMIZE_PATH}/overlays/${OVERLAY}
-        kustomize edit set image ${ECR_REGISTRY}/${ECR_REPOSITORY}:${{ inputs.component-tag }}
+        # https://hawkai.atlassian.net/browse/SRE-629
+        # this relies that all nab overlays are called nab-dev
+        # nicer way is to pass profile, than evaluating overlay
+        if [[ ${OVERLAY} == 'nab-dev' ]]; then
+          kustomize edit set image ${HAWK_IMAGE_NAME}=${NAB_IMAGE_NAME}:${{ inputs.component-tag }}
+        else
+          kustomize edit set image ${HAWK_IMAGE_NAME}:${{ inputs.component-tag }}
+        fi
         if ! git diff --quiet HEAD; then
           git config --global user.name "GitHub Actions"
           git config --global user.email "github-actions@hawk.ai"
           git add .
-          git commit -m "AUTOMATIC COMMIT: Update ${KUSTOMIZE_PATH}/overlays/${OVERLAY} for ${ECR_REPOSITORY} to ${{ env.HAWK_IMAGE_TAG }}"
+          git commit -m "AUTOMATIC COMMIT: Update ${KUSTOMIZE_PATH}/overlays/${OVERLAY} for ${{ inputs.component-name }} to ${{ env.HAWK_IMAGE_TAG }}"
           git push
         fi
