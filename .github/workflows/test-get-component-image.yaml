@@ -52,3 +52,27 @@ jobs:
               Actual:   ${ACTUAL}
               `)
             }
+
+  test-missing-ecr-block:
+    runs-on: [ "self-hosted", "builder" ]
+    steps:
+      - id: init
+        name: Get image name
+        uses: hawk-ai-aml/github-actions/get-component-image@master
+        continue-on-error: true
+        with:
+          profile: hawk
+          component: backend
+
+      - id: assert-failure
+        name: Validate
+        uses: actions/github-script@v3
+        if: always()
+        env:
+          OUTCOME: ${{ steps.init.outcome }}
+        with:
+          script: |
+            const { OUTCOME } = process.env
+            if (OUTCOME != 'failure') {
+              core.setFailed('Expected failure, but got success')
+            }
