@@ -58,11 +58,9 @@ jobs:
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
       - uses: actions/checkout@v3
-      - run: ls -a .
-
       - uses: actions/setup-python@v4
         with:
-          python-version: '3.8'
+          python-version: "3.8.8"
 
       - name: Install pipenv
         run: pip install pipenv
