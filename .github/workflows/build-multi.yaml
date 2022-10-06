@@ -165,10 +165,9 @@ jobs:
         name: Update kustomize overlay
         uses: hawk-ai-aml/github-actions/kustomize-overlay@master
         with:
+          component-name: ${{ inputs.component }}
           component-metadata: ${{ needs.init.outputs.metadata }}
           component-overlay: ${{ matrix.overlay }}
           component-tag: ${{ env.HAWK_IMAGE_TAG }}
           kustomize-repo: hawk-ai-aml/kustomize2.git
           kustomize-access-token: ${{ secrets.REPO_ACCESS_PAT }}
-          aws-access-key-id: ${{ secrets.AWS_ORG_ECR_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_ORG_ECR_SECRET_ACCESS_KEY }}
