@@ -13,16 +13,16 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - profile: hawk
+          - profile: test-hawk
             component: label-engine
             expected-image-name: 860641649575.dkr.ecr.eu-central-1.amazonaws.com/label-engine
-          - profile: hawk
+          - profile: test-hawk
             component: secure-storage
             expected-image-name: 860641649575.dkr.ecr.eu-central-1.amazonaws.com/current-secure-storage
-          - profile: nab
+          - profile: test-nab
             component: label-engine
             expected-image-name: 569345997196.dkr.ecr.us-east-1.amazonaws.com/hawk-label-engine
-          - profile: nab
+          - profile: test-nab
             component: secure-storage
             expected-image-name: 569345997196.dkr.ecr.us-east-1.amazonaws.com/hawk-current-secure-storage
 
@@ -61,7 +61,7 @@ jobs:
         uses: hawk-ai-aml/github-actions/get-component-image@master
         continue-on-error: true
         with:
-          profile: hawk
+          profile: test-hawk
           component: backend
 
       - id: assert-failure

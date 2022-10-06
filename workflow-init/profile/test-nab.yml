@@ -1,0 +1,285 @@
+# This profile is used only for tests
+
+overlays: &defaultOverlays
+  dev: [ ]
+  test: [ ]
+  qa: [ ]
+  prod:
+    - nab-dev
+
+ecr: &defaultECR
+  registry: "569345997196"
+  region: us-east-1
+  repository-prefix: ''
+
+parameters: &defaultParameters
+  java-version: 11
+  # bitbucket, bitbucket-fake, github, github-fake
+  kustomize: bitbucket-fake
+
+component:
+  audit-trail2:
+    parameters: *defaultParameters
+    ecr:
+      <<: *defaultECR
+      repository: hawk-audit-trail
+    kustomize:
+      path: plattform/utility/audit-trail
+      overlays: *defaultOverlays
+
+  audit-trail:
+    parameters:
+      <<: *defaultParameters
+      kustomize: bitbucket
+    ecr:
+      <<: *defaultECR
+      repository: hawk-audit-trail
+    kustomize:
+      path: plattform/utility/audit-trail
+      overlays: *defaultOverlays
+
+  customer-risk-rating-events-sink:
+    parameters:
+      <<: *defaultParameters
+      kustomize: bitbucket
+    ecr:
+      <<: *defaultECR
+      repository: hawk-customer-risk-rating-events-sink
+    kustomize:
+      path: plattform/processing/customer-risk-rating-events-sink
+      overlays: *defaultOverlays
+
+  customer-risk-rating-decision-engine:
+    parameters:
+      <<: *defaultParameters
+      kustomize: bitbucket
+    ecr:
+      <<: *defaultECR
+      repository: hawk-customer-risk-rating-decision-engine
+    kustomize:
+      path: plattform/processing/customer-risk-rating-decision-engine
+      overlays: *defaultOverlays
+
+  feature-enrichment:
+    parameters:
+      <<: *defaultParameters
+      kustomize: bitbucket
+    ecr:
+      <<: *defaultECR
+      repository: hawk-feature-enrichment
+    kustomize:
+      path: plattform/processing/feature-enrichment
+      overlays: *defaultOverlays
+
+  label-engine:
+    parameters:
+      <<: *defaultParameters
+      kustomize: bitbucket
+    ecr:
+      <<: *defaultECR
+      repository: hawk-label-engine
+    kustomize:
+      path: plattform/processing/features/label-engine
+      overlays: *defaultOverlays
+
+  reprocessing:
+    parameters:
+      <<: *defaultParameters
+      kustomize: bitbucket
+    ecr:
+      <<: *defaultECR
+      repository: hawk-reprocessing
+    kustomize:
+      path: plattform/processing/reprocessing
+      overlays: *defaultOverlays
+
+  secure-storage:
+    parameters:
+      <<: *defaultParameters
+      kustomize: bitbucket
+    ecr:
+      <<: *defaultECR
+      repository: hawk-current-secure-storage
+    kustomize:
+      path: plattform/utility/secure-storage
+      overlays: *defaultOverlays
+
+  tenant-management:
+    parameters:
+      <<: *defaultParameters
+      kustomize: bitbucket
+    ecr:
+      <<: *defaultECR
+      repository: hawk-hawkai-tenant-management
+      repository-prefix: hawk-hawkai-
+    kustomize:
+      path: plattform/utility/tenant-management
+      overlays: *defaultOverlays
+
+  transaction-announced-event-reducer:
+    parameters:
+      <<: *defaultParameters
+      kustomize: bitbucket
+    ecr:
+      <<: *defaultECR
+      repository: hawk-transaction-announced-event-reducer
+    kustomize:
+      path: plattform/processing/transaction-announced-event-reducer
+      overlays: *defaultOverlays
+
+  blacklist:
+    parameters:
+      <<: *defaultParameters
+      kustomize: bitbucket
+    ecr:
+      <<: *defaultECR
+      repository: hawk-hawkai-blacklist-msg
+      repository-prefix: hawk-
+    kustomize:
+      path: plattform/processing/features/blacklist
+      overlays: *defaultOverlays
+
+  regulatory-check:
+    parameters:
+      <<: *defaultParameters
+      kustomize: bitbucket
+      java-version: 17
+    ecr:
+      <<: *defaultECR
+      repository: hawk-regulatory-check
+    kustomize:
+      path: plattform/processing/regulatory-check
+      overlays: *defaultOverlays
+
+  watchtower:
+    parameters:
+      <<: *defaultParameters
+      kustomize: bitbucket
+    ecr:
+      <<: *defaultECR
+      repository: hawk-hawkai-watchtower
+    kustomize:
+      path: plattform/watchtower
+      overlays: *defaultOverlays
+
+  case-sink:
+    parameters:
+      <<: *defaultParameters
+      kustomize: bitbucket
+    ecr:
+      <<: *defaultECR
+      repository: hawk-case-sink
+      repository-prefix: hawk-
+    kustomize:
+      path: plattform/processing/case-sink
+      overlays: *defaultOverlays
+
+  document-storage:
+    parameters:
+      <<: *defaultParameters
+      kustomize: bitbucket-fake
+    ecr:
+      <<: *defaultECR
+      repository: hawk-document-storage-api
+      repository-prefix: hawk-
+    kustomize:
+      path: plattform/utility/document-storage
+      overlays: *defaultOverlays
+
+  entity-resolution:
+    parameters:
+      <<: *defaultParameters
+      kustomize: bitbucket-fake
+    ecr:
+      <<: *defaultECR
+      repository: hawk-entity-resolution
+      repository-prefix: hawk-
+    kustomize:
+      path: plattform/ai/entity-resolution
+      overlays: *defaultOverlays
+
+  backend_msg: &backend_msg
+    parameters: *defaultParameters
+    ecr:
+      <<: *defaultECR
+      repository: hawkai-case-manager-backend-msg
+    kustomize:
+      path: plattform/case-manager/backend
+      overlays: *defaultOverlays
+
+  backend_rest: &backend_rest
+    parameters: *defaultParameters
+    ecr:
+      <<: *defaultECR
+      repository: hawkai-case-manager-backend-rest
+    kustomize:
+      path: plattform/case-manager/backend
+      overlays: *defaultOverlays
+
+  backend_grouping: &backend_grouping
+    parameters: *defaultParameters
+    ecr:
+      <<: *defaultECR
+      repository: backend-grouping
+    kustomize:
+      path: plattform/case-manager/backend
+      overlays: *defaultOverlays
+
+  backend_search: &backend_search
+    parameters: *defaultParameters
+    ecr:
+      <<: *defaultECR
+      repository: backend-search
+    kustomize:
+      path: plattform/case-manager/backend
+      overlays: *defaultOverlays
+
+  backend:
+    parameters: *defaultParameters
+    modules:
+      - *backend_msg
+      - *backend_rest
+      - *backend_grouping
+      - *backend_search
+
+  backend2:
+    parameters: *defaultParameters
+    modules:
+      - *backend_msg
+      - *backend_rest
+      - *backend_grouping
+      - *backend_search
+
+  configuration:
+    parameters:
+      <<: *defaultParameters
+      kustomize: bitbucket-fake
+      java-version: 17
+    ecr:
+      <<: *defaultECR
+      repository: hawk-configuration
+      repository-prefix: hawk-
+    kustomize:
+      path: plattform/utility/configuration
+      overlays: *defaultOverlays
+
+  frontend:
+    parameters:
+      <<: *defaultParameters
+      kustomize: bitbucket-fake
+    ecr:
+      <<: *defaultECR
+      repository: frontend
+    kustomize:
+      path: plattform/case-manager/frontend
+      overlays: *defaultOverlays
+
+  utils:
+    parameters:
+      <<: *defaultParameters
+      kustomize: bitbucket-fake
+
+  processing-model:
+    parameters:
+      <<: *defaultParameters
+      kustomize: bitbucket-fake
