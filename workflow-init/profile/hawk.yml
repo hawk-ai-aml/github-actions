@@ -53,7 +53,6 @@ component:
       path: plattform/utility/audit-trail
       overlays: *defaultOverlays
 
-
   backend_msg: &backend_msg
     parameters: *defaultParameters
     ecr:
@@ -105,7 +104,6 @@ component:
       - *backend_rest
       - *backend_grouping
       - *backend_search
-
 
   blacklist:
     parameters:
