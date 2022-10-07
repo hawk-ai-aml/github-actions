@@ -35,7 +35,7 @@ jobs:
     steps:
       - id: init
         name: Init Workflow
-        uses: hawk-ai-aml/github-actions/workflow-init@master
+        uses: hawk-ai-aml/github-actions/workflow-init@python
         with:
           profile: ${{ inputs.profile }}
           component: ${{ inputs.component }}
