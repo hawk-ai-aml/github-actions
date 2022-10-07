@@ -137,7 +137,7 @@ jobs:
       - id: udpate-overlay-github
         name: Update kustomize overlay (GitHub)
         if: fromJson(needs.init.outputs.parameters).kustomize == 'github' || fromJson(needs.init.outputs.parameters).kustomize == 'github-fake'
-        uses: hawk-ai-aml/github-actions/kustomize-overlay@master
+        uses: hawk-ai-aml/github-actions/kustomize-overlay@python
         with:
           component-name: ${{ inputs.component }}
           component-metadata: ${{ needs.init.outputs.metadata }}
@@ -149,7 +149,7 @@ jobs:
       - id: udpate-overlay-bitbucket
         name: Update kustomize overlay (Bitbucket)
         if: fromJson(needs.init.outputs.parameters).kustomize == 'bitbucket' || fromJson(needs.init.outputs.parameters).kustomize == 'bitbucket-fake'
-        uses: hawk-ai-aml/github-actions/kustomize-overlay-ssh@master
+        uses: hawk-ai-aml/github-actions/kustomize-overlay-ssh@python
         with:
           component-name: ${{ inputs.component }}
           component-metadata: ${{ needs.init.outputs.metadata }}
