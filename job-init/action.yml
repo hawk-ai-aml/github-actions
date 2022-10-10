@@ -9,7 +9,11 @@ runs:
       run: |
         BUILD_BRANCH=$(echo ${GITHUB_REF_NAME} | sed 's,\/,-,g; s,\#,,g')
         GIT_SHA_SHORT=${GITHUB_SHA:0:7}
-        IMAGE_TAG=${BUILD_BRANCH}-${GIT_SHA_SHORT}
+        if [[ ${GITHUB_REF_TYPE} == "tag"]]; then
+          IMAGE_TAG=${BUILD_BRANCH}
+        else
+          IMAGE_TAG=${BUILD_BRANCH}-${GIT_SHA_SHORT}
+        fi
 
         cat << EOF | tee -a $GITHUB_ENV
         HAWK_BUILD_BRANCH=${BUILD_BRANCH}
