@@ -105,11 +105,13 @@ jobs:
           ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
           ECR_REPOSITORY: ${{ fromJson(needs.init.outputs.metadata).modules[0].ecr.repository }}
         run: |
-          echo ${METADATA}
-          echo ${METADATA} | jq -r '.modules | keys | join(" ")'
-          for module in $(echo ${METADATA} | jq -r '.modules | keys | join(" ")')
+          #echo ${METADATA}
+          # echo ${METADATA} | jq -r '.modules | keys | join(" ")'
+          # for module in $(echo ${METADATA} | jq -r '.modules | keys | join(" ")')
+          $MODULES="opening_anomaly opening_phishing opening_fan_in"
+          for module in MODULES
           do
-            module_repository=$(echo ${METADATA} | jq -r .modules.${module}.ecr.repository)
+            module_repository=$module
             [[ "${module_repository}" == "null" ]] && continue
             echo "Module ${module} is building..."
             DOCKER_BUILDKIT=1 docker build --build-arg SERVICE=${module} -t ${ECR_REGISTRY}/${module_repository}:${{ env.HAWK_IMAGE_TAG }} .
