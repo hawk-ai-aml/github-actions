@@ -103,10 +103,11 @@ jobs:
         env:
           METADATA: ${{ needs.init.outputs.metadata }}
           ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
-          ECR_REPOSITORY: ${{ fromJson(needs.init.outputs.metadata).ecr.repository }}
         run: |
-          for module_repository in opening_anomaly opening_phishing opening_fan_in
+          for module_repository in opening_anomaly opening_phishing opening_fan_in autoclosing
           do
+            REPOSITORY="${ECR_REGISTRY}:ai-scores${module_repository}"
+            echo $REPOSITORY
             echo "Module ${module_repository} is building..."
             DOCKER_BUILDKIT=1 docker build --build-arg SERVICE=${module_repository} -t ${ECR_REGISTRY}/${module_repository}:${{ env.HAWK_IMAGE_TAG }} .
             docker push ${ECR_REGISTRY}/${module_repository}:${{ env.HAWK_IMAGE_TAG }}

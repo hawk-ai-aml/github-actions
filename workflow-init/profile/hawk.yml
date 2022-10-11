@@ -33,6 +33,15 @@ component:
       path: plattform/ai/ai-data-sink
       overlays: *defaultOverlays
 
+  autoclosing: &autoclosing
+    parameters: *defaultParameters
+    ecr:
+      <<: *defaultECR
+      repository: ai-scores-autoclosing
+    kustomize:
+      path: plattform/ai/ai-scores
+      overlays: *defaultOverlays
+
   opening_anomaly: &opening_anomaly
     parameters: *defaultParameters
     ecr:
@@ -68,6 +77,7 @@ component:
       - *opening_anomaly
       - *opening_fan_in
       - *opening_phishing
+      - *autoclosing
 
   audit-trail:
     parameters:
