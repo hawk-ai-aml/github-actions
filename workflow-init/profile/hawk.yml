@@ -68,6 +68,8 @@ component:
 
   ai-scores:
     parameters: *defaultParameters
+    ecr:
+      <<: *defaultECR
     modules:
       - *opening_anomaly
       - *opening_fan_in
