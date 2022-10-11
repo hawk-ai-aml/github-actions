@@ -109,12 +109,11 @@ jobs:
           # echo ${METADATA} | jq -r '.modules | keys | join(" ")'
           # for module in $(echo ${METADATA} | jq -r '.modules | keys | join(" ")')
           $MODULES="opening_anomaly opening_phishing opening_fan_in"
-          for module in MODULES
+          for module_repository in MODULES
           do
-            module_repository=$module
-            [[ "${module_repository}" == "null" ]] && continue
-            echo "Module ${module} is building..."
-            DOCKER_BUILDKIT=1 docker build --build-arg SERVICE=${module} -t ${ECR_REGISTRY}/${module_repository}:${{ env.HAWK_IMAGE_TAG }} .
+          #  [[ "${module_repository}" == "null" ]] && continue
+            echo "Module ${module_repository} is building..."
+            DOCKER_BUILDKIT=1 docker build --build-arg SERVICE=${module_repository} -t ${ECR_REGISTRY}/${module_repository}:${{ env.HAWK_IMAGE_TAG }} .
           done
 
       - name: Push Image
