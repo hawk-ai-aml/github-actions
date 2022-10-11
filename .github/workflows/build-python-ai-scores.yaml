@@ -106,11 +106,12 @@ jobs:
         run: |
           for module_repository in opening_anomaly opening_phishing opening_fan_in autoclosing
           do
-            REPOSITORY="${ECR_REGISTRY}:ai-scores${module_repository}"
+            REPOSITORY_FOLDER=$(echo ${module_repository} | sed 's/\_/\-/g')
+            REPOSITORY="${ECR_REGISTRY}/ai-scores${REPOSITORY_FOLDER}"
             echo $REPOSITORY
             echo "Module ${module_repository} is building..."
-            DOCKER_BUILDKIT=1 docker build --build-arg SERVICE=${module_repository} -t ${ECR_REGISTRY}/${module_repository}:${{ env.HAWK_IMAGE_TAG }} .
-            docker push ${ECR_REGISTRY}/${module_repository}:${{ env.HAWK_IMAGE_TAG }}
+            DOCKER_BUILDKIT=1 docker build --build-arg SERVICE=${module_repository} -t ${REPOSITORY}:${{ env.HAWK_IMAGE_TAG }} .
+            docker push {REPOSITORY}:${{ env.HAWK_IMAGE_TAG }}
           done
 
 #      - name: Push Image
