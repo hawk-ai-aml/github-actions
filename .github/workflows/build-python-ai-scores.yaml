@@ -104,14 +104,14 @@ jobs:
           METADATA: ${{ needs.init.outputs.metadata }}
           ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
         run: |
-          for module_repository in opening_anomaly opening_phishing opening_fan_in autoclosing
+          for module in opening_anomaly opening_phishing opening_fan_in autoclosing
           do
-            REPOSITORY_FOLDER=$(echo ${module_repository} | sed 's/\_/\-/g')
-            REPOSITORY="${ECR_REGISTRY}/ai-scores-${REPOSITORY_FOLDER}"
-            echo $REPOSITORY
-            echo "Module ${module_repository} is building..."
-            DOCKER_BUILDKIT=1 docker build --build-arg SERVICE=${module_repository} -t ${REPOSITORY}:${{ env.HAWK_IMAGE_TAG }} .
-            docker push ${REPOSITORY}:${{ env.HAWK_IMAGE_TAG }}
+            REPOSITORY_FOLDER=$(echo ${module} | sed 's/\_/\-/g')
+            REPOSITORY_FULL_NAME="${ECR_REGISTRY}/ai-scores-${REPOSITORY_FOLDER}"
+            echo $REPOSITORY_FULL_NAME
+            echo "Module ${module} is building..."
+            DOCKER_BUILDKIT=1 docker build --build-arg SERVICE=${module} -t ${REPOSITORY_FULL_NAME}:${{ env.HAWK_IMAGE_TAG }} .
+            docker push ${REPOSITORY_FULL_NAME}:${{ env.HAWK_IMAGE_TAG }}
           done
 
 #      - name: Push Image
