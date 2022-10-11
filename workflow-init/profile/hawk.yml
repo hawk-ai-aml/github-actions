@@ -23,8 +23,7 @@ parameters: &defaultParameters
 component:
 
   ai-data-sink:
-    parameters:
-      <<: *defaultParameters
+    parameters: *defaultParameters
       kustomize: bitbucket-fake
     ecr:
       <<: *defaultECR
@@ -34,8 +33,7 @@ component:
       overlays: *defaultOverlays
 
   opening_anomaly: &opening_anomaly
-    parameters:
-      <<: *defaultParameters
+    parameters: *defaultParameters
       kustomize: bitbucket-fake
     ecr:
       <<: *defaultECR
@@ -45,8 +43,7 @@ component:
       overlays: *defaultOverlays
 
   opening_fan_in: &opening_fan_in
-    parameters:
-      <<: *defaultParameters
+    parameters: *defaultParameters
       kustomize: bitbucket-fake
     ecr:
       <<: *defaultECR
