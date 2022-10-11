@@ -102,7 +102,7 @@ jobs:
       - name: Build image
         env:
           ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
-          ECR_REPOSITORY: ${{ fromJson(needs.init.outputs.metadata).modules.ecr.repository }}
+          ECR_REPOSITORY: ${{ fromJson(needs.init.outputs.metadata).modules[0].ecr.repository }}
         run: |
           for module in $(echo ${METADATA} | jq -r '.modules | keys | join(" ")')
           do
