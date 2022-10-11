@@ -58,9 +58,10 @@ jobs:
 
       - uses: actions/checkout@v3
 
-      - name: Get yarn cache
-        id: yarn-cache
-        run: echo "::set-output name=dir::$(yarn cache dir)"
+      - uses: actions/cache@v2
+        with:
+          path: '**/node_modules'
+          key: ${{ runner.os }}-modules-${{ hashFiles('**/yarn.lock') }}
 
       - name: Set up Node
         uses: actions/setup-node@v3
@@ -74,7 +75,7 @@ jobs:
         run: npm install -g yarn
 
       - name: Install packages
-        run: yarn install
+        run: yarn --prefer-offline
 
       - name: Build license report
         run: ./node_modules/license-checker/bin/license-checker > licenseReport.txt
@@ -140,7 +141,7 @@ jobs:
     steps:
       - id: init
         name: Init Job
-        uses: hawk-ai-aml/job-init@master
+        uses: hawk-ai-aml/github-actions/job-init@master
 
       - id: udpate-overlay-github
         name: Update kustomize overlay

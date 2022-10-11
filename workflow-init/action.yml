@@ -48,7 +48,7 @@ runs:
   steps:
     - id: job-init
       name: Init Job
-      uses: hawk-ai-aml/job-init@master
+      uses: hawk-ai-aml/github-actions/job-init@master
 
     - name: Install yj
       shell: bash
