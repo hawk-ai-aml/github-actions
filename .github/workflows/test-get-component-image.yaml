@@ -14,6 +14,10 @@ jobs:
       matrix:
         include:
           - profile: test-hawk
+            component: backend
+            module: msg
+            expected-image-name: 860641649575.dkr.ecr.eu-central-1.amazonaws.com/hawkai-case-manager-backend-msg
+          - profile: test-hawk
             component: label-engine
             expected-image-name: 860641649575.dkr.ecr.eu-central-1.amazonaws.com/label-engine
           - profile: test-hawk
@@ -33,6 +37,7 @@ jobs:
         with:
           profile: ${{ matrix.profile }}
           component: ${{ matrix.component }}
+          module: ${{ matrix.module }}
       
       - id: show
         run: echo ${{ steps.init.outputs.image-name }} | tee -a ${GITHUB_STEP_SUMMARY}
