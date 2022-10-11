@@ -35,7 +35,6 @@ component:
 
   opening_anomaly: &opening_anomaly
     parameters: *defaultParameters
-      kustomize: bitbucket-fake
     ecr:
       <<: *defaultECR
       repository: ai-scores
@@ -45,7 +44,6 @@ component:
 
   opening_fan_in: &opening_fan_in
     parameters: *defaultParameters
-      kustomize: bitbucket-fake
     ecr:
       <<: *defaultECR
       repository: ai-scores
@@ -55,7 +53,6 @@ component:
 
   opening_phishing: &opening_phishing
     parameters: *defaultParameters
-      kustomize: bitbucket-fake
     ecr:
       <<: *defaultECR
       repository: ai-scores
