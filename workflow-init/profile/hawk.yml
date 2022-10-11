@@ -37,7 +37,7 @@ component:
     parameters: *defaultParameters
     ecr:
       <<: *defaultECR
-      repository: ai-scores
+      repository: ai-scores-opening-anomaly
     kustomize:
       path: plattform/ai/ai-scores
       overlays: *defaultOverlays
@@ -46,7 +46,7 @@ component:
     parameters: *defaultParameters
     ecr:
       <<: *defaultECR
-      repository: ai-scores
+      repository: ai-scores-opening-fan-in
     kustomize:
       path: plattform/ai/ai-scores
       overlays: *defaultOverlays
@@ -55,7 +55,7 @@ component:
     parameters: *defaultParameters
     ecr:
       <<: *defaultECR
-      repository: ai-scores
+      repository: ai-scores-opening-phishing
     kustomize:
       path: plattform/ai/ai-scores
       overlays: *defaultOverlays
