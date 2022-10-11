@@ -108,7 +108,7 @@ jobs:
           #echo ${METADATA}
           # echo ${METADATA} | jq -r '.modules | keys | join(" ")'
           # for module in $(echo ${METADATA} | jq -r '.modules | keys | join(" ")')
-          for module_repository in "opening_anomaly opening_phishing opening_fan_in"
+          for module_repository in opening_anomaly opening_phishing opening_fan_in
           do
           #  [[ "${module_repository}" == "null" ]] && continue
             echo "Module ${module_repository} is building..."
