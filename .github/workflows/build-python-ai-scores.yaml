@@ -97,13 +97,13 @@ jobs:
         id: login-ecr
         uses: aws-actions/amazon-ecr-login@v1
         with:
-          registries: ${{ fromJson(needs.init.outputs.metadata).ecr.registry }}
+          registries: ${{ fromJson(needs.init.outputs.metadata).modules.ecr.registry }}
 
       - name: Build image
         env:
+          METADATA: ${{ needs.init.outputs.metadata }}
           ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
-          ECR_REPOSITORY: ${{ fromJson(needs.init.outputs.metadata).ecr.repository }}
-          METADATA: ${{ fromJson(needs.init.outputs.metadata) }}
+          ECR_REPOSITORY: ${{ fromJson(needs.init.outputs.metadata).modules[0].ecr.repository }}
         run: |
           echo ${METADATA}
           echo ${METADATA} | jq -r '.modules | keys | join(" ")'
