@@ -109,7 +109,7 @@ jobs:
           do
             echo "Module ${module_repository} is building..."
             DOCKER_BUILDKIT=1 docker build --build-arg SERVICE=${module_repository} -t ${ECR_REGISTRY}/${module_repository}:${{ env.HAWK_IMAGE_TAG }} .
-            docker push ${ECR_REGISTRY}/${ECR_REPOSITORY}:${{ env.HAWK_IMAGE_TAG }}
+            docker push ${ECR_REGISTRY}/${module_repository}:${{ env.HAWK_IMAGE_TAG }}
           done
 
 #      - name: Push Image
