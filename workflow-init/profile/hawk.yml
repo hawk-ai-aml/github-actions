@@ -53,8 +53,7 @@ component:
       overlays: *defaultOverlays
 
   opening_phishing: &opening_phishing
-    parameters:
-      <<: *defaultParameters
+    parameters: *defaultParameters
       kustomize: bitbucket-fake
     ecr:
       <<: *defaultECR
