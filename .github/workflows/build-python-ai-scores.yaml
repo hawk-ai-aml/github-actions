@@ -104,6 +104,8 @@ jobs:
           ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
           ECR_REPOSITORY: ${{ fromJson(needs.init.outputs.metadata).modules[0].ecr.repository }}
         run: |
+          echo ${METADATA}
+          echo ${METADATA} | jq -r '.modules | keys | join(" ")'
           for module in $(echo ${METADATA} | jq -r '.modules | keys | join(" ")')
           do
             module_repository=$(echo ${METADATA} | jq -r .modules.${module}.ecr.repository)
