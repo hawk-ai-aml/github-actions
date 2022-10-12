@@ -70,6 +70,8 @@ jobs:
         env:
           JENKINS: true
           IS_JENKINS: true
+          AWS_ACCESS_KEY_ID: ${{ secrets.BACKEND_FILE_AWS_ACCESS_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.BACKEND_FILE_AWS_SECRET_ACCESS_KEY }}
         run: |
           pipenv install --dev
           pipenv lock --keep-outdated > pipenv-requirements.txt
