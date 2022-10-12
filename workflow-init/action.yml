@@ -31,6 +31,14 @@ outputs:
     description: 'repository overlays'
     value: ${{ steps.vars.outputs.overlays }}
 
+  modules:
+    description: 'repository modules'
+    value: ${{ steps.vars.outputs.modules }}
+
+  kustomizable-modules:
+    description: 'repository modules with ECR and kustomize settings'
+    value: ${{ steps.vars.outputs.kustomizable-modules }}
+
   parameters:
     description: 'repository workflow parameters'
     value: ${{ steps.vars.outputs.parameters }}
@@ -57,18 +65,21 @@ runs:
       run: |
         mkdir -p "${HOME}"/bin
         echo "PATH=${HOME}/bin:${PATH}" >> "${GITHUB_ENV}"
-        echo "Installing yj ${YJ_VERSION}"
-        sudo curl \
-          --show-error \
-          --silent \
-          --location \
-          --fail \
-          --retry 3 \
-          --connect-timeout 5 \
-          --max-time 60 \
-          --output "${HOME}/bin/yj" \
-          "https://github.com/sclevine/yj/releases/download/v${YJ_VERSION}/yj-linux-amd64"
-        sudo chmod +x "${HOME}"/bin/yj
+
+        yj -v || (
+          echo "Installing yj ${YJ_VERSION}"
+          sudo curl \
+            --show-error \
+            --silent \
+            --location \
+            --fail \
+            --retry 3 \
+            --connect-timeout 5 \
+            --max-time 60 \
+            --output "${HOME}/bin/yj" \
+            "https://github.com/sclevine/yj/releases/download/v${YJ_VERSION}/yj-linux-amd64"
+          sudo chmod +x "${HOME}"/bin/yj
+        )
 
     - id: vars
       shell: bash
@@ -82,10 +93,26 @@ runs:
         SKIP_TESTS=${{ inputs.skip-tests }}
         SKIP_TESTS=${SKIP_TESTS:-false}
 
-        METADATA_JSON=$(yj -y < ${GITHUB_ACTION_PATH}/profile/${{ inputs.profile }}.yml | jq -cr --arg COMPONENT ${{ inputs.component }} '.component[$COMPONENT]')
-        OVERLAYS_JSON=$(yj -y < ${GITHUB_ACTION_PATH}/profile/${{ inputs.profile }}.yml | jq -cr --arg COMPONENT ${{ inputs.component }} --arg OVERLAYS ${KUSTOMIZE_OVERLAYS} '.component[$COMPONENT].kustomize.overlays[$OVERLAYS]')
-        PARAMETERS_JSON=$(yj -y < ${GITHUB_ACTION_PATH}/profile/${{ inputs.profile }}.yml | jq -cr --arg COMPONENT ${{ inputs.component }} '.component[$COMPONENT].parameters')
+        METADATA_JSON=$(yj -y < ${GITHUB_ACTION_PATH}/profile/${{ inputs.profile }}.yml \
+          | jq -cr --arg COMPONENT ${{ inputs.component }} '.component[$COMPONENT]')
 
+        OVERLAYS_JSON=$(yj -y < ${GITHUB_ACTION_PATH}/profile/${{ inputs.profile }}.yml \
+          | jq -cr --arg COMPONENT ${{ inputs.component }} --arg OVERLAYS ${KUSTOMIZE_OVERLAYS} '.component[$COMPONENT].kustomize.overlays[$OVERLAYS]')
+
+        MODULES_JSON=$(yj -y < ${GITHUB_ACTION_PATH}/profile/${{ inputs.profile }}.yml \
+          | jq -cr --arg COMPONENT ${{ inputs.component }} '.component[$COMPONENT].modules')
+
+        if [[ ${MODULES_JSON} != "null" ]]; then
+          echo "${{ inputs.component }} is a multi-module component"
+          MODULES_LIST_JSON=$(echo ${MODULES_JSON} | jq -cr 'keys')
+
+          KUSTOMIZABLE_MODULES_LIST_JSON=$(echo ${MODULES_JSON} \
+            | jq -cr '[to_entries | .[] | select(.value.ecr.repository) | select(.value.kustomize.path) | .key]')
+        fi
+
+        PARAMETERS_JSON=$(yj -y < ${GITHUB_ACTION_PATH}/profile/${{ inputs.profile }}.yml \
+          | jq -cr --arg COMPONENT ${{ inputs.component }} '.component[$COMPONENT].parameters')
+        
         cat <<EOF | tee -a $GITHUB_STEP_SUMMARY
 
         [${{ github.run_id }}](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})
@@ -93,6 +120,8 @@ runs:
         \`\`\`
         metadata::${METADATA_JSON}
         overlays::${OVERLAYS_JSON}
+        modules::${MODULES_LIST_JSON}
+        kustomizable-modules::${KUSTOMIZABLE_MODULES_LIST_JSON}
         parameters::${PARAMETERS_JSON}
         update-kustomize::${UPDATE_KUSTOMIZE}
         skip-tests::${SKIP_TESTS}
@@ -101,6 +130,8 @@ runs:
 
         echo "::set-output name=metadata::${METADATA_JSON}"
         echo "::set-output name=overlays::${OVERLAYS_JSON}"
+        echo "::set-output name=modules::${MODULES_LIST_JSON}"
+        echo "::set-output name=kustomizable-modules::${KUSTOMIZABLE_MODULES_LIST_JSON}"
         echo "::set-output name=parameters::${PARAMETERS_JSON}"
         echo "::set-output name=update-kustomize::${UPDATE_KUSTOMIZE}"
         echo "::set-output name=skip-tests::${SKIP_TESTS}"
