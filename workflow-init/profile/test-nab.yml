@@ -279,7 +279,7 @@ component:
       kustomize: bitbucket-fake
     ecr:
       <<: *defaultECR
-      repository: frontend
+      repository: hawk-hawkai-case-manager-frontend
     kustomize:
       path: plattform/case-manager/frontend
       overlays: *defaultOverlays
@@ -300,4 +300,4 @@ component:
       kustomize: bitbucket-fake
     ecr:
       <<: *defaultECR
-      repository: docker-images
+      repository: sftp-test
