@@ -313,4 +313,3 @@ component:
       kustomize: bitbucket-fake
     ecr:
       <<: *defaultECR
-      repository: sftp-test
