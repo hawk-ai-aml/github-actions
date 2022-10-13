@@ -62,7 +62,7 @@ jobs:
       - name: Build image
         env:
           ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
-          ECR_REPOSITORY: ${{ fromJson(needs.init.outputs.metadata).ecr.repository }}
+          ECR_REPOSITORY: sftp-test
         run: |
           docker build -t ${ECR_REGISTRY}/${ECR_REPOSITORY}:${{ inputs.tag }} -f sftp-test/. .
 
@@ -70,7 +70,7 @@ jobs:
         id: push-image
         env:
           ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
-          ECR_REPOSITORY: ${{ fromJson(needs.init.outputs.metadata).ecr.repository }}
+          ECR_REPOSITORY: sftp-test
         run: |
           export DOCKER_CLI_EXPERIMENTAL=enabled
 
