@@ -7,6 +7,9 @@ on:
         description: "TAG"
         type: string
         required: true
+      component:
+        type: string
+        required: false
       profile:
         type: string
         required: false
@@ -23,6 +26,7 @@ jobs:
         uses: hawk-ai-aml/github-actions/workflow-init@master
         with:
           profile: ${{ inputs.profile }}
+          component: ${{ inputs.component }}
           update-kustomize: false
 
   build:
@@ -60,7 +64,7 @@ jobs:
           ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
           ECR_REPOSITORY: ${{ fromJson(needs.init.outputs.metadata).ecr.repository }}
         run: |
-          docker build sftp-test/. -t ${ECR_REGISTRY}/${ECR_REPOSITORY}:${{ inputs.tag }} .
+          docker build -t ${ECR_REGISTRY}/${ECR_REPOSITORY}:${{ inputs.tag }} -f sftp-test/. .
 
       - name: Push Image
         id: push-image

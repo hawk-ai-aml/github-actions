@@ -298,4 +298,4 @@ component:
       kustomize: bitbucket-fake
     ecr:
       <<: *defaultECR
-      repository: docker-images
+      repository: sftp-test
