@@ -14,10 +14,16 @@ on:
 jobs:
   init:
     runs-on: [ "self-hosted", "builder" ]
+    outputs:
+      metadata: ${{ steps.init.outputs.metadata }}
+      parameters: ${{ steps.init.outputs.parameters }}
     steps:
       - id: init
         name: Init Workflow
         uses: hawk-ai-aml/github-actions/workflow-init@master
+        with:
+          profile: ${{ inputs.profile }}
+          update-kustomize: false
 
   build:
     needs: [ init ]

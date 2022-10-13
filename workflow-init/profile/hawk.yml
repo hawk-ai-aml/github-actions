@@ -307,18 +307,10 @@ component:
       path: plattform/watchtower
       overlays: *defaultOverlays
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+  docker-images:
+    parameters:
+      <<: *defaultParameters
+      kustomize: bitbucket-fake
+    ecr:
+      <<: *defaultECR
+      repository: docker-images

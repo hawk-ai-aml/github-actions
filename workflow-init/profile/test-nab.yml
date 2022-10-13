@@ -293,3 +293,11 @@ component:
     parameters:
       <<: *defaultParameters
       kustomize: bitbucket-fake
+
+  docker-images:
+    parameters:
+      <<: *defaultParameters
+      kustomize: bitbucket-fake
+    ecr:
+      <<: *defaultECR
+      repository: docker-images
