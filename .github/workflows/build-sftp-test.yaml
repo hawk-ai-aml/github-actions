@@ -48,7 +48,6 @@ jobs:
         with:
           repository: hawk-ai-aml/${{ inputs.component }}
           path: ${{ inputs.component }}
-          token: ${{ secrets.TOKEN }}
           ref: master
 
       - name: Configure AWS credentials
