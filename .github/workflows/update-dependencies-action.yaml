@@ -1,0 +1,23 @@
+name: update-dependencies
+on:
+  schedule:
+    - cron:  '0 * * * *'
+jobs:
+  update-dep:
+    runs-on: [ "self-hosted", "builder" ]
+    steps:
+      - uses: actions/checkout@v3
+      - name: Set up JDK
+        uses: actions/setup-java@v3
+        with:
+          java-version: ${{ fromJson(needs.init.outputs.parameters).java-version }}
+          distribution: temurin
+          cache: gradle
+      - name: Perform dependency resolution and write new lockfiles
+        run: ./gradlew dependencies --write-locks
+      - name: Create Pull Request
+        run: gh pr create -B update-dependency -H master --title 'Update dependencies' --body 'Auto-generated dependency update'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          OWNER: ${{ github.repository_owner }}
+          REPO: ${{ github.event.repository.name }}
