@@ -196,7 +196,7 @@ component:
       path: plattform/ai/entity-resolution
       overlays: *defaultOverlays
 
-  features:
+  features: &features
     parameters: *defaultParameters
     ecr:
       <<: *defaultECR
@@ -365,6 +365,8 @@ component:
         kustomize:
           overlays: *defaultOverlays
           path: plattform/processing/features/counterparty-volume
+
+  features2: *features
 
   feature-enrichment:
     parameters:
