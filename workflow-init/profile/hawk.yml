@@ -196,6 +196,176 @@ component:
       path: plattform/ai/entity-resolution
       overlays: *defaultOverlays
 
+  features:
+    parameters: *defaultParameters
+    ecr:
+      <<: *defaultECR
+    kustomize:
+      overlays: *defaultOverlays
+    modules:
+      core:
+        parameters: *defaultParameters
+      countryrisk:
+        parameters: *defaultParameters
+        ecr:
+          <<: *defaultECR
+          repository: features-countryrisk
+        kustomize:
+          overlays: *defaultOverlays
+          path: plattform/processing/features/countryrisk
+      volumerisk:
+        parameters: *defaultParameters
+        ecr:
+          <<: *defaultECR
+          repository: features-volumerisk
+        kustomize:
+          overlays: *defaultOverlays
+          path: plattform/processing/features/volumerisk
+      pepsanction-lookup-match-analyzer:
+        parameters: *defaultParameters
+        ecr:
+          <<: *defaultECR
+          repository: features-pepsanction-lookup-match-analyzer
+        kustomize:
+          overlays: *defaultOverlays
+          path: plattform/processing/features/pepsanction-lookup-match-analyzer
+      simple:
+        parameters: *defaultParameters
+        ecr:
+          <<: *defaultECR
+          repository: features-simple
+        kustomize:
+          overlays: *defaultOverlays
+          path: plattform/processing/features/simple
+      assessment-engine:
+        parameters: *defaultParameters
+        ecr:
+          <<: *defaultECR
+          repository: features-assessment-engine
+        kustomize:
+          overlays: *defaultOverlays
+          path: plattform/processing/features/assessment-engine
+      passthrough:
+        parameters: *defaultParameters
+        ecr:
+          <<: *defaultECR
+          repository: features-passthrough
+        kustomize:
+          overlays: *defaultOverlays
+          path: plattform/processing/features/passthrough
+      smurfing:
+        parameters: *defaultParameters
+        ecr:
+          <<: *defaultECR
+          repository: features-smurfing
+        kustomize:
+          overlays: *defaultOverlays
+          path: plattform/processing/features/smurfing
+      roundamount:
+        parameters: *defaultParameters
+        ecr:
+          <<: *defaultECR
+          repository: features-roundamount
+        kustomize:
+          overlays: *defaultOverlays
+          path: plattform/processing/features/roundamount
+      round-amount-ratio-increase-decrease:
+        parameters: *defaultParameters
+        ecr:
+          <<: *defaultECR
+          repository: features-round-amount-ratio-increase-decrease
+        kustomize:
+          overlays: *defaultOverlays
+          path: plattform/processing/features/round-amount-ratio-increase-decrease
+      unusualfrequency:
+        parameters: *defaultParameters
+        ecr:
+          <<: *defaultECR
+          repository: features-unusualfrequency
+        kustomize:
+          overlays: *defaultOverlays
+          path: plattform/processing/features/unusualfrequency
+      dormantaccount:
+        parameters: *defaultParameters
+        ecr:
+          <<: *defaultECR
+          repository: features-dormantaccount
+        kustomize:
+          overlays: *defaultOverlays
+          path: plattform/processing/features/dormantaccount
+      crossbordervolume:
+        parameters: *defaultParameters
+        ecr:
+          <<: *defaultECR
+          repository: features-crossbordervolume
+        kustomize:
+          overlays: *defaultOverlays
+          path: plattform/processing/features/crossbordervolume
+      volumeincreasedecrease:
+        parameters: *defaultParameters
+        ecr:
+          <<: *defaultECR
+          repository: features-volumeincreasedecrease
+        kustomize:
+          overlays: *defaultOverlays
+          path: plattform/processing/features/volumeincreasedecrease
+      suspiciousavgticketsize:
+        parameters: *defaultParameters
+        ecr:
+          <<: *defaultECR
+          repository: features-suspiciousavgticketsize
+        kustomize:
+          overlays: *defaultOverlays
+          path: plattform/processing/features/suspiciousavgticketsize
+      account-based-frequency-increase-decrease:
+        parameters: *defaultParameters
+        ecr:
+          <<: *defaultECR
+          repository: features-account-based-frequency-increase-decrease
+        kustomize:
+          overlays: *defaultOverlays
+          path: plattform/processing/features/account-based-frequency-increase-decrease
+      volumeriskv2:
+        parameters: *defaultParameters
+        ecr:
+          <<: *defaultECR
+          repository: features-volumeriskv2
+        kustomize:
+          overlays: *defaultOverlays
+          path: plattform/processing/features/volumeriskv2
+      countryriskv2:
+        parameters: *defaultParameters
+        ecr:
+          <<: *defaultECR
+          repository: features-countryriskv2
+        kustomize:
+          overlays: *defaultOverlays
+          path: plattform/processing/features/countryriskv2
+      passthroughv2:
+        parameters: *defaultParameters
+        ecr:
+          <<: *defaultECR
+          repository: features-passthroughv2
+        kustomize:
+          overlays: *defaultOverlays
+          path: plattform/processing/features/passthroughv2
+      passthroughv3:
+        parameters: *defaultParameters
+        ecr:
+          <<: *defaultECR
+          repository: features-passthroughv3
+        kustomize:
+          overlays: *defaultOverlays
+          path: plattform/processing/features/passthroughv3
+      counterparty-volume:
+        parameters: *defaultParameters
+        ecr:
+          <<: *defaultECR
+          repository: features-counterparty-volume
+        kustomize:
+          overlays: *defaultOverlays
+          path: plattform/processing/features/counterparty-volume
+
   feature-enrichment:
     parameters:
       <<: *defaultParameters
