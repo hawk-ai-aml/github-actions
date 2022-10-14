@@ -202,7 +202,10 @@ component:
       overlays: *defaultOverlays
 
   features: &features
-    parameters: *defaultParameters
+    parameters:
+      <<: *defaultParameters
+      java-version: 17
+      repository-prefix: hawk-features
     ecr:
       <<: *defaultECR
     kustomize:

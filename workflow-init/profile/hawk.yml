@@ -200,6 +200,7 @@ component:
     parameters:
       <<: *defaultParameters
       java-version: 17
+      repository-prefix: features
     ecr:
       <<: *defaultECR
     kustomize:
