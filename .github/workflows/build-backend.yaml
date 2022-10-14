@@ -172,7 +172,7 @@ jobs:
           export DOCKER_CLI_EXPERIMENTAL=enabled
 
           for module in $(echo ${METADATA} | jq -cr '.modules | keys | join(" ")'); do
-            module_repository=$(echo ${METADATA} | jq -cr --arg MODULE ${module} '.modules[$MODULE].ecr.repository)
+            module_repository=$(echo ${METADATA} | jq -cr --arg MODULE ${module} '.modules[$MODULE].ecr.repository')
             [[ "${module_repository}" == "null" ]] && continue
             echo "Module ${module} is configured to push image to ECR repository ${module_repository}"
 
