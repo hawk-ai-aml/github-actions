@@ -78,6 +78,7 @@ component:
       - *opening_fan_in
       - *opening_phishing
       - *autoclosing
+    overlays: *defaultOverlays
 
   audit-trail:
     parameters:
