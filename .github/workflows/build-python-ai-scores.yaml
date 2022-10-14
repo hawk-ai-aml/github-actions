@@ -105,6 +105,10 @@ jobs:
         with:
           registries: ${{ fromJson(needs.init.outputs.metadata).ecr.registry }}
 
+      - uses: satackey/action-docker-layer-caching@v0.0.11
+          # Ignore the failure of a step and avoid terminating the job.
+          continue-on-error: true
+
       - name: Build and push image
         env:
           ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
@@ -114,7 +118,7 @@ jobs:
             REPOSITORY_FOLDER=$(echo ${module} | sed 's/\_/\-/g')
             REPOSITORY_FULL_NAME="${ECR_REGISTRY}/ai-scores-${REPOSITORY_FOLDER}"
             echo "$REPOSITORY_FULL_NAME is building..."
-            DOCKER_BUILDKIT=1 docker build --cache-from mjhea0/docker-ci-cache:latest --build-arg SERVICE=${module} --build-arg BUILDKIT_INLINE_CACHE=1 -t ${REPOSITORY_FULL_NAME}:${{ env.HAWK_IMAGE_TAG }} .
+            DOCKER_BUILDKIT=1 docker build --build-arg SERVICE=${module} -t ${REPOSITORY_FULL_NAME}:${{ env.HAWK_IMAGE_TAG }} .
             docker push ${REPOSITORY_FULL_NAME}:${{ env.HAWK_IMAGE_TAG }}
           done
 
