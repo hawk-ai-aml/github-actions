@@ -70,7 +70,7 @@ jobs:
           ECR_REPOSITORY: sftp-test
         run: |
           echo "REPO: ${{ inputs.component }}"
-          docker build -t ${ECR_REGISTRY}/${ECR_REPOSITORY}:${{ inputs.tag }} -f sftp-test/. .
+          docker build -t ${ECR_REGISTRY}/${ECR_REPOSITORY}:${{ inputs.tag }} -f hawk-ai-aml/${{ inputs.component }}/sftp-test/. .
 
       - name: Push Image
         id: push-image
