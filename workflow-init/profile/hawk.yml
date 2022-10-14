@@ -200,9 +200,9 @@ component:
     parameters:
       <<: *defaultParameters
       java-version: 17
-      repository-prefix: features
     ecr:
       <<: *defaultECR
+      repository-prefix: features
     kustomize:
       overlays: *defaultOverlays
     modules:
