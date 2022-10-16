@@ -32,7 +32,7 @@ runs:
   steps:
     - name: Get Hawk Image Name
       id: get-hawk-image-name
-      uses: hawk-ai-aml/github-actions/get-component-image@master
+      uses: hawk-ai-aml/github-actions/get-component-image@python-ai-scores
       with:
         profile: hawk
         component: ${{ inputs.component-name }}
@@ -44,7 +44,7 @@ runs:
     - name: Get NAB Image Name
       id: get-nab-image-name
       if: inputs.component-overlay == 'nab-dev'
-      uses: hawk-ai-aml/github-actions/get-component-image@master
+      uses: hawk-ai-aml/github-actions/get-component-image@python-ai-scores
       with:
         profile: nab
         component: ${{ inputs.component-name }}
