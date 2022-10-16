@@ -105,15 +105,6 @@ jobs:
         with:
           registries: ${{ fromJson(needs.init.outputs.metadata).ecr.registry }}
 
-      - name: Set up Docker Cache
-        uses: satackey/action-docker-layer-caching@v0.0.11
-        with:
-          key: foo-docker-cache-{hash}
-          restore-keys: |
-            foo-docker-cache-
-          # Ignore the failure of a step and avoid terminating the job.
-       #   continue-on-error: true
-
       - name: Build and push image
         env:
           ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
