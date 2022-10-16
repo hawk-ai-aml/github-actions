@@ -139,7 +139,7 @@ jobs:
         uses: hawk-ai-aml/github-actions/kustomize-overlay@python-ai-scores
         with:
           component-name: ${{ inputs.component }}
-          component-metadata: ${{ needs.init.outputs.metadata }}
+         #  component-metadata: ${{ needs.init.outputs.metadata }}
           component-overlay: ${{ matrix.overlay }}
           component-tag: ${{ env.HAWK_IMAGE_TAG }}
           kustomize-repo: ${{ fromJson(needs.init.outputs.parameters).kustomize == 'github-fake' && 'hawk-ai-aml/kustomize2.git' || 'hawk-ai-aml/kustomize.git' }}
@@ -151,7 +151,7 @@ jobs:
         uses: hawk-ai-aml/github-actions/kustomize-overlay-ssh@python-ai-scores
         with:
           component-name: ${{ inputs.component }}
-          component-metadata: ${{ needs.init.outputs.metadata }}
+          # component-metadata: ${{ needs.init.outputs.metadata }}
           component-overlay: ${{ matrix.overlay }}
           component-tag: ${{ env.HAWK_IMAGE_TAG }}
           kustomize-repo: ${{ fromJson(needs.init.outputs.parameters).kustomize == 'bitbucket-fake' && 'git@bitbucket.org:hawkai/kustomize2.git' || 'git@bitbucket.org:hawkai/kustomize.git' }}
