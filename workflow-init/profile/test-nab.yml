@@ -198,11 +198,14 @@ component:
       path: plattform/ai/entity-resolution
       overlays: *defaultOverlays
 
+  backend_core: &backend_core
+    parameters: *defaultParameters
+
   backend_msg: &backend_msg
     parameters: *defaultParameters
     ecr:
       <<: *defaultECR
-      repository: hawkai-case-manager-backend-msg
+      repository: hawk-hawkai-case-manager-backend-msg
     kustomize:
       path: plattform/case-manager/backend
       overlays: *defaultOverlays
@@ -211,7 +214,7 @@ component:
     parameters: *defaultParameters
     ecr:
       <<: *defaultECR
-      repository: hawkai-case-manager-backend-rest
+      repository: hawk-hawkai-case-manager-backend-rest
     kustomize:
       path: plattform/case-manager/backend
       overlays: *defaultOverlays
@@ -220,7 +223,7 @@ component:
     parameters: *defaultParameters
     ecr:
       <<: *defaultECR
-      repository: backend-grouping
+      repository: hawk-backend-grouping
     kustomize:
       path: plattform/case-manager/backend
       overlays: *defaultOverlays
@@ -229,26 +232,33 @@ component:
     parameters: *defaultParameters
     ecr:
       <<: *defaultECR
-      repository: backend-search
+      repository: hawk-backend-search
     kustomize:
       path: plattform/case-manager/backend
       overlays: *defaultOverlays
 
   backend:
     parameters: *defaultParameters
+    ecr:
+      <<: *defaultECR
+      repository-prefix: hawk-
     modules:
-      - *backend_msg
-      - *backend_rest
-      - *backend_grouping
-      - *backend_search
+      core: *backend_core
+      msg: *backend_msg
+      rest: *backend_rest
+      grouping: *backend_grouping
+      search: *backend_search
 
   backend2:
     parameters: *defaultParameters
+    ecr:
+      <<: *defaultECR
     modules:
-      - *backend_msg
-      - *backend_rest
-      - *backend_grouping
-      - *backend_search
+      core: *backend_core
+      msg: *backend_msg
+      rest: *backend_rest
+      grouping: *backend_grouping
+      search: *backend_search
 
   configuration:
     parameters:
@@ -269,7 +279,7 @@ component:
       kustomize: bitbucket-fake
     ecr:
       <<: *defaultECR
-      repository: frontend
+      repository: hawk-hawkai-case-manager-frontend
     kustomize:
       path: plattform/case-manager/frontend
       overlays: *defaultOverlays
@@ -283,3 +293,10 @@ component:
     parameters:
       <<: *defaultParameters
       kustomize: bitbucket-fake
+
+  docker-images:
+    parameters:
+      <<: *defaultParameters
+      kustomize: bitbucket-fake
+    ecr:
+      <<: *defaultECR

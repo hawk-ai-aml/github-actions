@@ -100,11 +100,14 @@ component:
       path: plattform/utility/audit-trail
       overlays: *defaultOverlays
 
+  backend_core: &backend_core
+    parameters: *defaultParameters
+
   backend_msg: &backend_msg
     parameters: *defaultParameters
     ecr:
       <<: *defaultECR
-      repository: hawk-hawkai-case-manager-backend-msg
+      repository: hawkai-case-manager-backend-msg
     kustomize:
       path: plattform/case-manager/backend
       overlays: *defaultOverlays
@@ -113,7 +116,7 @@ component:
     parameters: *defaultParameters
     ecr:
       <<: *defaultECR
-      repository: hawk-hawkai-case-manager-backend-rest
+      repository: hawkai-case-manager-backend-rest
     kustomize:
       path: plattform/case-manager/backend
       overlays: *defaultOverlays
@@ -122,7 +125,7 @@ component:
     parameters: *defaultParameters
     ecr:
       <<: *defaultECR
-      repository: hawk-backend-grouping
+      repository: backend-grouping
     kustomize:
       path: plattform/case-manager/backend
       overlays: *defaultOverlays
@@ -131,26 +134,36 @@ component:
     parameters: *defaultParameters
     ecr:
       <<: *defaultECR
-      repository: hawk-backend-search
+      repository: backend-search
     kustomize:
       path: plattform/case-manager/backend
       overlays: *defaultOverlays
 
   backend:
     parameters: *defaultParameters
+    ecr:
+      <<: *defaultECR
+    kustomize:
+      overlays: *defaultOverlays
     modules:
-      - *backend_msg
-      - *backend_rest
-      - *backend_grouping
-      - *backend_search
+      core: *backend_core
+      msg: *backend_msg
+      rest: *backend_rest
+      grouping: *backend_grouping
+      search: *backend_search
 
   backend2:
     parameters: *defaultParameters
+    ecr:
+      <<: *defaultECR
+    kustomize:
+      overlays: *defaultOverlays
     modules:
-      - *backend_msg
-      - *backend_rest
-      - *backend_grouping
-      - *backend_search
+      core: *backend_core
+      msg: *backend_msg
+      rest: *backend_rest
+      grouping: *backend_grouping
+      search: *backend_search
 
   blacklist:
     parameters:
@@ -229,6 +242,243 @@ component:
     kustomize:
       path: plattform/ai/entity-resolution
       overlays: *defaultOverlays
+
+  features: &features
+    parameters:
+      <<: *defaultParameters
+      java-version: 17
+    ecr:
+      <<: *defaultECR
+      repository-prefix: features
+    kustomize:
+      overlays: *defaultOverlays
+    modules:
+      core:
+        parameters:
+          <<: *defaultParameters
+          java-version: 17
+      countryrisk:
+        parameters:
+          <<: *defaultParameters
+          java-version: 17
+        ecr:
+          <<: *defaultECR
+          repository: features-countryrisk
+          repository-prefix: features
+        kustomize:
+          overlays: *defaultOverlays
+          path: plattform/processing/features/countryrisk
+      volumerisk:
+        parameters:
+          <<: *defaultParameters
+          java-version: 17
+        ecr:
+          <<: *defaultECR
+          repository: features-volumerisk
+          repository-prefix: features
+        kustomize:
+          overlays: *defaultOverlays
+          path: plattform/processing/features/volumerisk
+      pepsanction-lookup-match-analyzer:
+        parameters:
+          <<: *defaultParameters
+          java-version: 17
+        ecr:
+          <<: *defaultECR
+          repository: features-pepsanction-lookup-match-analyzer
+          repository-prefix: features
+        kustomize:
+          overlays: *defaultOverlays
+          path: plattform/processing/features/pepsanction-lookup-match-analyzer
+      simple:
+        parameters:
+          <<: *defaultParameters
+          java-version: 17
+        ecr:
+          <<: *defaultECR
+          repository: features-simple
+          repository-prefix: features
+        kustomize:
+          overlays: *defaultOverlays
+          path: plattform/processing/features/simple
+      assessment-engine:
+        parameters:
+          <<: *defaultParameters
+          java-version: 17
+        ecr:
+          <<: *defaultECR
+          repository: features-assessment-engine
+          repository-prefix: features
+        kustomize:
+          overlays: *defaultOverlays
+          path: plattform/processing/features/assessment-engine
+      passthrough:
+        parameters:
+          <<: *defaultParameters
+          java-version: 17
+        ecr:
+          <<: *defaultECR
+          repository: features-passthrough
+          repository-prefix: features
+        kustomize:
+          overlays: *defaultOverlays
+          path: plattform/processing/features/passthrough
+      smurfing:
+        parameters:
+          <<: *defaultParameters
+          java-version: 17
+        ecr:
+          <<: *defaultECR
+          repository: features-smurfing
+          repository-prefix: features
+        kustomize:
+          overlays: *defaultOverlays
+          path: plattform/processing/features/smurfing
+      roundamount:
+        parameters:
+          <<: *defaultParameters
+          java-version: 17
+        ecr:
+          <<: *defaultECR
+          repository: features-roundamount
+          repository-prefix: features
+        kustomize:
+          overlays: *defaultOverlays
+          path: plattform/processing/features/roundamount
+      round-amount-ratio-increase-decrease:
+        parameters:
+          <<: *defaultParameters
+          java-version: 17
+        ecr:
+          <<: *defaultECR
+          repository: features-round-amount-ratio-increase-decrease
+          repository-prefix: features
+        kustomize:
+          overlays: *defaultOverlays
+          path: plattform/processing/features/round-amount-ratio-increase-decrease
+      unusualfrequency:
+        parameters:
+          <<: *defaultParameters
+          java-version: 17
+        ecr:
+          <<: *defaultECR
+          repository: features-unusualfrequency
+          repository-prefix: features
+        kustomize:
+          overlays: *defaultOverlays
+          path: plattform/processing/features/unusualfrequency
+      dormantaccount:
+        parameters:
+          <<: *defaultParameters
+          java-version: 17
+        ecr:
+          <<: *defaultECR
+          repository: features-dormantaccount
+          repository-prefix: features
+        kustomize:
+          overlays: *defaultOverlays
+          path: plattform/processing/features/dormantaccount
+      crossbordervolume:
+        parameters:
+          <<: *defaultParameters
+          java-version: 17
+        ecr:
+          <<: *defaultECR
+          repository: features-crossbordervolume
+          repository-prefix: features
+        kustomize:
+          overlays: *defaultOverlays
+          path: plattform/processing/features/crossbordervolume
+      volumeincreasedecrease:
+        parameters:
+          <<: *defaultParameters
+          java-version: 17
+        ecr:
+          <<: *defaultECR
+          repository: features-volumeincreasedecrease
+          repository-prefix: features
+        kustomize:
+          overlays: *defaultOverlays
+          path: plattform/processing/features/volumeincreasedecrease
+      suspiciousavgticketsize:
+        parameters:
+          <<: *defaultParameters
+          java-version: 17
+        ecr:
+          <<: *defaultECR
+          repository: features-suspiciousavgticketsize
+          repository-prefix: features
+        kustomize:
+          overlays: *defaultOverlays
+          path: plattform/processing/features/suspiciousavgticketsize
+      account-based-frequency-increase-decrease:
+        parameters:
+          <<: *defaultParameters
+          java-version: 17
+        ecr:
+          <<: *defaultECR
+          repository: features-account-based-frequency-increase-decrease
+          repository-prefix: features
+        kustomize:
+          overlays: *defaultOverlays
+          path: plattform/processing/features/account-based-frequency-increase-decrease
+      volumeriskv2:
+        parameters:
+          <<: *defaultParameters
+          java-version: 17
+        ecr:
+          <<: *defaultECR
+          repository: features-volumeriskv2
+          repository-prefix: features
+        kustomize:
+          overlays: *defaultOverlays
+          path: plattform/processing/features/volumeriskv2
+      countryriskv2:
+        parameters:
+          <<: *defaultParameters
+          java-version: 17
+        ecr:
+          <<: *defaultECR
+          repository: features-countryriskv2
+          repository-prefix: features
+        kustomize:
+          overlays: *defaultOverlays
+          path: plattform/processing/features/countryriskv2
+      passthroughv2:
+        parameters:
+          <<: *defaultParameters
+          java-version: 17
+        ecr:
+          <<: *defaultECR
+          repository: features-passthroughv2
+          repository-prefix: features
+        kustomize:
+          overlays: *defaultOverlays
+          path: plattform/processing/features/passthroughv2
+      passthroughv3:
+        parameters:
+          <<: *defaultParameters
+          java-version: 17
+        ecr:
+          <<: *defaultECR
+          repository: features-passthroughv3
+          repository-prefix: features
+        kustomize:
+          overlays: *defaultOverlays
+          path: plattform/processing/features/passthroughv3
+      counterparty-volume:
+        parameters:
+          <<: *defaultParameters
+          java-version: 17
+        ecr:
+          <<: *defaultECR
+          repository: features-counterparty-volume
+          repository-prefix: features
+        kustomize:
+          overlays: *defaultOverlays
+          path: plattform/processing/features/counterparty-volume
+
+  features2: *features
 
   feature-enrichment:
     parameters:
@@ -341,18 +591,9 @@ component:
       path: plattform/watchtower
       overlays: *defaultOverlays
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+  docker-images:
+    parameters:
+      <<: *defaultParameters
+      kustomize: bitbucket-fake
+    ecr:
+      <<: *defaultECR

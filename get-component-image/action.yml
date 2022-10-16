@@ -6,6 +6,11 @@ inputs:
     description: "Component to retrieve metadata"
     required: true
 
+  module:
+    description: "Component module to retrieve metadata"
+    required: false
+    default: ""
+
   profile:
     description: Metadata profile
     required: false
@@ -15,6 +20,10 @@ outputs:
   image-name:
     description: 'Component image name'
     value: ${{ steps.vars.outputs.image-name }}
+
+  kustomize-path:
+    description: 'Component kustomize path'
+    value: ${{ steps.vars.outputs.kustomize-path }}
 
 runs:
   using: composite
@@ -27,18 +36,29 @@ runs:
         component: ${{ inputs.component }}
         update-kustomize: false
 
-    - id: fail-if-no-ecr-block
-      if: ${{ ! fromJson(steps.get-profile.outputs.metadata).ecr }}
-      uses: actions/github-script@v3
-      with:
-        script: |
-          core.setFailed('ECR metadata is not present!')
-
     - id: vars
       shell: bash
+      env:
+        METADATA: ${{ steps.get-profile.outputs.metadata }}
+        MODULE: ${{ inputs.module }}
       run: |
-        REPOSITORY=${{ fromJson(steps.get-profile.outputs.metadata).ecr.repository }}
-        REGION=${{ fromJson(steps.get-profile.outputs.metadata).ecr.region }}
-        REGISTRY=${{ fromJson(steps.get-profile.outputs.metadata).ecr.registry }}
+        if [[ "${MODULE}" == "" ]]; then
+          echo "Component: ${{ inputs.component }}"
+          REGISTRY=$(echo ${METADATA} | jq -cr .ecr.registry)
+          REGION=$(echo ${METADATA} | jq -cr .ecr.region)
+          REPOSITORY=$(echo ${METADATA} | jq -cr .ecr.repository)
+          KUSTOMIZE_PATH=$(echo ${METADATA} | jq -cr .kustomize.path)
+        else
+          echo "Component: ${{ inputs.component }}, module: ${{ inputs.module }}"
+          REGISTRY=$(echo ${METADATA} | jq -cr .modules[env.MODULE].ecr.registry)
+          REGION=$(echo ${METADATA} | jq -cr .modules[env.MODULE].ecr.region)
+          REPOSITORY=$(echo ${METADATA} | jq -cr .modules[env.MODULE].ecr.repository)
+          KUSTOMIZE_PATH=$(echo ${METADATA} | jq -cr .modules[env.MODULE].kustomize.path)
+        fi
+
+        [[ "${REGISTRY}" == "null" ]] && ( echo "Empty registry"; exit 1)
+        [[ "${REGION}" == "null" ]] && ( echo "Empty region"; exit 1)
+        [[ "${REPOSITORY}" == "null" ]] && ( echo "Empty repository"; exit 1)
 
         echo "::set-output name=image-name::${REGISTRY}.dkr.ecr.${REGION}.amazonaws.com/${REPOSITORY}"
+        echo "::set-output name=kustomize-path::${KUSTOMIZE_PATH}"

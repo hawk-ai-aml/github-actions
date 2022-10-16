@@ -198,11 +198,14 @@ component:
       path: plattform/ai/entity-resolution
       overlays: *defaultOverlays
 
+  backend_core: &backend_core
+    parameters: *defaultParameters
+
   backend_msg: &backend_msg
     parameters: *defaultParameters
     ecr:
       <<: *defaultECR
-      repository: hawk-hawkai-case-manager-backend-msg
+      repository: hawkai-case-manager-backend-msg
     kustomize:
       path: plattform/case-manager/backend
       overlays: *defaultOverlays
@@ -210,8 +213,8 @@ component:
   backend_rest: &backend_rest
     parameters: *defaultParameters
     ecr:
-      <<: *defaultECR      
-      repository: hawk-hawkai-case-manager-backend-rest
+      <<: *defaultECR
+      repository: hawkai-case-manager-backend-rest
     kustomize:
       path: plattform/case-manager/backend
       overlays: *defaultOverlays
@@ -220,7 +223,7 @@ component:
     parameters: *defaultParameters
     ecr:
       <<: *defaultECR
-      repository: hawk-backend-grouping
+      repository: backend-grouping
     kustomize:
       path: plattform/case-manager/backend
       overlays: *defaultOverlays
@@ -229,26 +232,32 @@ component:
     parameters: *defaultParameters
     ecr:
       <<: *defaultECR
-      repository: hawk-backend-search
+      repository: backend-search
     kustomize:
       path: plattform/case-manager/backend
       overlays: *defaultOverlays
 
   backend:
     parameters: *defaultParameters
+    ecr:
+      <<: *defaultECR
     modules:
-      - *backend_msg
-      - *backend_rest
-      - *backend_grouping
-      - *backend_search
+      core: *backend_core
+      msg: *backend_msg
+      rest: *backend_rest
+      grouping: *backend_grouping
+      search: *backend_search
 
   backend2:
     parameters: *defaultParameters
+    ecr:
+      <<: *defaultECR
     modules:
-      - *backend_msg
-      - *backend_rest
-      - *backend_grouping
-      - *backend_search
+      core: *backend_core
+      msg: *backend_msg
+      rest: *backend_rest
+      grouping: *backend_grouping
+      search: *backend_search
 
   configuration:
     parameters:
@@ -282,3 +291,10 @@ component:
     parameters:
       <<: *defaultParameters
       kustomize: bitbucket-fake
+
+  docker-images:
+    parameters:
+      <<: *defaultParameters
+      kustomize: bitbucket-fake
+    ecr:
+      <<: *defaultECR

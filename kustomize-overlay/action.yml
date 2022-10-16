@@ -6,9 +6,10 @@ inputs:
     description: "Component name"
     required: true
 
-  component-metadata:
-    description: "Component metadata"
-    required: true
+  component-module:
+    description: "Component module"
+    required: false
+    default: ""
 
   component-overlay:
     description: "Overlay to update"
@@ -35,6 +36,7 @@ runs:
       with:
         profile: hawk
         component: ${{ inputs.component-name }}
+        module: ${{ inputs.component-module }}
 
     # https://hawkai.atlassian.net/browse/SRE-629
     # this relies that all nab overlays are called nab-dev
@@ -46,6 +48,7 @@ runs:
       with:
         profile: nab
         component: ${{ inputs.component-name }}
+        module: ${{ inputs.component-module }}
 
     - name: Checkout Kustomize
       uses: actions/checkout@v3
@@ -59,7 +62,7 @@ runs:
       env:
         HAWK_IMAGE_NAME: ${{ steps.get-hawk-image-name.outputs.image-name }}
         NAB_IMAGE_NAME: ${{ steps.get-nab-image-name.outputs.image-name }}
-        KUSTOMIZE_PATH: ${{ fromJson(inputs.component-metadata).kustomize.path }}
+        KUSTOMIZE_PATH: ${{ steps.get-hawk-image-name.outputs.kustomize-path }}
         OVERLAY: ${{ inputs.component-overlay }}
       run: |
         cd ${KUSTOMIZE_PATH}/overlays/${OVERLAY}

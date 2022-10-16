@@ -47,20 +47,15 @@ component:
       path: plattform/utility/audit-trail
       overlays: *defaultOverlays
 
-  backend_grouping: &backend_grouping
+  backend_core: &backend_core
     parameters: *defaultParameters
-    ecr:
-      <<: *defaultECR
-      repository: backend-grouping
-    kustomize:
-      path: plattform/case-manager/backend
-      overlays: *defaultOverlays
 
   backend_msg: &backend_msg
     parameters: *defaultParameters
     ecr:
       <<: *defaultECR
-      repository: hawkai-case-manager-backend-msg
+      repository: hawk-hawkai-case-manager-backend-msg
+      repository-prefix: hawk-
     kustomize:
       path: plattform/case-manager/backend
       overlays: *defaultOverlays
@@ -69,7 +64,18 @@ component:
     parameters: *defaultParameters
     ecr:
       <<: *defaultECR
-      repository: hawkai-case-manager-backend-rest
+      repository: hawk-hawkai-case-manager-backend-rest
+      repository-prefix: hawk-
+    kustomize:
+      path: plattform/case-manager/backend
+      overlays: *defaultOverlays
+
+  backend_grouping: &backend_grouping
+    parameters: *defaultParameters
+    ecr:
+      <<: *defaultECR
+      repository: hawk-backend-grouping
+      repository-prefix: hawk-
     kustomize:
       path: plattform/case-manager/backend
       overlays: *defaultOverlays
@@ -78,26 +84,39 @@ component:
     parameters: *defaultParameters
     ecr:
       <<: *defaultECR
-      repository: backend-search
+      repository: hawk-backend-search
+      repository-prefix: hawk-
     kustomize:
       path: plattform/case-manager/backend
       overlays: *defaultOverlays
 
   backend:
     parameters: *defaultParameters
+    ecr:
+      <<: *defaultECR
+      repository-prefix: hawk-
+    kustomize:
+      overlays: *defaultOverlays
     modules:
-      - *backend_msg
-      - *backend_rest
-      - *backend_grouping
-      - *backend_search
+      core: *backend_core
+      msg: *backend_msg
+      rest: *backend_rest
+      grouping: *backend_grouping
+      search: *backend_search
 
   backend2:
     parameters: *defaultParameters
+    ecr:
+      <<: *defaultECR
+      repository-prefix: hawk-
+    kustomize:
+      overlays: *defaultOverlays
     modules:
-      - *backend_msg
-      - *backend_rest
-      - *backend_grouping
-      - *backend_search
+      core: *backend_core
+      msg: *backend_msg
+      rest: *backend_rest
+      grouping: *backend_grouping
+      search: *backend_search
 
   blacklist:
     parameters:
@@ -182,6 +201,243 @@ component:
       path: plattform/ai/entity-resolution
       overlays: *defaultOverlays
 
+  features: &features
+    parameters:
+      <<: *defaultParameters
+      java-version: 17
+    ecr:
+      <<: *defaultECR
+      repository-prefix: hawk-features
+    kustomize:
+      overlays: *defaultOverlays
+    modules:
+      core:
+        parameters:
+          <<: *defaultParameters
+          java-version: 17
+      countryrisk:
+        parameters:
+          <<: *defaultParameters
+          java-version: 17
+        ecr:
+          <<: *defaultECR
+          repository-prefix: hawk-features
+          repository: hawk-features-countryrisk
+        kustomize:
+          overlays: *defaultOverlays
+          path: plattform/processing/features/countryrisk
+      volumerisk:
+        parameters:
+          <<: *defaultParameters
+          java-version: 17
+        ecr:
+          <<: *defaultECR
+          repository-prefix: hawk-features
+          repository: hawk-features-volumerisk
+        kustomize:
+          overlays: *defaultOverlays
+          path: plattform/processing/features/volumerisk
+      pepsanction-lookup-match-analyzer:
+        parameters:
+          <<: *defaultParameters
+          java-version: 17
+        ecr:
+          <<: *defaultECR
+          repository-prefix: hawk-features
+          repository: hawk-features-pepsanction-lookup-match-analyzer
+        kustomize:
+          overlays: *defaultOverlays
+          path: plattform/processing/features/pepsanction-lookup-match-analyzer
+      simple:
+        parameters:
+          <<: *defaultParameters
+          java-version: 17
+        ecr:
+          <<: *defaultECR
+          repository-prefix: hawk-features
+          repository: hawk-features-simple
+        kustomize:
+          overlays: *defaultOverlays
+          path: plattform/processing/features/simple
+      assessment-engine:
+        parameters:
+          <<: *defaultParameters
+          java-version: 17
+        ecr:
+          <<: *defaultECR
+          repository-prefix: hawk-features
+          repository: hawk-features-assessment-engine
+        kustomize:
+          overlays: *defaultOverlays
+          path: plattform/processing/features/assessment-engine
+      passthrough:
+        parameters:
+          <<: *defaultParameters
+          java-version: 17
+        ecr:
+          <<: *defaultECR
+          repository-prefix: hawk-features
+          repository: hawk-features-passthrough
+        kustomize:
+          overlays: *defaultOverlays
+          path: plattform/processing/features/passthrough
+      smurfing:
+        parameters:
+          <<: *defaultParameters
+          java-version: 17
+        ecr:
+          <<: *defaultECR
+          repository-prefix: hawk-features
+          repository: hawk-features-smurfing
+        kustomize:
+          overlays: *defaultOverlays
+          path: plattform/processing/features/smurfing
+      roundamount:
+        parameters:
+          <<: *defaultParameters
+          java-version: 17
+        ecr:
+          <<: *defaultECR
+          repository-prefix: hawk-features
+          repository: hawk-features-roundamount
+        kustomize:
+          overlays: *defaultOverlays
+          path: plattform/processing/features/roundamount
+      round-amount-ratio-increase-decrease:
+        parameters:
+          <<: *defaultParameters
+          java-version: 17
+        ecr:
+          <<: *defaultECR
+          repository-prefix: hawk-features
+          repository: hawk-features-round-amount-ratio-increase-decrease
+        kustomize:
+          overlays: *defaultOverlays
+          path: plattform/processing/features/round-amount-ratio-increase-decrease
+      unusualfrequency:
+        parameters:
+          <<: *defaultParameters
+          java-version: 17
+        ecr:
+          <<: *defaultECR
+          repository-prefix: hawk-features
+          repository: hawk-features-unusualfrequency
+        kustomize:
+          overlays: *defaultOverlays
+          path: plattform/processing/features/unusualfrequency
+      dormantaccount:
+        parameters:
+          <<: *defaultParameters
+          java-version: 17
+        ecr:
+          <<: *defaultECR
+          repository-prefix: hawk-features
+          repository: hawk-features-dormantaccount
+        kustomize:
+          overlays: *defaultOverlays
+          path: plattform/processing/features/dormantaccount
+      crossbordervolume:
+        parameters:
+          <<: *defaultParameters
+          java-version: 17
+        ecr:
+          <<: *defaultECR
+          repository-prefix: hawk-features
+          repository: hawk-features-crossbordervolume
+        kustomize:
+          overlays: *defaultOverlays
+          path: plattform/processing/features/crossbordervolume
+      volumeincreasedecrease:
+        parameters:
+          <<: *defaultParameters
+          java-version: 17
+        ecr:
+          <<: *defaultECR
+          repository-prefix: hawk-features
+          repository: hawk-features-volumeincreasedecrease
+        kustomize:
+          overlays: *defaultOverlays
+          path: plattform/processing/features/volumeincreasedecrease
+      suspiciousavgticketsize:
+        parameters:
+          <<: *defaultParameters
+          java-version: 17
+        ecr:
+          <<: *defaultECR
+          repository-prefix: hawk-features
+          repository: hawk-features-suspiciousavgticketsize
+        kustomize:
+          overlays: *defaultOverlays
+          path: plattform/processing/features/suspiciousavgticketsize
+      account-based-frequency-increase-decrease:
+        parameters:
+          <<: *defaultParameters
+          java-version: 17
+        ecr:
+          <<: *defaultECR
+          repository-prefix: hawk-features
+          repository: hawk-features-account-based-frequency-increase-decrease
+        kustomize:
+          overlays: *defaultOverlays
+          path: plattform/processing/features/account-based-frequency-increase-decrease
+      volumeriskv2:
+        parameters:
+          <<: *defaultParameters
+          java-version: 17
+        ecr:
+          <<: *defaultECR
+          repository-prefix: hawk-features
+          repository: hawk-features-volumeriskv2
+        kustomize:
+          overlays: *defaultOverlays
+          path: plattform/processing/features/volumeriskv2
+      countryriskv2:
+        parameters:
+          <<: *defaultParameters
+          java-version: 17
+        ecr:
+          <<: *defaultECR
+          repository-prefix: hawk-features
+          repository: hawk-features-countryriskv2
+        kustomize:
+          overlays: *defaultOverlays
+          path: plattform/processing/features/countryriskv2
+      passthroughv2:
+        parameters:
+          <<: *defaultParameters
+          java-version: 17
+        ecr:
+          <<: *defaultECR
+          repository-prefix: hawk-features
+          repository: hawk-features-passthroughv2
+        kustomize:
+          overlays: *defaultOverlays
+          path: plattform/processing/features/passthroughv2
+      passthroughv3:
+        parameters:
+          <<: *defaultParameters
+          java-version: 17
+        ecr:
+          <<: *defaultECR
+          repository-prefix: hawk-features
+          repository: hawk-features-passthroughv3
+        kustomize:
+          overlays: *defaultOverlays
+          path: plattform/processing/features/passthroughv3
+      counterparty-volume:
+        parameters:
+          <<: *defaultParameters
+          java-version: 17
+        ecr:
+          <<: *defaultECR
+          repository-prefix: hawk-features
+          repository: hawk-features-counterparty-volume
+        kustomize:
+          overlays: *defaultOverlays
+          path: plattform/processing/features/counterparty-volume
+
+  features2: *features
+
   feature-enrichment:
     parameters:
       <<: *defaultParameters
@@ -199,7 +455,7 @@ component:
       kustomize: bitbucket-fake
     ecr:
       <<: *defaultECR
-      repository: frontend
+      repository: hawk-hawkai-case-manager-frontend
     kustomize:
       path: plattform/case-manager/frontend
       overlays: *defaultOverlays
@@ -293,7 +549,12 @@ component:
       path: plattform/watchtower
       overlays: *defaultOverlays
 
-
+  docker-images:
+    parameters:
+      <<: *defaultParameters
+      kustomize: bitbucket-fake
+    ecr:
+      <<: *defaultECR
 
 
 

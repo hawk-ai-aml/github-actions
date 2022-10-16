@@ -1,0 +1,84 @@
+name: build
+
+on:
+  workflow_call:
+    inputs:
+      tag:
+        description: "TAG"
+        type: string
+        required: true
+      component:
+        type: string
+        required: false
+      profile:
+        type: string
+        required: false
+
+jobs:
+  init:
+    runs-on: [ "self-hosted", "builder" ]
+    outputs:
+      metadata: ${{ steps.init.outputs.metadata }}
+      parameters: ${{ steps.init.outputs.parameters }}
+    steps:
+      - id: init
+        name: Init Workflow
+        uses: hawk-ai-aml/github-actions/workflow-init@master
+        with:
+          profile: ${{ inputs.profile }}
+          component: ${{ inputs.component }}
+          update-kustomize: false
+
+  build:
+    needs: [ init ]
+    runs-on: [ "self-hosted", "builder" ]
+
+    steps:
+      - id: init
+        name: Init Job
+        uses: hawk-ai-aml/github-actions/job-init@master
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@v2
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - uses: actions/checkout@v3
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          aws-access-key-id: ${{ inputs.profile == 'nab' && secrets.AWS_NAB_DEV_ECR_ACCESS_KEY_ID || secrets.AWS_ORG_ECR_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ inputs.profile == 'nab' && secrets.AWS_NAB_DEV_ECR_SECRET_ACCESS_KEY || secrets.AWS_ORG_ECR_SECRET_ACCESS_KEY }}
+          aws-region: ${{ fromJson(needs.init.outputs.metadata).ecr.region }}
+
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v1
+        with:
+          registries: ${{ fromJson(needs.init.outputs.metadata).ecr.registry }}
+
+      - name: Build image
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          ECR_REPOSITORY: sftp-test
+        run: |
+          docker build -t ${ECR_REGISTRY}/${ECR_REPOSITORY}:${{ inputs.tag }} -f sftp-test/. .
+
+      - name: Push Image
+        id: push-image
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          ECR_REPOSITORY: sftp-test
+        run: |
+          export DOCKER_CLI_EXPERIMENTAL=enabled
+
+          set +e
+          docker manifest inspect ${ECR_REGISTRY}/${ECR_REPOSITORY}:${{ inputs.tag }} 2>&1> /dev/null
+          inspect_code=$?
+          set -e
+
+          if [[ "${inspect_code}" != 0 ]]; then
+            docker push ${ECR_REGISTRY}/${ECR_REPOSITORY}:${{ inputs.tag }}
+          fi
