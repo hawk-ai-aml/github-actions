@@ -131,10 +131,21 @@ jobs:
           aws-region: eu-central-1
 
       - name: Login to HAWK Amazon ECR
-        id: login-ecr
+        id: login-ecr1
         uses: aws-actions/amazon-ecr-login@v1
         with:
           registries: 860641649575
+
+      - name: Build image HAWK
+          env:
+            ARTIFACTORY_CONTEXT_URL: ${{ secrets.ARTIFACTORY_CONTEXT_URL }}
+            ARTIFACTORY_USERNAME: ${{ secrets.ARTIFACTORY_USERNAME }}
+            ARTIFACTORY_PASSWORD: ${{ secrets.ARTIFACTORY_PASSWORD }}
+            ECR_REGISTRY: ${{ steps.login-ecr1.outputs.registry }}
+            ECR_REPOSITORY: ${{ fromJson(needs.init.outputs.metadata).ecr.repository }}
+          run: |
+            ./gradlew build -Dskip.tests=true -x test
+            ./gradlew jibDockerBuild -DIMAGE_NAME="${ECR_REGISTRY}/${ECR_REPOSITORY}" -DTAG_COMMIT=${{ env.HAWK_IMAGE_TAG }}
 
       - name: Configure NAB AWS credentials
         uses: aws-actions/configure-aws-credentials@v1
@@ -144,38 +155,38 @@ jobs:
           aws-region: us-east-1
 
       - name: Login to NAB Amazon ECR
-        id: login-ecr
+        id: login-ecr2
         uses: aws-actions/amazon-ecr-login@v1
         with:
           registries: 569345997196
 
-      - name: Build image
+      - name: Build image NAB
         env:
           ARTIFACTORY_CONTEXT_URL: ${{ secrets.ARTIFACTORY_CONTEXT_URL }}
           ARTIFACTORY_USERNAME: ${{ secrets.ARTIFACTORY_USERNAME }}
           ARTIFACTORY_PASSWORD: ${{ secrets.ARTIFACTORY_PASSWORD }}
-          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          ECR_REGISTRY: ${{ steps.login-ecr2.outputs.registry }}
           ECR_REPOSITORY: ${{ fromJson(needs.init.outputs.metadata).ecr.repository }}
         run: |
           ./gradlew build -Dskip.tests=true -x test
           ./gradlew jibDockerBuild -DIMAGE_NAME="${ECR_REGISTRY}/${ECR_REPOSITORY}" -DTAG_COMMIT=${{ env.HAWK_IMAGE_TAG }}
 
-      - name: Push Image
-        id: push-image
-        env:
-          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
-          ECR_REPOSITORY: ${{ fromJson(needs.init.outputs.metadata).ecr.repository }}
-        run: |
-          export DOCKER_CLI_EXPERIMENTAL=enabled
-
-          set +e
-          docker manifest inspect ${ECR_REGISTRY}/${ECR_REPOSITORY}:${{ env.HAWK_IMAGE_TAG }} 2>&1> /dev/null
-          inspect_code=$?
-          set -e
-
-          if [[ "${inspect_code}" != 0 ]]; then  
-            docker push ${ECR_REGISTRY}/${ECR_REPOSITORY}:${{ env.HAWK_IMAGE_TAG }}
-          fi
+#      - name: Push Image
+#        id: push-image
+#        env:
+#          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+#          ECR_REPOSITORY: ${{ fromJson(needs.init.outputs.metadata).ecr.repository }}
+#        run: |
+#          export DOCKER_CLI_EXPERIMENTAL=enabled
+#
+#          set +e
+#          docker manifest inspect ${ECR_REGISTRY}/${ECR_REPOSITORY}:${{ env.HAWK_IMAGE_TAG }} 2>&1> /dev/null
+#          inspect_code=$?
+#          set -e
+#
+#          if [[ "${inspect_code}" != 0 ]]; then
+#            docker push ${ECR_REGISTRY}/${ECR_REPOSITORY}:${{ env.HAWK_IMAGE_TAG }}
+#          fi
 
 #  update-overlays:
 #    needs: [ init, build ]
