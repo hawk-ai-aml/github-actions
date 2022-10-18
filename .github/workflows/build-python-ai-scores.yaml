@@ -22,6 +22,9 @@ on:
       profile:
         type: string
         required: false
+      environments:
+        type: string
+        required: false
 
 jobs:
   init:
@@ -138,7 +141,7 @@ jobs:
       - name: Checkout Kustomize
         uses: actions/checkout@v3
         with:
-          repository: ${{ inputs.kustomize-repository }}
+          repository: git@github.com:hawk-ai-aml/kustomize2.git
           token: ${{ secrets.TOKEN }}
           ref: master
 
