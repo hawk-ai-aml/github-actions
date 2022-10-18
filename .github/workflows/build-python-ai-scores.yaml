@@ -130,7 +130,7 @@ jobs:
       max-parallel: 1
       matrix:
         overlay: ${{fromJson(needs.init.outputs.overlays)}}
-        service: [ "opening_anomaly", "opening_phishing", "opening_fan_in", "autoclosing" ]
+        service: [ "opening-anomaly", "opening-phishing", "opening-fan-in", "autoclosing" ]
 
     steps:
 
@@ -146,7 +146,6 @@ jobs:
           ref: master
 
       - run: |
-          ls ${{ github.workspace }}
           cd ${{ github.workspace }}/plattform/processing/features/${{ matrix.service }}/overlays/${{ matrix.overlay }}
           REPOSITORY_FOLDER=$(echo ${{ matrix.service }} | sed 's/\_/\-/g')
           REPOSITORY_FULL_NAME="${ECR_REGISTRY}/ai-scores-${REPOSITORY_FOLDER}"
