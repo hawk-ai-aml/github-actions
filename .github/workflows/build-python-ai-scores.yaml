@@ -136,11 +136,11 @@ jobs:
         uses: hawk-ai-aml/github-actions/job-init@python-ai-scores
 
       - name: Checkout Kustomize
-          uses: actions/checkout@v3
-          with:
-            repository: ${{ inputs.kustomize-repository }}
-            token: ${{ secrets.TOKEN }}
-            ref: master
+        uses: actions/checkout@v3
+        with:
+          repository: ${{ inputs.kustomize-repository }}
+          token: ${{ secrets.TOKEN }}
+          ref: master
 
       - run: |
           ls ${{ github.workspace }}
