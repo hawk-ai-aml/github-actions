@@ -46,80 +46,80 @@ jobs:
           overlays: ${{ inputs.kustomizeOverlays }}
           skip-tests: ${{ inputs.skipTests }}
 
-  build:
-    needs: init
-    runs-on: ubuntu-latest
-    steps:
-      - id: init
-        name: Init Job
-        uses: hawk-ai-aml/github-actions/job-init@python-ai-scores
-
-      - name: Login to Docker Hub
-        uses: docker/login-action@v2
-        with:
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
-
-      - uses: actions/checkout@v3
-      - uses: actions/setup-python@v4
-        with:
-          python-version: 3.8
-
-      - name: Install pipenv
-        run: pip install pipenv
-
-
-      - name: Run Pytest
-        env:
-          JENKINS: true
-          IS_JENKINS: true
-          AWS_ACCESS_KEY_ID: ${{ secrets.BACKEND_FILE_AWS_ACCESS_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.BACKEND_FILE_AWS_SECRET_ACCESS_KEY }}
-        run: |
-          pipenv install --dev
-          pipenv lock --keep-outdated > pipenv-requirements.txt
-          pipenv requirements > requirements.txt
-          pipenv run pip install -r manual-requirements.txt
-          pipenv run pytest tests --junitxml=report.xml
-          pipenv run junit2html report.xml report.html
-          mkdir report-dir && mv report.html ./report-dir/report.html
-
-      - name: Upload Reports to S3
-        id: reports
-        if: needs.init.outputs.skip-tests != 'true' && (success() || failure())
-        uses: hawk-ai-aml/upload-s3-action@master
-        with:
-          aws_key_id: ${{ secrets.AWS_DEV_ACCESS_KEY_ID }}
-          aws_secret_access_key: ${{ secrets.AWS_DEV_SECRET_ACCESS_KEY }}
-          aws_bucket: github-actions-static-html-2
-          source_dir: ./report-dir
-          destination_dir: ${{ github.event.repository.name }}-${{ github.run_id }}
-
-      - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v1
-        with:
-          aws-access-key-id: ${{ inputs.profile == 'nab' && secrets.AWS_NAB_DEV_ECR_ACCESS_KEY_ID || secrets.AWS_ORG_ECR_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ inputs.profile == 'nab' && secrets.AWS_NAB_DEV_ECR_SECRET_ACCESS_KEY || secrets.AWS_ORG_ECR_SECRET_ACCESS_KEY }}
-          aws-region: ${{ fromJson(needs.init.outputs.metadata).ecr.region }}
-
-      - name: Login to Amazon ECR
-        id: login-ecr
-        uses: aws-actions/amazon-ecr-login@v1
-        with:
-          registries: ${{ fromJson(needs.init.outputs.metadata).ecr.registry }}
-
-      - name: Build and push image
-        env:
-          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
-        run: |
-          for module in opening_anomaly opening_phishing opening_fan_in autoclosing
-          do
-            REPOSITORY_FOLDER=$(echo ${module} | sed 's/\_/\-/g')
-            REPOSITORY_FULL_NAME="${ECR_REGISTRY}/ai-scores-${REPOSITORY_FOLDER}"
-            echo "$REPOSITORY_FULL_NAME is building..."
-            DOCKER_BUILDKIT=1 docker build --build-arg SERVICE=${module} -t ${REPOSITORY_FULL_NAME}:${{ env.HAWK_IMAGE_TAG }} .
-            docker push ${REPOSITORY_FULL_NAME}:${{ env.HAWK_IMAGE_TAG }}
-          done
+#  build:
+#    needs: init
+#    runs-on: ubuntu-latest
+#    steps:
+#      - id: init
+#        name: Init Job
+#        uses: hawk-ai-aml/github-actions/job-init@python-ai-scores
+#
+#      - name: Login to Docker Hub
+#        uses: docker/login-action@v2
+#        with:
+#          username: ${{ secrets.DOCKERHUB_USERNAME }}
+#          password: ${{ secrets.DOCKERHUB_TOKEN }}
+#
+#      - uses: actions/checkout@v3
+#      - uses: actions/setup-python@v4
+#        with:
+#          python-version: 3.8
+#
+#      - name: Install pipenv
+#        run: pip install pipenv
+#
+#
+#      - name: Run Pytest
+#        env:
+#          JENKINS: true
+#          IS_JENKINS: true
+#          AWS_ACCESS_KEY_ID: ${{ secrets.BACKEND_FILE_AWS_ACCESS_ID }}
+#          AWS_SECRET_ACCESS_KEY: ${{ secrets.BACKEND_FILE_AWS_SECRET_ACCESS_KEY }}
+#        run: |
+#          pipenv install --dev
+#          pipenv lock --keep-outdated > pipenv-requirements.txt
+#          pipenv requirements > requirements.txt
+#          pipenv run pip install -r manual-requirements.txt
+#          pipenv run pytest tests --junitxml=report.xml
+#          pipenv run junit2html report.xml report.html
+#          mkdir report-dir && mv report.html ./report-dir/report.html
+#
+##      - name: Upload Reports to S3
+##        id: reports
+##        if: needs.init.outputs.skip-tests != 'true' && (success() || failure())
+##        uses: hawk-ai-aml/upload-s3-action@master
+##        with:
+##          aws_key_id: ${{ secrets.AWS_DEV_ACCESS_KEY_ID }}
+##          aws_secret_access_key: ${{ secrets.AWS_DEV_SECRET_ACCESS_KEY }}
+##          aws_bucket: github-actions-static-html-2
+##          source_dir: ./report-dir
+##          destination_dir: ${{ github.event.repository.name }}-${{ github.run_id }}
+##
+##      - name: Configure AWS credentials
+##        uses: aws-actions/configure-aws-credentials@v1
+##        with:
+##          aws-access-key-id: ${{ inputs.profile == 'nab' && secrets.AWS_NAB_DEV_ECR_ACCESS_KEY_ID || secrets.AWS_ORG_ECR_ACCESS_KEY_ID }}
+##          aws-secret-access-key: ${{ inputs.profile == 'nab' && secrets.AWS_NAB_DEV_ECR_SECRET_ACCESS_KEY || secrets.AWS_ORG_ECR_SECRET_ACCESS_KEY }}
+##          aws-region: ${{ fromJson(needs.init.outputs.metadata).ecr.region }}
+#
+#      - name: Login to Amazon ECR
+#        id: login-ecr
+#        uses: aws-actions/amazon-ecr-login@v1
+#        with:
+#          registries: ${{ fromJson(needs.init.outputs.metadata).ecr.registry }}
+#
+#      - name: Build and push image
+#        env:
+#          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+#        run: |
+#          for module in opening_anomaly opening_phishing opening_fan_in autoclosing
+#          do
+#            REPOSITORY_FOLDER=$(echo ${module} | sed 's/\_/\-/g')
+#            REPOSITORY_FULL_NAME="${ECR_REGISTRY}/ai-scores-${REPOSITORY_FOLDER}"
+#            echo "$REPOSITORY_FULL_NAME is building..."
+#            DOCKER_BUILDKIT=1 docker build --build-arg SERVICE=${module} -t ${REPOSITORY_FULL_NAME}:${{ env.HAWK_IMAGE_TAG }} .
+#            docker push ${REPOSITORY_FULL_NAME}:${{ env.HAWK_IMAGE_TAG }}
+#          done
 
   update-overlays:
     needs: [ init, build ]
@@ -150,7 +150,8 @@ jobs:
           cd ${{ github.workspace }}/plattform/processing/features/${{ matrix.service }}/overlays/${{ matrix.environment }}
           REPOSITORY_FOLDER=$(echo ${{ matrix.service }} | sed 's/\_/\-/g')
           REPOSITORY_FULL_NAME="${ECR_REGISTRY}/ai-scores-${REPOSITORY_FOLDER}"
-          kustomize edit set image $REPOSITORY_FULL_NAME:${{ env.HAWK_IMAGE_TAG }}
+          # kustomize edit set image $REPOSITORY_FULL_NAME:${{ env.HAWK_IMAGE_TAG }}
+          kustomize edit set image $REPOSITORY_FULL_NAME:${{ env.HAWK_IMAGE_TAG }}:SRE-547-9b2c021
           git config --global user.name "GitHub Actions"
           git config --global user.email "github-actions@hawk.ai"
           git add .
