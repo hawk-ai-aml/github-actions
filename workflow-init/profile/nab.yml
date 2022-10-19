@@ -155,6 +155,57 @@ component:
       path: plattform/utility/configuration
       overlays: *defaultOverlays
 
+  customer-risk-rating:
+    parameters: *defaultParameters
+    ecr:
+      <<: *defaultECR
+    kustomize:
+      overlays: *defaultOverlays
+    modules:
+      core:
+        parameters:
+          <<: *defaultParameters
+      app:
+        parameters:
+          <<: *defaultParameters
+        ecr:
+          <<: *defaultECR
+          repository: hawk-customer-risk-rating
+          repository-prefix: hawk-
+        kustomize:
+          overlays: *defaultOverlays
+          path: plattform/processing/customer-risk-rating
+      crr-risk-factor-sar:
+        parameters:
+          <<: *defaultParameters
+        ecr:
+          <<: *defaultECR
+          repository: hawk-crr-risk-factor-sar
+          repository-prefix: hawk-
+        kustomize:
+          overlays: *defaultOverlays
+          path: plattform/processing/crr-risk-factors/crr-risk-factor-sar
+      crr-risk-factor-expected-volume:
+        parameters:
+          <<: *defaultParameters
+        ecr:
+          <<: *defaultECR
+          repository: hawk-crr-risk-factor-expected-volume
+          repository-prefix: hawk-
+        kustomize:
+          overlays: *defaultOverlays
+          path: plattform/processing/crr-risk-factors/crr-risk-factor-expected-volume
+      crr-risk-factor-payment-means:
+        parameters:
+          <<: *defaultParameters
+        ecr:
+          <<: *defaultECR
+          repository: hawk-crr-risk-factor-payment-means
+          repository-prefix: hawk-
+        kustomize:
+          overlays: *defaultOverlays
+          path: plattform/processing/crr-risk-factors/crr-risk-factor-payment-means
+
   customer-risk-rating-events-sink:
     parameters:
       <<: *defaultParameters

@@ -152,6 +152,53 @@ component:
       path: plattform/utility/configuration
       overlays: *defaultOverlays
 
+  customer-risk-rating:
+    parameters: *defaultParameters
+    ecr:
+      <<: *defaultECR
+    kustomize:
+      overlays: *defaultOverlays
+    modules:
+      core:
+        parameters:
+          <<: *defaultParameters
+      app:
+        parameters:
+          <<: *defaultParameters
+        ecr:
+          <<: *defaultECR
+          repository: customer-risk-rating
+        kustomize:
+          overlays: *defaultOverlays
+          path: plattform/processing/customer-risk-rating
+      crr-risk-factor-sar:
+        parameters:
+          <<: *defaultParameters
+        ecr:
+          <<: *defaultECR
+          repository: crr-risk-factor-sar
+        kustomize:
+          overlays: *defaultOverlays
+          path: plattform/processing/crr-risk-factors/crr-risk-factor-sar
+      crr-risk-factor-expected-volume:
+        parameters:
+          <<: *defaultParameters
+        ecr:
+          <<: *defaultECR
+          repository: crr-risk-factor-expected-volume
+        kustomize:
+          overlays: *defaultOverlays
+          path: plattform/processing/crr-risk-factors/crr-risk-factor-expected-volume
+      crr-risk-factor-payment-means:
+        parameters:
+          <<: *defaultParameters
+        ecr:
+          <<: *defaultECR
+          repository: crr-risk-factor-payment-means
+        kustomize:
+          overlays: *defaultOverlays
+          path: plattform/processing/crr-risk-factors/crr-risk-factor-payment-means
+
   customer-risk-rating-events-sink:
     parameters:
       <<: *defaultParameters
