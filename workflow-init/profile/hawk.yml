@@ -243,6 +243,56 @@ component:
       path: plattform/ai/entity-resolution
       overlays: *defaultOverlays
 
+  gateway:
+    parameters: *defaultParameters
+    ecr:
+      <<: *defaultECR
+    kustomize:
+      overlays: *defaultOverlays
+    modules:
+      core:
+        parameters:
+          <<: *defaultParameters
+      engine:
+        parameters:
+          <<: *defaultParameters
+      msg:
+        parameters:
+          <<: *defaultParameters
+        ecr:
+          <<: *defaultECR
+          repository: hawkai-gateway-msg
+        kustomize:
+          overlays: *defaultOverlays
+          path: plattform/processing/gateway
+      batch:
+        parameters:
+          <<: *defaultParameters
+        ecr:
+          <<: *defaultECR
+          repository: hawkai-gateway-batch
+        kustomize:
+          overlays: *defaultOverlays
+          path: plattform/processing/gateway
+      rest:
+        parameters:
+          <<: *defaultParameters
+        ecr:
+          <<: *defaultECR
+          repository: hawkai-gateway
+        kustomize:
+          overlays: *defaultOverlays
+          path: plattform/processing/gateway
+      activemq:
+        parameters:
+          <<: *defaultParameters
+        ecr:
+          <<: *defaultECR
+          repository: hawkai-gateway-activemq
+        kustomize:
+          overlays: *defaultOverlays
+          path: plattform/processing/gateway
+
   features: &features
     parameters:
       <<: *defaultParameters
