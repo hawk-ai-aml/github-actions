@@ -16,38 +16,16 @@ on:
         description: "Overlays to update"
         type: string
         required: false
-      component:
-        type: string
-        required: false
-      profile:
-        type: string
-        required: false
       environments:
         type: string
         required: false
+      ecr-registry:
+        type: string
+        required: true
 
 jobs:
-  init:
-    runs-on: [ "self-hosted", "builder" ]
-    outputs:
-      overlays: ${{ steps.init.outputs.overlays }}
-      metadata: ${{ steps.init.outputs.metadata }}
-      update-kustomize: ${{ steps.init.outputs.update-kustomize }}
-      skip-tests: ${{ steps.init.outputs.skip-tests }}
-      # parameters: ${{ steps.init.outputs.parameters }}
-    steps:
-      - id: init
-        name: Init Workflow
-        uses: hawk-ai-aml/github-actions/workflow-init@python-ai-scores
-        with:
-          profile: ${{ inputs.profile }}
-          component: ${{ inputs.component }}
-          update-kustomize: ${{ inputs.updateKustomize }}
-          overlays: ${{ inputs.kustomizeOverlays }}
-          skip-tests: ${{ inputs.skipTests }}
 
   build:
-    needs: init
     runs-on: ubuntu-latest
     steps:
       - id: init
@@ -78,40 +56,34 @@ jobs:
           pipenv install --dev
           pipenv requirements --dev > requirements.txt
           pipenv run pip install -r manual-requirements.txt
-#          pipenv run pytest tests --junitxml=report.xml
-#          pipenv run junit2html report.xml report.html
-#          mkdir report-dir && mv report.html ./report-dir/report.html
-#
-#      - name: Upload Reports to S3
-#        id: reports
-#        if: needs.init.outputs.skip-tests != 'true' && (success() || failure())
-#        uses: hawk-ai-aml/upload-s3-action@master
-#        with:
-#          aws_key_id: ${{ secrets.AWS_DEV_ACCESS_KEY_ID }}
-#          aws_secret_access_key: ${{ secrets.AWS_DEV_SECRET_ACCESS_KEY }}
-#          aws_bucket: github-actions-static-html-2
-#          source_dir: ./report-dir
-#          destination_dir: ${{ github.event.repository.name }}-${{ github.run_id }}
-#
+          pipenv run pytest tests --junitxml=report.xml
+          pipenv run junit2html report.xml report.html
+          mkdir report-dir && mv report.html ./report-dir/report.html
+
+      - name: Upload Reports to S3
+        id: reports
+        if: needs.init.outputs.skip-tests != 'true' && (success() || failure())
+        uses: hawk-ai-aml/upload-s3-action@master
+        with:
+          aws_key_id: ${{ secrets.AWS_DEV_ACCESS_KEY_ID }}
+          aws_secret_access_key: ${{ secrets.AWS_DEV_SECRET_ACCESS_KEY }}
+          aws_bucket: github-actions-static-html-2
+          source_dir: ./report-dir
+          destination_dir: ${{ github.event.repository.name }}-${{ github.run_id }}
 
       - name: Build and tag images
         env:
-          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          MODULES: ${{fromJson(inputs.modules)}}
         run: |
-          # for module in opening_anomaly opening_phishing opening_fan_in autoclosing
+          # for module in MODULES
           for module in autoclosing
           do
             REPOSITORY_FOLDER=$(echo ${module} | sed 's/\_/\-/g')
-            REPOSITORY_FULL_NAME="860641649575.dkr.ecr.eu-central-1.amazonaws.com/ai-scores-${REPOSITORY_FOLDER}"
+            REPOSITORY_FULL_NAME="${{ inputs.ecr-registry }}/ai-scores-${REPOSITORY_FOLDER}"
             echo "$REPOSITORY_FULL_NAME is building..."
-            DOCKER_BUILDKIT=1 docker build --build-arg SERVICE=${module} -t ${REPOSITORY_FULL_NAME}:${{ env.HAWK_IMAGE_TAG }} -t ${REPOSITORY_FULL_NAME}:99.99.99 .
-          #  docker push ${REPOSITORY_FULL_NAME}:${{ env.HAWK_IMAGE_TAG }}
+            DOCKER_BUILDKIT=1 docker build --build-arg SERVICE=${module} -t ${REPOSITORY_FULL_NAME}:${{ env.HAWK_IMAGE_TAG }} .
+            docker push ${REPOSITORY_FULL_NAME}:${{ env.HAWK_IMAGE_TAG }}
           done
-
-      - name: Push images
-        run: |
-          docker push ${REPOSITORY_FULL_NAME}:${{ env.HAWK_IMAGE_TAG }}
-          docker push ${REPOSITORY_FULL_NAME}:99.99.99
 
   update-overlays:
     needs: [ init, build ]
@@ -119,35 +91,73 @@ jobs:
     runs-on: [ "self-hosted", "builder" ]
     strategy:
       # Avoid race condition issues with github
-      max-parallel: 1
+      max-parallel: 2
       matrix:
         overlay: ${{fromJson(needs.init.outputs.overlays)}}
-        service: [ "opening-anomaly", "opening-phishing", "opening-fan-in", "autoclosing" ]
+        module: ${{fromJson(inputs.modules)}}
 
     steps:
 
-      - id: init
-        name: Init Job
-        uses: hawk-ai-aml/github-actions/job-init@python-ai-scores
 
-      - name: Checkout Kustomize
+      - name: Checkout Kustomize (GitHub)
+        if: ${{ inputs.git-hosting }} == "github"
         uses: actions/checkout@v3
         with:
           repository: hawk-ai-aml/kustomize2.git
           token: ${{ secrets.TEST_TOKEN }}
           ref: master
 
-      - run: |
-          cd ${{ github.workspace }}/plattform/processing/features/${{ matrix.service }}/overlays/${{ matrix.overlay }}
+      - name: Update Kustomize (GitHub)
+        if: ${{ inputs.git-hosting }} == "github"
+        run: |
+          cd ${{ github.workspace }}/plattform/processing/features/${{ matrix.module }}/overlays/${{ matrix.overlay }}
           REPOSITORY_FOLDER=$(echo ${{ matrix.service }} | sed 's/\_/\-/g')
           REPOSITORY_FULL_NAME="${ECR_REGISTRY}/ai-scores-${REPOSITORY_FOLDER}"
           # kustomize edit set image $REPOSITORY_FULL_NAME:${{ env.HAWK_IMAGE_TAG }}
-          kustomize edit set image $REPOSITORY_FULL_NAME:${{ env.HAWK_IMAGE_TAG }}:SRE-547-9b2c021
+          kustomize edit set image $REPOSITORY_FULL_NAME:${{ github.ref_name }}
           git config --global user.name "GitHub Actions"
           git config --global user.email "github-actions@hawk.ai"
           git add .
           git commit -m "Change Tag"
           git push
+
+      - name: Update Kustomize (Bitbucket)
+        if: ${{ inputs.git-hosting }} == "bitbucket"
+        shell: bash
+          env:
+            HAWK_IMAGE_NAME: ai-scores-${{ matrix.module }}
+            NAB_IMAGE_NAME: hawk-ai-scores-${{ matrix.module }}
+            KUSTOMIZE_SSH_KEY_FILE: /home/builder/.ssh/id_kustomize_private_key
+            KUSTOMIZE_SSH_KEY: ${{ secrets.KUSTOMIZE_DEPLOY_PRIVATE_KEY }}
+            KUSTOMIZE_PATH: /plattform/processing/features/
+            OVERLAY: ${{ matrix.overlay }}
+        run: |
+          # Prepare SSH
+          mkdir -p $(dirname ${KUSTOMIZE_SSH_KEY_FILE})
+          echo ${KUSTOMIZE_SSH_KEY} | base64 -d > ${KUSTOMIZE_SSH_KEY_FILE}
+          chmod 600 ${KUSTOMIZE_SSH_KEY_FILE}
+          export GIT_SSH_COMMAND="ssh -i ${KUSTOMIZE_SSH_KEY_FILE}"
+          cat <<EOF >> ~/.ssh/known_hosts
+          bitbucket.org ssh-rsa AAAAB3NzaC1yc2EAAAABIwAAAQEAubiN81eDcafrgMeLzaFPsw2kNvEcqTKl/VqLat/MaB33pZy0y3rJZtnqwR2qOOvbwKZYKiEO1O6VqNEBxKvJJelCq0dTXWT5pbO2gDXC6h6QDXCaHo6pOHGPUy+YBaGQRGuSusMEASYiWunYN0vCAI8QaXnWMXNMdFP3jHAJH0eDsoiGnLPBlBp4TNm6rYI74nMzgz3B9IikW4WVK+dc8KZJZWYjAuORU3jc1c/NPskD2ASinf8v3xnfXeukU0sJ5N6m5E8VLjObPEO+mN2t/FZTMZLiFqPWc/ALSqnMnnhwrNi2rbfg/rd/IpL8Le3pSBne8+seeFVBoGqzHM9yXw==
+          EOF
+          # End prepare SSH
+          git clone ${{ inputs.kustomize-repo }} kustomize
+          cd kustomize/${KUSTOMIZE_PATH}/overlays/${OVERLAY}
+          # https://hawkai.atlassian.net/browse/SRE-629
+          # this relies that all nab overlays are called nab-dev
+          # nicer way is to pass profile, than evaluating overlay
+          if [[ ${OVERLAY} == 'nab-dev' ]]; then
+          kustomize edit set image ${HAWK_IMAGE_NAME}=${NAB_IMAGE_NAME}:${{ inputs.component-tag }}
+          else
+          kustomize edit set image ${HAWK_IMAGE_NAME}:${{ inputs.component-tag }}
+          fi
+          if ! git diff --quiet HEAD; then
+          git config --global user.name "GitHub Actions"
+          git config --global user.email "github-actions@hawk.ai"
+          git add .
+          git commit -m "AUTOMATIC COMMIT: Update ${KUSTOMIZE_PATH}/overlays/${OVERLAY} for ${{ inputs.component-name }} to ${{ env.HAWK_IMAGE_TAG }}"
+          git push
+          fi
 
 #      - id: udpate-overlay-github
 #        name: Update kustomize overlay (GitHub)
