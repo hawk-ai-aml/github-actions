@@ -94,24 +94,24 @@ jobs:
 #          destination_dir: ${{ github.event.repository.name }}-${{ github.run_id }}
 #
 
-    - name: Build and tag images
-      env:
-        ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
-      run: |
-        # for module in opening_anomaly opening_phishing opening_fan_in autoclosing
-        for module in autoclosing
-        do
-          REPOSITORY_FOLDER=$(echo ${module} | sed 's/\_/\-/g')
-          REPOSITORY_FULL_NAME="${ECR_REGISTRY}/ai-scores-${REPOSITORY_FOLDER}"
-          echo "$REPOSITORY_FULL_NAME is building..."
-          DOCKER_BUILDKIT=1 docker build --build-arg SERVICE=${module} -t ${REPOSITORY_FULL_NAME}:${{ env.HAWK_IMAGE_TAG }} -t ${REPOSITORY_FULL_NAME}:99.99.99 .
-        #  docker push ${REPOSITORY_FULL_NAME}:${{ env.HAWK_IMAGE_TAG }}
-        done
+      - name: Build and tag images
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+        run: |
+          # for module in opening_anomaly opening_phishing opening_fan_in autoclosing
+          for module in autoclosing
+          do
+            REPOSITORY_FOLDER=$(echo ${module} | sed 's/\_/\-/g')
+            REPOSITORY_FULL_NAME="${ECR_REGISTRY}/ai-scores-${REPOSITORY_FOLDER}"
+            echo "$REPOSITORY_FULL_NAME is building..."
+            DOCKER_BUILDKIT=1 docker build --build-arg SERVICE=${module} -t ${REPOSITORY_FULL_NAME}:${{ env.HAWK_IMAGE_TAG }} -t ${REPOSITORY_FULL_NAME}:99.99.99 .
+          #  docker push ${REPOSITORY_FULL_NAME}:${{ env.HAWK_IMAGE_TAG }}
+          done
 
-    - name: Push images
-      run: |
-        docker push ${REPOSITORY_FULL_NAME}:${{ env.HAWK_IMAGE_TAG }}
-        docker push ${REPOSITORY_FULL_NAME}:99.99.99
+      - name: Push images
+        run: |
+          docker push ${REPOSITORY_FULL_NAME}:${{ env.HAWK_IMAGE_TAG }}
+          docker push ${REPOSITORY_FULL_NAME}:99.99.99
 
   update-overlays:
     needs: [ init, build ]
