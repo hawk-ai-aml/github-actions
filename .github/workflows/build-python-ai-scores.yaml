@@ -102,12 +102,13 @@ jobs:
       - name: Build and tag images
         env:
           MODULES: ${{ inputs.modules-string }}
+          REGISTRY: ${{ inputs.profile == 'nab' && 569345997196.dkr.ecr.us-east-1.amazonaws.com || 860641649575.dkr.ecr.eu-central-1.amazonaws.com }}
         run: |
           echo $MODULES
           for module in $MODULES
           do
             REPOSITORY_FOLDER=$(echo ${module} | sed 's/\_/\-/g')
-            REPOSITORY_FULL_NAME="${{ inputs.ecr-registry }}/ai-scores-${REPOSITORY_FOLDER}"
+            REPOSITORY_FULL_NAME="$REGISTRY/ai-scores-${REPOSITORY_FOLDER}"
             echo "$REPOSITORY_FULL_NAME is building..."
             DOCKER_BUILDKIT=1 docker build --build-arg SERVICE=${module} -t ${REPOSITORY_FULL_NAME}:$${{ github.ref_name }} .
             docker push ${REPOSITORY_FULL_NAME}:$${{ github.ref_name }}
