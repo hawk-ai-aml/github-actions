@@ -563,6 +563,62 @@ component:
       path: plattform/processing/features/label-engine
       overlays: *defaultOverlays
 
+  pep-sanction:
+    parameters:
+      <<: *defaultParameters
+    ecr:
+      <<: *defaultECR
+    kustomize:
+      overlays: *defaultOverlays
+    modules:
+      core:
+        parameters:
+          <<: *defaultParameters
+      rest:
+        parameters:
+          <<: *defaultParameters
+        ecr:
+          <<: *defaultECR
+          repository: hawkai-pepsanction-rest
+        kustomize:
+          overlays: *defaultOverlays
+          path: plattform/processing/features/pepsanction
+      msg:
+        parameters:
+          <<: *defaultParameters
+        ecr:
+          <<: *defaultECR
+          repository: hawkai-pepsanction-msg
+        kustomize:
+          overlays: *defaultOverlays
+          path: plattform/processing/features/pepsanction
+      import-dowjones:
+        parameters:
+          <<: *defaultParameters
+        ecr:
+          <<: *defaultECR
+          repository: hawkai-pepsanction-import-dowjones
+        kustomize:
+          overlays: *defaultOverlays
+          path: plattform/processing/features/pepsanction
+      import-info4c:
+        parameters:
+          <<: *defaultParameters
+        ecr:
+          <<: *defaultECR
+          repository: hawkai-pepsanction-import-info4c
+        kustomize:
+          overlays: *defaultOverlays
+          path: plattform/processing/features/pepsanction
+      import-lexis-nexis:
+        parameters:
+          <<: *defaultParameters
+        ecr:
+          <<: *defaultECR
+          repository: hawkai-pepsanction-import-lexis-nexis
+        kustomize:
+          overlays: *defaultOverlays
+          path: plattform/processing/features/pepsanction
 
   regulatory-check:
     parameters:

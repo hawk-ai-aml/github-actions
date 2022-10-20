@@ -576,6 +576,68 @@ component:
       path: plattform/processing/features/label-engine
       overlays: *defaultOverlays
 
+  pep-sanction:
+    parameters:
+      <<: *defaultParameters
+    ecr:
+      <<: *defaultECR
+    kustomize:
+      overlays: *defaultOverlays
+    modules:
+      core:
+        parameters:
+          <<: *defaultParameters
+      rest:
+        parameters:
+          <<: *defaultParameters
+        ecr:
+          <<: *defaultECR
+          repository: hawk-hawkai-pepsanction-rest
+          repository-prefix: hawk-
+        kustomize:
+          overlays: *defaultOverlays
+          path: plattform/processing/features/pepsanction
+      msg:
+        parameters:
+          <<: *defaultParameters
+        ecr:
+          <<: *defaultECR
+          repository: hawk-hawkai-pepsanction-msg
+          repository-prefix: hawk-
+        kustomize:
+          overlays: *defaultOverlays
+          path: plattform/processing/features/pepsanction
+      import-dowjones:
+        parameters:
+          <<: *defaultParameters
+        ecr:
+          <<: *defaultECR
+          repository: hawk-hawkai-pepsanction-import-dowjones
+          repository-prefix: hawk-
+        kustomize:
+          overlays: *defaultOverlays
+          path: plattform/processing/features/pepsanction
+      import-info4c:
+        parameters:
+          <<: *defaultParameters
+        ecr:
+          <<: *defaultECR
+          repository: hawk-hawkai-pepsanction-import-info4c
+          repository-prefix: hawk-
+        kustomize:
+          overlays: *defaultOverlays
+          path: plattform/processing/features/pepsanction
+      import-lexis-nexis:
+        parameters:
+          <<: *defaultParameters
+        ecr:
+          <<: *defaultECR
+          repository: hawk-hawkai-pepsanction-import-lexis-nexis
+          repository-prefix: hawk-
+        kustomize:
+          overlays: *defaultOverlays
+          path: plattform/processing/features/pepsanction
+
   processing-model:
     parameters:
       <<: *defaultParameters
