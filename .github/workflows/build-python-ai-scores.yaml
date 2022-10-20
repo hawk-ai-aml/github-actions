@@ -108,6 +108,14 @@ jobs:
         with:
           registries: ${{ fromJson(needs.init.outputs.metadata).ecr.registry }}
 
+      - name: Build image
+        uses: docker/build-push-action@v2
+        with:
+          context: .
+          file: ./Dockerfile
+          build-args: SERVICE=autoclosing
+          outputs: type=docker,dest=/tmp/myimage.tar
+
 #      - name: Build and push image
 #        env:
 #          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
@@ -120,6 +128,9 @@ jobs:
 #            DOCKER_BUILDKIT=1 docker build --build-arg SERVICE=${module} -t ${REPOSITORY_FULL_NAME}:${{ env.HAWK_IMAGE_TAG }} .
 #            docker push ${REPOSITORY_FULL_NAME}:${{ env.HAWK_IMAGE_TAG }}
 #          done
+
+  # push:
+
 
   update-overlays:
     needs: [ init, build ]
