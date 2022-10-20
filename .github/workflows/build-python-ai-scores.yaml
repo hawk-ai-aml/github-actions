@@ -76,23 +76,22 @@ jobs:
           AWS_SECRET_ACCESS_KEY: ${{ secrets.BACKEND_FILE_AWS_SECRET_ACCESS_KEY }}
         run: |
           pipenv install --dev
-          pipenv lock --keep-outdated > pipenv-requirements.txt
-          pipenv requirements > requirements.txt
+          pipenv lock -r --keep-outdated > requirements.txt
           pipenv run pip install -r manual-requirements.txt
-          pipenv run pytest tests --junitxml=report.xml
-          pipenv run junit2html report.xml report.html
-          mkdir report-dir && mv report.html ./report-dir/report.html
-
-      - name: Upload Reports to S3
-        id: reports
-        if: needs.init.outputs.skip-tests != 'true' && (success() || failure())
-        uses: hawk-ai-aml/upload-s3-action@master
-        with:
-          aws_key_id: ${{ secrets.AWS_DEV_ACCESS_KEY_ID }}
-          aws_secret_access_key: ${{ secrets.AWS_DEV_SECRET_ACCESS_KEY }}
-          aws_bucket: github-actions-static-html-2
-          source_dir: ./report-dir
-          destination_dir: ${{ github.event.repository.name }}-${{ github.run_id }}
+#          pipenv run pytest tests --junitxml=report.xml
+#          pipenv run junit2html report.xml report.html
+#          mkdir report-dir && mv report.html ./report-dir/report.html
+#
+#      - name: Upload Reports to S3
+#        id: reports
+#        if: needs.init.outputs.skip-tests != 'true' && (success() || failure())
+#        uses: hawk-ai-aml/upload-s3-action@master
+#        with:
+#          aws_key_id: ${{ secrets.AWS_DEV_ACCESS_KEY_ID }}
+#          aws_secret_access_key: ${{ secrets.AWS_DEV_SECRET_ACCESS_KEY }}
+#          aws_bucket: github-actions-static-html-2
+#          source_dir: ./report-dir
+#          destination_dir: ${{ github.event.repository.name }}-${{ github.run_id }}
 #
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v1
@@ -106,8 +105,6 @@ jobs:
         uses: aws-actions/amazon-ecr-login@v1
         with:
           registries: ${{ fromJson(needs.init.outputs.metadata).ecr.registry }}
-
-
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v1
