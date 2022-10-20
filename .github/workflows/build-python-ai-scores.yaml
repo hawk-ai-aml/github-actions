@@ -18,9 +18,6 @@ on:
         required: false
       environments:
         type: string
-        required: false
-      ecr-registry:
-        type: string
         required: true
       git-hosting:
         type: string
