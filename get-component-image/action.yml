@@ -30,7 +30,7 @@ runs:
   steps:
     - id: get-profile
       name: Get Profile
-      uses: hawk-ai-aml/github-actions/workflow-init@master
+      uses: hawk-ai-aml/github-actions/workflow-init@feature/SRE-724
       with:
         profile: ${{ inputs.profile }}
         component: ${{ inputs.component }}

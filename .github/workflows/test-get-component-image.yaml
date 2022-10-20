@@ -33,7 +33,7 @@ jobs:
     steps:
       - id: init
         name: Get image name
-        uses: hawk-ai-aml/github-actions/get-component-image@master
+        uses: hawk-ai-aml/github-actions/get-component-image@feature/SRE-724
         with:
           profile: ${{ matrix.profile }}
           component: ${{ matrix.component }}
@@ -63,7 +63,7 @@ jobs:
     steps:
       - id: init
         name: Get image name
-        uses: hawk-ai-aml/github-actions/get-component-image@master
+        uses: hawk-ai-aml/github-actions/get-component-image@feature/SRE-724
         continue-on-error: true
         with:
           profile: test-hawk

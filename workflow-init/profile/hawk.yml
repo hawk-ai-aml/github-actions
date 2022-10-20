@@ -103,10 +103,19 @@ component:
     parameters: *defaultParameters
     ecr:
       <<: *defaultECR
-      repository: audit-trail
+      repository-prefix: audit-trail
     kustomize:
-      path: plattform/utility/audit-trail
       overlays: *defaultOverlays
+    modules:
+      app:
+        parameters: *defaultParameters
+        ecr:
+          <<: *defaultECR
+          repository: audit-trail
+          repository-prefix: audit-trail
+        kustomize:
+          path: plattform/utility/audit-trail
+          overlays: *defaultOverlays      
 
   backend_core: &backend_core
     parameters: *defaultParameters
