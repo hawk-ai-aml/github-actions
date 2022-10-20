@@ -100,7 +100,7 @@ jobs:
 
 
       - name: Checkout Kustomize (GitHub)
-        if: ${{ inputs.git-hosting  == "github" }}
+        if: ${{ inputs.git-hosting  == 'github' }}
         uses: actions/checkout@v3
         with:
           repository: hawk-ai-aml/kustomize2.git
@@ -108,7 +108,7 @@ jobs:
           ref: master
 
       - name: Update Kustomize (GitHub)
-        if: ${{ inputs.git-hosting  == "github" }}
+        if: ${{ inputs.git-hosting  == 'github' }}
         run: |
           cd ${{ github.workspace }}/plattform/processing/features/${{ matrix.module }}/overlays/${{ matrix.overlay }}
           REPOSITORY_FOLDER=$(echo ${{ matrix.service }} | sed 's/\_/\-/g')
@@ -122,7 +122,7 @@ jobs:
           git push
 
       - name: Update Kustomize (Bitbucket)
-        if: ${{ inputs.git-hosting  == "bitbucket" }}
+        if: ${{ inputs.git-hosting  == 'bitbucket' }}
         shell: bash
         env:
           HAWK_IMAGE_NAME: ai-scores-${{ matrix.module }}
