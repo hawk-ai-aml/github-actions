@@ -102,7 +102,7 @@ jobs:
       - name: Build and tag images
         env:
           MODULES: ${{ inputs.modules-string }}
-          REGISTRY: ${{ inputs.profile == 'nab' && 569345997196.dkr.ecr.us-east-1.amazonaws.com || 860641649575.dkr.ecr.eu-central-1.amazonaws.com }}
+          REGISTRY: ${{ inputs.profile == 'nab' && '569345997196.dkr.ecr.us-east-1.amazonaws.com' || '860641649575.dkr.ecr.eu-central-1.amazonaws.com' }}
         run: |
           echo $MODULES
           for module in $MODULES
