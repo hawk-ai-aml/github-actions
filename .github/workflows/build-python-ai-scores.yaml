@@ -119,6 +119,12 @@ jobs:
           build-args: SERVICE=autoclosing
           outputs: type=docker,dest=/tmp/myimage.tar
 
+      - name: Upload artifact
+        uses: actions/upload-artifact@v2
+        with:
+          name: myimage
+          path: /tmp/myimage.tar
+
 #      - name: Build and push image
 #        env:
 #          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
