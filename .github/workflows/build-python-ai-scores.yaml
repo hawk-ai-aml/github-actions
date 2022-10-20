@@ -22,6 +22,12 @@ on:
       ecr-registry:
         type: string
         required: true
+      git-hosting:
+        type: string
+        required: true
+      modules:
+        type: string
+        required: true
 
 jobs:
 
