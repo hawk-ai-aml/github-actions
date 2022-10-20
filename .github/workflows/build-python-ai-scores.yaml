@@ -28,6 +28,9 @@ on:
       modules:
         type: string
         required: true
+      kustomize-repository:
+        type: string
+        required: true
 
 jobs:
 
