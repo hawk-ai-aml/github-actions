@@ -82,7 +82,7 @@ jobs:
 
       - name: Build and tag images
         env:
-          MODULES: ${{fromJson(inputs.modules)}}
+          MODULES: ${{ inputs.modules-string }}
         run: |
           echo $MODULES
           for module in $MODULES
