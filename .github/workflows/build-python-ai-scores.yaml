@@ -34,7 +34,7 @@ jobs:
       metadata: ${{ steps.init.outputs.metadata }}
       update-kustomize: ${{ steps.init.outputs.update-kustomize }}
       skip-tests: ${{ steps.init.outputs.skip-tests }}
-      parameters: ${{ steps.init.outputs.parameters }}
+      # parameters: ${{ steps.init.outputs.parameters }}
     steps:
       - id: init
         name: Init Workflow
