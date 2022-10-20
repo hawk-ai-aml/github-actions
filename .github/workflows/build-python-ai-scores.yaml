@@ -65,9 +65,9 @@ jobs:
           pipenv install --dev
           pipenv requirements --dev > requirements.txt
           pipenv run pip install -r manual-requirements.txt
-          pipenv run pytest tests --junitxml=report.xml
-          pipenv run junit2html report.xml report.html
-          mkdir report-dir && mv report.html ./report-dir/report.html
+#          pipenv run pytest tests --junitxml=report.xml
+#          pipenv run junit2html report.xml report.html
+#          mkdir report-dir && mv report.html ./report-dir/report.html
 
       - name: Upload Reports to S3
         id: reports
@@ -84,8 +84,8 @@ jobs:
         env:
           MODULES: ${{fromJson(inputs.modules)}}
         run: |
-          # for module in MODULES
-          for module in autoclosing
+          echo $MODULES
+          for module in $MODULES
           do
             REPOSITORY_FOLDER=$(echo ${module} | sed 's/\_/\-/g')
             REPOSITORY_FULL_NAME="${{ inputs.ecr-registry }}/ai-scores-${REPOSITORY_FOLDER}"
@@ -106,8 +106,6 @@ jobs:
         module: ${{fromJson(inputs.modules)}}
 
     steps:
-
-
       - name: Checkout Kustomize (GitHub)
         if: ${{ inputs.git-hosting  == 'github' }}
         uses: actions/checkout@v3
