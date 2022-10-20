@@ -34,6 +34,9 @@ on:
       kustomize-repository:
         type: string
         required: true
+      profile:
+        type: string
+        required: true
 
 jobs:
 
@@ -68,33 +71,33 @@ jobs:
           pipenv install --dev
           pipenv requirements --dev > requirements.txt
           pipenv run pip install -r manual-requirements.txt
-#          pipenv run pytest tests --junitxml=report.xml
-#          pipenv run junit2html report.xml report.html
-#          mkdir report-dir && mv report.html ./report-dir/report.html
+      #          pipenv run pytest tests --junitxml=report.xml
+      #          pipenv run junit2html report.xml report.html
+      #          mkdir report-dir && mv report.html ./report-dir/report.html
 
-#      - name: Upload Reports to S3
-#        id: reports
-#        if: needs.init.outputs.skip-tests != 'true' && (success() || failure())
-#        uses: hawk-ai-aml/upload-s3-action@master
-#        with:
-#          aws_key_id: ${{ secrets.AWS_DEV_ACCESS_KEY_ID }}
-#          aws_secret_access_key: ${{ secrets.AWS_DEV_SECRET_ACCESS_KEY }}
-#          aws_bucket: github-actions-static-html-2
-#          source_dir: ./report-dir
-#          destination_dir: ${{ github.event.repository.name }}-${{ github.run_id }}
+      #      - name: Upload Reports to S3
+      #        id: reports
+      #        if: needs.init.outputs.skip-tests != 'true' && (success() || failure())
+      #        uses: hawk-ai-aml/upload-s3-action@master
+      #        with:
+      #          aws_key_id: ${{ secrets.AWS_DEV_ACCESS_KEY_ID }}
+      #          aws_secret_access_key: ${{ secrets.AWS_DEV_SECRET_ACCESS_KEY }}
+      #          aws_bucket: github-actions-static-html-2
+      #          source_dir: ./report-dir
+      #          destination_dir: ${{ github.event.repository.name }}-${{ github.run_id }}
 
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v1
         with:
-          aws-access-key-id: ${{ secrets.AWS_ORG_ECR_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_ORG_ECR_SECRET_ACCESS_KEY }}
-          aws-region: eu-central-1
+          aws-access-key-id: ${{ inputs.profile == 'nab' && secrets.AWS_NAB_DEV_ECR_ACCESS_KEY_ID || secrets.AWS_ORG_ECR_ACCESS_KEY_ID }}
+          aws-region: ${{ inputs.profile == 'nab' && 'us-east-1' || secrets.AWS_ORG_ECR_SECRET_ACCESS_KEY && 'eu-central-1' }}
+          aws-secret-access-key: ${{ inputs.profile == 'nab' && secrets.AWS_NAB_DEV_ECR_SECRET_ACCESS_KEY || secrets.AWS_ORG_ECR_SECRET_ACCESS_KEY }}
 
       - name: Login to Amazon ECR
         id: login-ecr
         uses: aws-actions/amazon-ecr-login@v1
         with:
-          registries: 860641649575
+          registries: ${{ inputs.profile == 'nab' && 569345997196 || 860641649575 }}
 
       - name: Build and tag images
         env:
@@ -106,8 +109,8 @@ jobs:
             REPOSITORY_FOLDER=$(echo ${module} | sed 's/\_/\-/g')
             REPOSITORY_FULL_NAME="${{ inputs.ecr-registry }}/ai-scores-${REPOSITORY_FOLDER}"
             echo "$REPOSITORY_FULL_NAME is building..."
-            DOCKER_BUILDKIT=1 docker build --build-arg SERVICE=${module} -t ${REPOSITORY_FULL_NAME}:${{ env.HAWK_IMAGE_TAG }} .
-            docker push ${REPOSITORY_FULL_NAME}:${{ env.HAWK_IMAGE_TAG }}
+            DOCKER_BUILDKIT=1 docker build --build-arg SERVICE=${module} -t ${REPOSITORY_FULL_NAME}:$${{ github.ref_name }} .
+            docker push ${REPOSITORY_FULL_NAME}:$${{ github.ref_name }}
           done
 
   update-overlays:
@@ -118,7 +121,7 @@ jobs:
       # Avoid race condition issues with github
       max-parallel: 2
       matrix:
-        overlay: ${{fromJson(needs.init.outputs.overlays)}}
+        overlay: ${{fromJson(inputs.environments)}}
         module: ${{fromJson(inputs.modules)}}
 
     steps:
