@@ -106,9 +106,10 @@ jobs:
           do
             REPOSITORY_FOLDER=$(echo ${module} | sed 's/\_/\-/g')
             REPOSITORY_FULL_NAME="$REGISTRY/ai-scores-${REPOSITORY_FOLDER}"
+            TAG=$(echo ${GITHUB_REF_NAME} | sed 's,\/,-,g; s,\#,,g')
             echo "$REPOSITORY_FULL_NAME is building..."
-            DOCKER_BUILDKIT=1 docker build --build-arg SERVICE=${module} -t ${REPOSITORY_FULL_NAME}:$${{ github.ref_name }} .
-            docker push ${REPOSITORY_FULL_NAME}:$${{ github.ref_name }}
+            DOCKER_BUILDKIT=1 docker build --build-arg SERVICE=${module} -t ${REPOSITORY_FULL_NAME}:${TAG} .
+            docker push ${REPOSITORY_FULL_NAME}:${TAG}
           done
 
   update-overlays:
