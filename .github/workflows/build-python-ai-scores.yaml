@@ -153,7 +153,7 @@ jobs:
           NAB_IMAGE_NAME: hawk-ai-scores-${{ matrix.module }}
           KUSTOMIZE_SSH_KEY_FILE: /home/builder/.ssh/id_kustomize_private_key
           KUSTOMIZE_SSH_KEY: ${{ secrets.KUSTOMIZE_DEPLOY_PRIVATE_KEY }}
-          KUSTOMIZE_PATH: /plattform/processing/features/
+          KUSTOMIZE_PATH: plattform/processing/features/
           OVERLAY: ${{ matrix.overlay }}
         run: |
           # Prepare SSH
