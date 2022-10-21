@@ -182,7 +182,7 @@ jobs:
           git add .
           git commit -m "AUTOMATIC COMMIT: Update ${KUSTOMIZE_PATH}/overlays/${OVERLAY} for ${{ inputs.component-name }} to ${{ env.HAWK_IMAGE_TAG }}"
           git push
-          fi
+          # fi
 
 #      - id: udpate-overlay-github
 #        name: Update kustomize overlay (GitHub)
