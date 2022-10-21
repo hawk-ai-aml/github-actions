@@ -170,7 +170,7 @@ jobs:
           cd ${REPO_SLUG}/${KUSTOMIZE_PATH}${{ matrix.module }}/overlays/${OVERLAY}
           echo ${HAWK_IMAGE_NAME}
           echo ${GITHUB_REF_NAME}
-          touch heyyong
+          touch heyyongrgr
           kustomize edit set image ${HAWK_IMAGE_NAME}:$(echo ${GITHUB_REF_NAME} | sed 's,\/,-,g; s,\#,,g')
           git config --global user.name "GitHub Actions"
           git config --global user.email "github-actions@hawk.ai"
