@@ -114,7 +114,6 @@ jobs:
 
   update-overlays:
     needs: build
-    if: ${{ needs.init.outputs.update-kustomize == 'true' }}
     runs-on: [ "self-hosted", "builder" ]
     strategy:
       # Avoid race condition issues with github
