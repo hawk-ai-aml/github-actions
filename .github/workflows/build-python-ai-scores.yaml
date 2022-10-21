@@ -121,7 +121,7 @@ jobs:
 
     steps:
       - name: Checkout Kustomize (GitHub)
-        if: contains(inputs.kustomize-repositry, 'github')
+        if: contains(inputs.kustomize-repository, 'github')
         uses: actions/checkout@v3
         with:
           repository: hawk-ai-aml/kustomize2.git
@@ -129,7 +129,7 @@ jobs:
           ref: master
 
       - name: Update Kustomize (GitHub)
-        if: contains(inputs.kustomize-repositry, 'github')
+        if: contains(inputs.kustomize-repository, 'github')
         run: |
           cd ${{ github.workspace }}/plattform/processing/features/${{ matrix.module }}/overlays/${{ matrix.overlay }}
           REPOSITORY_FOLDER=$(echo ${{ matrix.service }} | sed 's/\_/\-/g')
