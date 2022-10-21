@@ -166,7 +166,7 @@ jobs:
           EOF
           # End prepare SSH
           # git clone ${{ inputs.kustomize-repo }} kustomize
-          git clone ${{ inputs.kustomize-repo }}
+          git clone ${{ inputs.kustomize-repository }}
           cd kustomize/${KUSTOMIZE_PATH}/overlays/${OVERLAY}
           # https://hawkai.atlassian.net/browse/SRE-629
           # this relies that all nab overlays are called nab-dev
