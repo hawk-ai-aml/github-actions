@@ -124,7 +124,7 @@ jobs:
 
     steps:
       - name: Checkout Kustomize (GitHub)
-        if: contains( ${{ inputs.kustomize-repository }}, 'github')
+        if: contains(inputs.kustomize-repositry, 'github')
         uses: actions/checkout@v3
         with:
           repository: hawk-ai-aml/kustomize2.git
@@ -132,7 +132,7 @@ jobs:
           ref: master
 
       - name: Update Kustomize (GitHub)
-        if: contains( ${{ inputs.kustomize-repository }}, 'github')
+        if: contains(inputs.kustomize-repositry, 'github')
         run: |
           cd ${{ github.workspace }}/plattform/processing/features/${{ matrix.module }}/overlays/${{ matrix.overlay }}
           REPOSITORY_FOLDER=$(echo ${{ matrix.service }} | sed 's/\_/\-/g')
@@ -149,7 +149,7 @@ jobs:
         if: contains( ${{ inputs.kustomize-repository }}, 'bitbucket')
         shell: bash
         env:
-          HAWK_IMAGE_NAME: ${{ secrets.ecr-repository-code }}.dkr.ecr.eu-central-1.amazonaws.com/ai-scores-${{ matrix.module }}
+          HAWK_IMAGE_NAME: ${{ inputs.ecr-repository-code }}.dkr.ecr.eu-central-1.amazonaws.com/ai-scores-${{ matrix.module }}
           NAB_IMAGE_NAME: hawk-ai-scores-${{ matrix.module }}
           KUSTOMIZE_SSH_KEY_FILE: /home/builder/.ssh/id_kustomize_private_key
           KUSTOMIZE_SSH_KEY: ${{ secrets.KUSTOMIZE_DEPLOY_PRIVATE_KEY }}
