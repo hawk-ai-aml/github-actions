@@ -173,8 +173,9 @@ jobs:
           git clone ${{ inputs.kustomize-repository }}
           cd kustomize2/${KUSTOMIZE_PATH}${{ matrix.module }}/overlays/${OVERLAY}
           # else
-          echo $HAWK_IMAGE_NAME
+          echo ${HAWK_IMAGE_NAME}
           echo ${GITHUB_REF_NAME}
+          touch hey
           kustomize edit set image ${HAWK_IMAGE_NAME}:$(echo ${GITHUB_REF_NAME} | sed 's,\/,-,g; s,\#,,g')
           # fi
           # if ! git diff --quiet HEAD; then
