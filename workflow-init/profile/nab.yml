@@ -145,7 +145,7 @@ component:
   configuration:
     parameters:
       <<: *defaultParameters
-      kustomize: bitbucket-fake
+      kustomize: bitbucket
       java-version: 17
     ecr:
       <<: *defaultECR
@@ -260,7 +260,7 @@ component:
   document-storage:
     parameters:
       <<: *defaultParameters
-      kustomize: bitbucket-fake
+      kustomize: bitbucket
     ecr:
       <<: *defaultECR
       repository: hawk-document-storage-api
@@ -670,7 +670,7 @@ component:
   processing-model:
     parameters:
       <<: *defaultParameters
-      kustomize: bitbucket-fake
+      kustomize: bitbucket
 
   regulatory-check:
     parameters:
@@ -732,7 +732,7 @@ component:
   utils:
     parameters:
       <<: *defaultParameters
-      kustomize: bitbucket-fake
+      kustomize: bitbucket
 
   watchtower:
     parameters:
