@@ -149,7 +149,7 @@ jobs:
         if: ${{ inputs.git-hosting  == 'bitbucket' }}
         shell: bash
         env:
-          HAWK_IMAGE_NAME: ai-scores-${{ matrix.module }}
+          HAWK_IMAGE_NAME: 860641649575.dkr.ecr.eu-central-1.amazonaws.com/ai-scores-${{ matrix.module }}
           NAB_IMAGE_NAME: hawk-ai-scores-${{ matrix.module }}
           KUSTOMIZE_SSH_KEY_FILE: /home/builder/.ssh/id_kustomize_private_key
           KUSTOMIZE_SSH_KEY: ${{ secrets.KUSTOMIZE_DEPLOY_PRIVATE_KEY }}
@@ -174,8 +174,8 @@ jobs:
           # if [[ ${OVERLAY} == 'nab-dev' ]]; then
           # kustomize edit set image ${HAWK_IMAGE_NAME}=${NAB_IMAGE_NAME}:$(echo ${GITHUB_REF_NAME} | sed 's,\/,-,g; s,\#,,g')99
           # else
-          echo "Hello"
-          touch hello
+          echo $HAWK_IMAGE_NAME
+          echo ${GITHUB_REF_NAME}
           kustomize edit set image ${HAWK_IMAGE_NAME}:$(echo ${GITHUB_REF_NAME} | sed 's,\/,-,g; s,\#,,g')
           # fi
           # if ! git diff --quiet HEAD; then
