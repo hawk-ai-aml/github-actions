@@ -143,7 +143,7 @@ jobs:
           git push
 
       - name: Update Kustomize (Bitbucket)
-        if: contains( ${{ inputs.kustomize-repository }}, 'bitbucket')
+        if: contains(inputs.kustomize-repositry, 'bitbucket')
         shell: bash
         env:
           HAWK_IMAGE_NAME: ${{ inputs.ecr-repository-code }}.dkr.ecr.eu-central-1.amazonaws.com/ai-scores-${{ matrix.module }}
