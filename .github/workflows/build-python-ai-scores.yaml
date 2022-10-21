@@ -175,6 +175,7 @@ jobs:
           # kustomize edit set image ${HAWK_IMAGE_NAME}=${NAB_IMAGE_NAME}:$(echo ${GITHUB_REF_NAME} | sed 's,\/,-,g; s,\#,,g')99
           # else
           echo "Hello"
+          touch hello
           kustomize edit set image ${HAWK_IMAGE_NAME}:$(echo ${GITHUB_REF_NAME} | sed 's,\/,-,g; s,\#,,g')
           # fi
           # if ! git diff --quiet HEAD; then
