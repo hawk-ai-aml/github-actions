@@ -175,11 +175,11 @@ jobs:
           # this relies that all nab overlays are called nab-dev
           # nicer way is to pass profile, than evaluating overlay
           if [[ ${OVERLAY} == 'nab-dev' ]]; then
-          kustomize edit set image ${HAWK_IMAGE_NAME}=${NAB_IMAGE_NAME}:${{ inputs.component-tag }}
+          kustomize edit set image ${HAWK_IMAGE_NAME}=${NAB_IMAGE_NAME}:$(echo ${GITHUB_REF_NAME} | sed 's,\/,-,g; s,\#,,g')
           else
-          kustomize edit set image ${HAWK_IMAGE_NAME}:${{ inputs.component-tag }}
+          kustomize edit set image ${HAWK_IMAGE_NAME}:$(echo ${GITHUB_REF_NAME} | sed 's,\/,-,g; s,\#,,g')
           fi
-          if ! git diff --quiet HEAD; then
+          # if ! git diff --quiet HEAD; then
           git config --global user.name "GitHub Actions"
           git config --global user.email "github-actions@hawk.ai"
           git add .
