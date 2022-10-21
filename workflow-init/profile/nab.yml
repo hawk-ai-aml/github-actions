@@ -228,6 +228,35 @@ component:
       path: plattform/processing/customer-risk-rating-decision-engine
       overlays: *defaultOverlays
 
+  decision-engine:
+    parameters: *defaultParameters
+    ecr:
+      <<: *defaultECR
+    kustomize:
+      overlays: *defaultOverlays
+    modules:
+      core:
+        parameters:
+          <<: *defaultParameters
+      opening:
+        parameters:
+          <<: *defaultParameters
+        ecr:
+          <<: *defaultECR
+          repository: hawk-hawkai-decision-engine-msg
+        kustomize:
+          overlays: *defaultOverlays
+          path: plattform/processing/decision-engine
+      autoclosing:
+        parameters:
+          <<: *defaultParameters
+        ecr:
+          <<: *defaultECR
+          repository: hawk-hawkai-decision-engine-auto-closing
+        kustomize:
+          overlays: *defaultOverlays
+          path: plattform/processing/decision-engine
+
   document-storage:
     parameters:
       <<: *defaultParameters
