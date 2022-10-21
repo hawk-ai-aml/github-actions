@@ -170,7 +170,7 @@ jobs:
           cd kustomize2
           git fetch
           git pull origin master --rebase
-          cd kustomize2/${KUSTOMIZE_PATH}${{ matrix.module }}/overlays/${OVERLAY}
+          cd ${KUSTOMIZE_PATH}${{ matrix.module }}/overlays/${OVERLAY}
           # https://hawkai.atlassian.net/browse/SRE-629
           # this relies that all nab overlays are called nab-dev
           # nicer way is to pass profile, than evaluating overlay
