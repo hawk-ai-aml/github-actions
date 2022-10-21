@@ -172,7 +172,7 @@ jobs:
           # this relies that all nab overlays are called nab-dev
           # nicer way is to pass profile, than evaluating overlay
           # if [[ ${OVERLAY} == 'nab-dev' ]]; then
-          # kustomize edit set image ${HAWK_IMAGE_NAME}=${NAB_IMAGE_NAME}:$(echo ${GITHUB_REF_NAME} | sed 's,\/,-,g; s,\#,,g')
+          # kustomize edit set image ${HAWK_IMAGE_NAME}=${NAB_IMAGE_NAME}:$(echo ${GITHUB_REF_NAME} | sed 's,\/,-,g; s,\#,,g')99
           # else
           echo "Hello"
           kustomize edit set image ${HAWK_IMAGE_NAME}:$(echo ${GITHUB_REF_NAME} | sed 's,\/,-,g; s,\#,,g')
