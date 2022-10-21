@@ -113,7 +113,7 @@ jobs:
 #          done
 
   update-overlays:
-    needs: build
+    #needs: build
     runs-on: [ "self-hosted", "builder" ]
     strategy:
       # Avoid race condition issues with github
