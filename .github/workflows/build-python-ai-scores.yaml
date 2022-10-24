@@ -108,7 +108,11 @@ jobs:
           for module in $MODULES
           do
             REPOSITORY_FOLDER=$(echo ${module} | sed 's/\_/\-/g')
-            REPOSITORY_FULL_NAME="$REGISTRY/ai-scores-${REPOSITORY_FOLDER}"
+            if [[ ${{ inputs.profile }} == 'nab' ]]; then
+              REPOSITORY_FULL_NAME="$REGISTRY/hawk-ai-scores-${REPOSITORY_FOLDER}"
+            else
+              REPOSITORY_FULL_NAME="$REGISTRY/ai-scores-${REPOSITORY_FOLDER}"
+            fi
             TAG=$(echo ${GITHUB_REF_NAME} | sed 's,\/,-,g; s,\#,,g')
             echo "$REPOSITORY_FULL_NAME is building..."
             DOCKER_BUILDKIT=1 docker build --build-arg SERVICE=${module} -t ${REPOSITORY_FULL_NAME}:${TAG} .
@@ -153,7 +157,7 @@ jobs:
         shell: bash
         env:
           HAWK_IMAGE_NAME: ${{ inputs.ecr-repository-code }}.dkr.ecr.eu-central-1.amazonaws.com/ai-scores-${{ matrix.module }}
-          NAB_IMAGE_NAME: hawk-ai-scores-${{ matrix.module }}
+          NAB_IMAGE_NAME: ${{ inputs.ecr-repository-code }}.dkr.ecr.eu-central-1.amazonaws.com/hawk-ai-scores-${{ matrix.module }}
           KUSTOMIZE_SSH_KEY_FILE: /home/builder/.ssh/id_kustomize_private_key
           KUSTOMIZE_SSH_KEY: ${{ secrets.KUSTOMIZE_DEPLOY_PRIVATE_KEY }}
           KUSTOMIZE_PATH: plattform/processing/features/
@@ -177,10 +181,17 @@ jobs:
 
           cd ${REPO_SLUG}/${KUSTOMIZE_PATH}${{ matrix.module }}/overlays/${OVERLAY}
           echo ${HAWK_IMAGE_NAME}
+          echo ${Nb_IMAGE_NAME}
           echo ${GITHUB_REF_NAME}
-          kustomize edit set image ${HAWK_IMAGE_NAME}:${TAG}
+          if [[ ${{ inputs.profile }} == 'nab' ]]; then
+            IMAGE_NAME=${NAB_IMAGE_NAME}
+          else
+            IMAGE_NAME=${HAWK_IMAGE_NAME}
+          fi
+          echo "Image Name = ${IMAGE_NAME}"
+          kustomize edit set image ${IMAGE_NAME}:${TAG}
           git config --global user.name "GitHub Actions"
           git config --global user.email "github-actions@hawk.ai"
           git add .
-          git commit -m "AUTOMATIC COMMIT: Update ${KUSTOMIZE_PATH}/overlays/${OVERLAY} for ${{ inputs.component-name }} to ${{ env.HAWK_IMAGE_TAG }}"
+          git commit -m "AUTOMATIC COMMIT: Update ${KUSTOMIZE_PATH}/overlays/${OVERLAY} for ${{ matrix.module }} to $TAG }}"
           git push
