@@ -15,8 +15,19 @@ runs:
           IMAGE_TAG=${BUILD_BRANCH}-${GIT_SHA_SHORT}
         fi
 
-        cat << EOF | tee -a $GITHUB_ENV
+        cat << EOF | tee -a ${GITHUB_ENV}
         HAWK_BUILD_BRANCH=${BUILD_BRANCH}
         HAWK_IMAGE_TAG=${IMAGE_TAG}
         HAWK_GIT_SHA_SHORT=${GIT_SHA_SHORT}
         EOF
+
+      # Make sure locale is set to en_US.UTF-8
+      # https://hawkai.atlassian.net/browse/SRE-690
+      # https://hawkai.atlassian.net/browse/SRE-734
+    - name: Setup locales
+      shell: bash
+      run: |
+        sudo apt update -yyq
+        sudo apt install -yyq locales-all
+        export LC_ALL=en_US.UTF-8
+        echo "LC_ALL=en_US.UTF-8" >> ${GITHUB_ENV}
