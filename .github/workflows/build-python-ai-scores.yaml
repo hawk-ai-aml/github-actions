@@ -166,11 +166,13 @@ jobs:
           git clone ${{ inputs.kustomize-repository }}
           #either kustomize or kustomize2
           REPO_SLUG=$(echo ${{ inputs.kustomize-repository }} | cut -d "/" -f 2 | cut -d "." -f 1)
+          TAG=$(echo ${GITHUB_REF_NAME} | sed 's,\/,-,g; s,\#,,g')
+
 
           cd ${REPO_SLUG}/${KUSTOMIZE_PATH}${{ matrix.module }}/overlays/${OVERLAY}
           echo ${HAWK_IMAGE_NAME}
           echo ${GITHUB_REF_NAME}
-          kustomize edit set image ${HAWK_IMAGE_NAME}:$(echo ${GITHUB_REF_NAME} | sed 's,\/,-,g; s,\#,,g')
+          kustomize edit set image ${HAWK_IMAGE_NAME}:${TAG}
           git config --global user.name "GitHub Actions"
           git config --global user.email "github-actions@hawk.ai"
           git add .
