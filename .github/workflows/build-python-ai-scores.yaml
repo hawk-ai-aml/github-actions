@@ -91,7 +91,7 @@ jobs:
         id: login-ecr
         uses: aws-actions/amazon-ecr-login@v1
         with:
-          registries: $ {{ secrets-ecr-repository-code }}
+          registries: $ {{ secrets.ecr-repository-code }}
 
       - name: Build and tag images
         env:
