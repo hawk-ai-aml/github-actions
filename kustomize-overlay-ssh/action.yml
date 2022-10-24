@@ -32,7 +32,7 @@ runs:
   steps:
     - name: Get Hawk Image Name
       id: get-hawk-image-name
-      uses: hawk-ai-aml/github-actions/get-component-image@python-ai-scores
+      uses: hawk-ai-aml/github-actions/get-component-image@master
       with:
         profile: hawk
         component: ${{ inputs.component-name }}
