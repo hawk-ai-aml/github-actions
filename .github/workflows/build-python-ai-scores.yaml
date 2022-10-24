@@ -91,7 +91,7 @@ jobs:
         id: login-ecr
         uses: aws-actions/amazon-ecr-login@v1
         with:
-          registries: ${{ secrets.ecr-repository-code }}
+          registries: ${{ inputs.ecr-repository-code }}
 
       - name: Build and tag images
         env:
@@ -100,9 +100,11 @@ jobs:
         run: |
           echo $MODULES
           if ${{ inputs.profile }} == 'nab'; then
-            REGISTRY=${{ secrets.ecr-repository-code }}.us-east-1.amazonaws.com
+            REGISTRY=${{ inputs.ecr-repository-code }}.us-east-1.amazonaws.com
           else
-            REGISTRY=${{ secrets.ecr-repository-code }}.dkr.ecr.eu-central-1.amazonaws.com
+            # even in prod-us-east, the ecr repository is the one in Frankfurt
+            REGISTRY=${{ inputs.ecr-repository-code }}.dkr.ecr.eu-central-1.amazonaws.com
+          fi
           for module in $MODULES
           do
             REPOSITORY_FOLDER=$(echo ${module} | sed 's/\_/\-/g')
