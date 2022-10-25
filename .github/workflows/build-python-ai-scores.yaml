@@ -142,7 +142,6 @@ jobs:
       - name: Update Kustomize (GitHub)
         if: contains(inputs.kustomize-repository, 'github')
         run: |
-          echo "hello 1"
           cd ${{ github.workspace }}/plattform/processing/features/${{ matrix.module }}/overlays/${{ matrix.overlay }}
           REPOSITORY_FOLDER=$(echo ${{ matrix.service }} | sed 's/\_/\-/g')
           REPOSITORY_FULL_NAME="${ECR_REGISTRY}/ai-scores-${REPOSITORY_FOLDER}"
