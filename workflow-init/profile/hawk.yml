@@ -33,6 +33,54 @@ component:
       path: plattform/ai/ai-data-sink
       overlays: *defaultOverlays
 
+  autoclosing: &autoclosing
+    parameters: *defaultParameters
+    ecr:
+      <<: *defaultECR
+      repository: ai-scores-autoclosing
+    kustomize:
+      path: plattform/ai/ai-scores
+      overlays: *defaultOverlays
+
+  opening_anomaly: &opening_anomaly
+    parameters: *defaultParameters
+    ecr:
+      <<: *defaultECR
+      repository: ai-scores-opening-anomaly
+    kustomize:
+      path: plattform/ai/ai-scores
+      overlays: *defaultOverlays
+
+  opening_fan_in: &opening_fan_in
+    parameters: *defaultParameters
+    ecr:
+      <<: *defaultECR
+      repository: ai-scores-opening-fan-in
+    kustomize:
+      path: plattform/ai/ai-scores
+      overlays: *defaultOverlays
+
+  opening_phishing: &opening_phishing
+    parameters: *defaultParameters
+    ecr:
+      <<: *defaultECR
+      repository: ai-scores-opening-phishing
+    kustomize:
+      path: plattform/ai/ai-scores
+      overlays: *defaultOverlays
+
+  ai-scores:
+    parameters: *defaultParameters
+    ecr:
+      <<: *defaultECR
+    modules:
+      - *opening_anomaly
+      - *opening_fan_in
+      - *opening_phishing
+      - *autoclosing
+    kustomize:
+      overlays: *defaultOverlays
+
   audit-trail:
     parameters:
       <<: *defaultParameters
