@@ -120,6 +120,7 @@ jobs:
           done
 
   update-overlays:
+    if: ${{ inputs.updateKustomize }}
     needs: build
     runs-on: [ "self-hosted", "builder" ]
     strategy:
