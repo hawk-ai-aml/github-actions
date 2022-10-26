@@ -58,7 +58,7 @@ runs:
         token: ${{ inputs.kustomize-access-token }}
 
     - name: Update kustomize Overlay
-      shell: bash
+      shell: bash -l -eo pipefail {0}
       env:
         HAWK_IMAGE_NAME: ${{ steps.get-hawk-image-name.outputs.image-name }}
         NAB_IMAGE_NAME: ${{ steps.get-nab-image-name.outputs.image-name }}

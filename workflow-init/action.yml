@@ -59,7 +59,7 @@ runs:
       uses: hawk-ai-aml/github-actions/job-init@feature/SRE-724
 
     - name: Install yj
-      shell: bash
+      shell: bash -l -eo pipefail {0}
       env:
         YJ_VERSION: 5.1.0
       run: |
@@ -82,7 +82,7 @@ runs:
         )
 
     - id: vars
-      shell: bash
+      shell: bash -l -eo pipefail {0}
       run: |
         UPDATE_KUSTOMIZE=${{ inputs.update-kustomize }}
         UPDATE_KUSTOMIZE=${UPDATE_KUSTOMIZE:-true}

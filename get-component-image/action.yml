@@ -37,7 +37,7 @@ runs:
         update-kustomize: false
 
     - id: vars
-      shell: bash
+      shell: bash -l -eo pipefail {0}
       env:
         METADATA: ${{ steps.get-profile.outputs.metadata }}
         MODULE: ${{ inputs.module }}

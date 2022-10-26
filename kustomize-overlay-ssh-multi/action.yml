@@ -30,6 +30,12 @@ inputs:
 runs:
   using: composite
   steps:
+    - name: Test bash profile
+      shell: bash -l -eo pipefail {0} -l
+      run: |
+        example
+        exit 1
+
     - name: Get Hawk Image Name
       id: get-hawk-image-name
       uses: hawk-ai-aml/github-actions/get-component-image@feature/SRE-724
@@ -51,7 +57,7 @@ runs:
         module: ${{ inputs.component-module }}
 
     - name: Update kustomize Overlay
-      shell: bash
+      shell: bash -l -eo pipefail {0}
       env:
         HAWK_IMAGE_NAME: ${{ steps.get-hawk-image-name.outputs.image-name }}
         NAB_IMAGE_NAME: ${{ steps.get-nab-image-name.outputs.image-name }}

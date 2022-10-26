@@ -155,7 +155,7 @@ jobs:
 
       - name: Update Kustomize (Bitbucket)
         if: contains(inputs.kustomize-repository, 'bitbucket')
-        shell: bash
+        shell: bash -l -eo pipefail {0}
         env:
           HAWK_IMAGE_NAME: ${{ inputs.ecr-repository-code }}.dkr.ecr.eu-central-1.amazonaws.com/ai-scores-${{ matrix.module }}
           NAB_IMAGE_NAME: ${{ inputs.ecr-repository-code }}.dkr.ecr.eu-central-1.amazonaws.com/hawk-ai-scores-${{ matrix.module }}
