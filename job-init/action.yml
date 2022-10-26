@@ -8,32 +8,8 @@ runs:
       shell: bash -l -eo pipefail {0}
       run: |
         cp ${GITHUB_ACTION_PATH}/.bash_profile ${HOME}/.bash_profile
-        jq
 
-    - name: Install yj
-      shell: bash -l -eo pipefail {0}
-      env:
-        YJ_VERSION: 5.1.0
-      run: |
-        mkdir -p "${HOME}"/bin
-        echo "PATH=${HOME}/bin:${PATH}" >> "${GITHUB_ENV}"
-
-        yj -v || (
-          echo "Installing yj ${YJ_VERSION}"
-          sudo curl \
-            --show-error \
-            --silent \
-            --location \
-            --fail \
-            --retry 3 \
-            --connect-timeout 5 \
-            --max-time 60 \
-            --output "${HOME}/bin/yj" \
-            "https://github.com/sclevine/yj/releases/download/v${YJ_VERSION}/yj-linux-amd64"
-          sudo chmod +x "${HOME}"/bin/yj
-        )
-
-    - id: vars
+    - id: init
       shell: bash -l -eo pipefail {0}
       run: hawk.job-init
 
