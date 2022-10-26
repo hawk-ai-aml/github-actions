@@ -2,6 +2,9 @@ name: workflow-init
 description: Workflow Init Action
 
 inputs:
+  slack-notification-webhook:
+    description: "Component to retrieve metadata"
+    required: false
   component:
     description: "Component to retrieve metadata"
     required: true
@@ -57,6 +60,8 @@ runs:
     - id: job-init
       name: Init Job
       uses: hawk-ai-aml/github-actions/job-init@feature/SRE-724
+      with:
+        slack-notification-webhook: ${{ inputs.slack-notification-webhook }}
 
     - id: vars
       shell: bash -l -eo pipefail {0}

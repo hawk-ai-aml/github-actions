@@ -24,7 +24,7 @@ hawk.die() {
 
     # Include original arguments into the stacktrace annotation
     # %0A because of https://github.com/actions/toolkit/issues/193
-    echo -n "%0A${@}%0A%0AStacktrace:%0A" | tee -a ${GITHUB_OUTPUT}
+    echo -n "%0A${@}%0A%0AWorkflow: ${HAWK_WORKFLOW_ID}%0AStacktrace:%0A" | tee -a ${GITHUB_OUTPUT}
 
     # Include stacktrace
     local frame=0
@@ -41,7 +41,7 @@ hawk.die() {
   ) | tee -a ${GITHUB_OUTPUT}
 
   # Attempt to notify in Slack
-  curl -X POST --data-urlencode "payload={\"text\": \"${HAWK_WORKFLOW_ID} died\"}" ${CICD_MIGRATION_SLACK_WEBHOOK_URL}
+  curl --silent -X POST --data-urlencode "payload={\"channel\": \"#github-workflow-death\", \"text\": \":skull_and_crossbones: <${HAWK_WORKFLOW_ID}|workflow in ${GITHUB_REPOSITORY}> died: ${@}\"}" ${CICD_MIGRATION_SLACK_WEBHOOK_URL}
 
   exit 1
 }
@@ -70,11 +70,11 @@ hawk.runner-prechecks() {
   yj -v || hawk.die "yj is missing"
   jq --version || hawk.die "jq is missing"
   locale | grep en_US.UTF-8 || hawk.die "locale should be en_US.UTF-8"
-  hawk.get-component-metadata audit-trail hawk || hawk.die "cannot fetch component metadata during precehck"
-  hawk.get-component-metadata audit-traaail hawk || hawk.die "cannot fetch component metadata during precehck"
+  hawk.get-component-metadata audit-trail hawk || hawk.die "cannot fetch component metadata during precheck"
 
   # Uncomment this in case you want to simulate failure on precheck
-  # hawk.assert-command-or-fail "false" "this is a simulated failure, someone is debugging something, contact your favourite sre"
+  # hawk.get-component-metadata audit-trail-3000 hawk || hawk.die "simulated: cannot fetch non-existing component metadata during precheck, probably someone is debugging something, otherwise contact your favourite sre"
+  # false || hawk.die "this is a simulated failure, probably someone is debugging something, otherwise contact your favourite sre"
 }
 
 hawk.setup.locale() {
@@ -145,8 +145,6 @@ hawk.get-metadata-json() {
   local ref=${HAWK_METADATA_DEFAULT_REF}
 
   local profile=${1:-${HAWK_METADATA_DEFAULT_PROFILE}}
-  
-  set -x
 
   [[ ! -z "${profile}" ]] || hawk.die "metadata profile should not be empty"
   [[ ! -z "${ref}" ]] || hawk.die "metadata ref should be not empty"
@@ -155,15 +153,12 @@ hawk.get-metadata-json() {
 
   local metadata_url="https://raw.githubusercontent.com/${repo}/${ref}/${subpath}/${profile}.yml"
   local metadata_workspace_path="${GITHUB_WORKSPACE}/.hawk/profile/${profile}.yml"
-
   
   # if there is profile folder in the repo we get profiles from there, otherwise we fetch it from github-actions
   # We pass it through both yj and jq to make sure there are no unexpected basic parsing errors
   if [[ -f ${metadata_workspace_path} ]]; then
-    echo "Using metadata from workspace: ${metadata_workspace_path}"
     cat ${metadata_workspace_path} | yj -y | jq -Mcr .
   else
-    echo "Using global metadata: ${metadata_url}"
     curl --silent --fail --location --show-error ${metadata_url} | yj -y | jq -Mcr .
   fi
 }
@@ -175,12 +170,12 @@ hawk.get-component-metadata() {
   [[ ! -z "${component}" ]] || hawk.die "component should not be empty"
   [[ ! -z "${profile}" ]] || hawk.die "profile should not be empty"
 
-  hawk.get-metadata-json ${profile} | jq -Mcr --arg COMPONENT ${component} '.component[$COMPONENT]'
-}
+  local metadata=$(hawk.get-metadata-json ${profile} | jq -Mcr --arg COMPONENT ${component} '.component[$COMPONENT]')
 
-# This is for especially hard to investigate cases
-# Uncomment for full bash logging
-# set -x
+  [[ ${#metadata} -gt 10 ]] || hawk.die "metadata is too short: ${metadata}"
+
+  echo ${metadata}
+}
 
 # Source bashrc from the builder
 [[ -f ${HOME}/.bashrc ]] && source ${HOME}/.bashrc

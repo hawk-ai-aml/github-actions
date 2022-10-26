@@ -1,24 +1,28 @@
 name: job-init
 description: Job Init Action
 
+inputs:
+  slack-notification-webhook:
+    description: "Component to retrieve metadata"
+    required: false
+
 runs:
   using: composite
   steps:
-    - name: Abort if we are building for public
-      if: github.event.repository.private
+    - name: security-guard
+      if: ${{ ! github.event.repository.private }}
       shell: bash -l -eo pipefail {0}
       run: |
-        echo "building private repo test"
         exit 1
 
     - name: Copy profile
       shell: bash -l -eo pipefail {0}
-      # env:
-      #   CICD_MIGRATION_SLACK_WEBHOOK_URL_B64: ${{ secret.CICD_MIGRATION_SLACK_WEBHOOK_URL }}
+      env:
+        CICD_MIGRATION_SLACK_WEBHOOK_URL_B64: ${{ inputs.slack-notification-webhook }}
       run: |
         cp ${GITHUB_ACTION_PATH}/.bash_profile ${HOME}/.bash_profile
-        # echo "export CICD_MIGRATION_SLACK_WEBHOOK_URL=$(echo ${CICD_MIGRATION_SLACK_WEBHOOK_URL_B64} | base64 -d)" >> ${HOME}/.bash_profile
-        # echo "HAWK_WORKFLOW_ID=${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}" >> ${GITHUB_ENV}
+        echo -e "\nexport CICD_MIGRATION_SLACK_WEBHOOK_URL=$(echo ${CICD_MIGRATION_SLACK_WEBHOOK_URL_B64} | base64 -d)" >> ${HOME}/.bash_profile
+        echo "HAWK_WORKFLOW_ID=${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}" >> ${GITHUB_ENV}
 
     - id: init
       shell: bash -l -eo pipefail {0}
