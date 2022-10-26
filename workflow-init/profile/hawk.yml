@@ -25,7 +25,7 @@ component:
   ai-data-sink:
     parameters:
       <<: *defaultParameters
-      kustomize: bitbucket-fake
+      kustomize: bitbucket
     ecr:
       <<: *defaultECR
       repository: ai-data-sink
