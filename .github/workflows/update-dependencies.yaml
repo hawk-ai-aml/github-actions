@@ -70,7 +70,7 @@ jobs:
             echo "result=success" >> $GITHUB_OUTPUT
           else 
             echo "result=skipped" >> $GITHUB_OUTPUT
-            echo no dynamic dependencies updates
+            echo "no dynamic dependencies updates"
           fi
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
