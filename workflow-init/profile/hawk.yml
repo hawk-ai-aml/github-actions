@@ -319,7 +319,7 @@ component:
   entity-resolution:
     parameters:
       <<: *defaultParameters
-      kustomize: bitbucket-fake
+      kustomize: bitbucket
     ecr:
       <<: *defaultECR
       repository: entity-resolution
