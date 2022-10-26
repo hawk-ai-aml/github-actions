@@ -58,29 +58,6 @@ runs:
       name: Init Job
       uses: hawk-ai-aml/github-actions/job-init@feature/SRE-724
 
-    - name: Install yj
-      shell: bash -l -eo pipefail {0}
-      env:
-        YJ_VERSION: 5.1.0
-      run: |
-        mkdir -p "${HOME}"/bin
-        echo "PATH=${HOME}/bin:${PATH}" >> "${GITHUB_ENV}"
-
-        yj -v || (
-          echo "Installing yj ${YJ_VERSION}"
-          sudo curl \
-            --show-error \
-            --silent \
-            --location \
-            --fail \
-            --retry 3 \
-            --connect-timeout 5 \
-            --max-time 60 \
-            --output "${HOME}/bin/yj" \
-            "https://github.com/sclevine/yj/releases/download/v${YJ_VERSION}/yj-linux-amd64"
-          sudo chmod +x "${HOME}"/bin/yj
-        )
-
     - id: vars
       shell: bash -l -eo pipefail {0}
       run: |

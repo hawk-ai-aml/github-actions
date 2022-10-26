@@ -4,35 +4,40 @@ description: Job Init Action
 runs:
   using: composite
   steps:
-    - id: vars
-      shell: bash -l -eo pipefail {0}
-      run: |
-        BUILD_BRANCH=$(echo ${GITHUB_REF_NAME} | sed 's,\/,-,g; s,\#,,g')
-        GIT_SHA_SHORT=${GITHUB_SHA:0:7}
-        if [[ ${GITHUB_REF_TYPE} == "tag" ]]; then
-          IMAGE_TAG=${BUILD_BRANCH}
-        else
-          IMAGE_TAG=${BUILD_BRANCH}-${GIT_SHA_SHORT}
-        fi
-
-        cat << EOF | tee -a ${GITHUB_ENV}
-        HAWK_BUILD_BRANCH=${BUILD_BRANCH}
-        HAWK_IMAGE_TAG=${IMAGE_TAG}
-        HAWK_GIT_SHA_SHORT=${GIT_SHA_SHORT}
-        EOF
-
-      # Make sure locale is set to en_US.UTF-8
-      # https://hawkai.atlassian.net/browse/SRE-690
-      # https://hawkai.atlassian.net/browse/SRE-734
-    - name: Setup locales
-      shell: bash -l -eo pipefail {0}
-      run: |
-        sudo apt update -yyq
-        sudo apt install -yyq locales-all
-        export LC_ALL=en_US.UTF-8
-        echo "LC_ALL=en_US.UTF-8" >> ${GITHUB_ENV}
-
     - name: Copy profile
       shell: bash -l -eo pipefail {0}
       run: |
         cp ${GITHUB_ACTION_PATH}/.bash_profile ${HOME}/.bash_profile
+        jq
+
+    - name: Install yj
+      shell: bash -l -eo pipefail {0}
+      env:
+        YJ_VERSION: 5.1.0
+      run: |
+        mkdir -p "${HOME}"/bin
+        echo "PATH=${HOME}/bin:${PATH}" >> "${GITHUB_ENV}"
+
+        yj -v || (
+          echo "Installing yj ${YJ_VERSION}"
+          sudo curl \
+            --show-error \
+            --silent \
+            --location \
+            --fail \
+            --retry 3 \
+            --connect-timeout 5 \
+            --max-time 60 \
+            --output "${HOME}/bin/yj" \
+            "https://github.com/sclevine/yj/releases/download/v${YJ_VERSION}/yj-linux-amd64"
+          sudo chmod +x "${HOME}"/bin/yj
+        )
+
+    - id: vars
+      shell: bash -l -eo pipefail {0}
+      run: hawk.job-init
+
+    - name: Simulate running a step against prechecks
+      id: precheck
+      shell: bash -l -eo pipefail {0}
+      run: hawk.runner-prechecks
