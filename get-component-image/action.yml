@@ -28,20 +28,14 @@ outputs:
 runs:
   using: composite
   steps:
-    - id: get-profile
-      name: Get Profile
-      uses: hawk-ai-aml/github-actions/workflow-init@feature/SRE-724
-      with:
-        profile: ${{ inputs.profile }}
-        component: ${{ inputs.component }}
-        update-kustomize: false
-
     - id: vars
       shell: bash -l -eo pipefail {0}
       env:
         METADATA: ${{ steps.get-profile.outputs.metadata }}
         MODULE: ${{ inputs.module }}
       run: |
+        METADATA=$(hawk.get-component-metadata ${{ inputs.component }} ${{ inputs.profile }})
+
         if [[ "${MODULE}" == "" ]]; then
           echo "Component: ${{ inputs.component }}"
           REGISTRY=$(echo ${METADATA} | jq -cr .ecr.registry)

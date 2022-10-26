@@ -53,12 +53,6 @@ jobs:
         name: Init Job
         uses: hawk-ai-aml/github-actions/job-init@feature/SRE-724
 
-      - name: Test bash profile
-        shell: bash -l -eo pipefail {0}
-        run: |
-          example
-          exit 1
-
       - name: Login to Docker Hub
         uses: docker/login-action@v2
         with:
