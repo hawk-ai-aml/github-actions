@@ -31,14 +31,14 @@ component:
       repository: ai-data-sink
     kustomize:
       path: plattform/ai/ai-data-sink
-    overlays:
-      dev:
-        - dev
-      test:
-        - test
-      prod:
-        - prod/eu-central-1
-        - prod/us-east-1
+      overlays:
+        dev:
+          - dev
+        test:
+          - test
+        prod:
+          - prod/eu-central-1
+          - prod/us-east-1
 
   autoclosing: &autoclosing
     parameters: *defaultParameters
