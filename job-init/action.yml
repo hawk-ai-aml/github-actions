@@ -24,13 +24,11 @@ runs:
       run: hawk.job-init
 
     - name: Alert about workflows running in public
-      id: security-guard
       if: ${{ ! github.event.repository.private && ! env.OVERRIDE_SECURITY_GUARD }}
       shell: bash -l -ET -eo pipefail {0}
       run: hawk.notice "workflow is running in public"
 
     - name: Notify about workflows running in public and being overriden
-      id: security-guard
       if: ${{ ! github.event.repository.private && env.OVERRIDE_SECURITY_GUARD }}
       shell: bash -l -ET -eo pipefail {0}
       run: hawk.notice "workflow is running in public"

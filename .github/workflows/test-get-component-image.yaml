@@ -88,7 +88,7 @@ jobs:
         continue-on-error: true
         with:
           profile: test-hawk
-          component: backend
+          component: backend2-no-ecr
 
       - id: assert-failure
         name: Validate
