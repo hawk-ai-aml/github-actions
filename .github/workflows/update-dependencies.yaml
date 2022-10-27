@@ -46,12 +46,9 @@ jobs:
       - uses: actions/checkout@v3
         with:
           token: ${{ secrets.REPO_ACCESS_PAT }}
-          ref: update-dependencies
 
-      - name: Fetch and reset update-dependencies to master
-        run: |
-          git fetch origin master
-          git reset --hard origin/master
+      - name: Checkout update-dependencies
+        run: git checkout -B update-dependencies
 
       - name: Perform dependency resolution and write new lockfiles
         run: |
