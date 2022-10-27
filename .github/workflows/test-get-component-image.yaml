@@ -10,6 +10,10 @@ on:
     branches:
       - master
 
+
+env:
+  OVERRIDE_SECURITY_GUARD: true
+
 jobs:
   test:
     runs-on: ubuntu-22.04

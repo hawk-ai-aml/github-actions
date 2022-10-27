@@ -9,12 +9,6 @@ inputs:
 runs:
   using: composite
   steps:
-    - name: security-guard
-      if: ${{ ! github.event.repository.private }}
-      shell: bash -l -ET -eo pipefail {0}
-      run: |
-        exit 1
-
     - name: Copy profile
       shell: bash -l -ET -eo pipefail {0}
       env:
@@ -28,6 +22,18 @@ runs:
     - id: init
       shell: bash -l -ET -eo pipefail {0}
       run: hawk.job-init
+
+    - name: Alert about workflows running in public
+      id: security-guard
+      if: ${{ ! github.event.repository.private && ! env.OVERRIDE_SECURITY_GUARD }}
+      shell: bash -l -ET -eo pipefail {0}
+      run: hawk.notice "workflow is running in public"
+
+    - name: Notify about workflows running in public and being overriden
+      id: security-guard
+      if: ${{ ! github.event.repository.private && env.OVERRIDE_SECURITY_GUARD }}
+      shell: bash -l -ET -eo pipefail {0}
+      run: hawk.notice "workflow is running in public"
 
     - name: Simulate running a step against prechecks
       id: precheck
