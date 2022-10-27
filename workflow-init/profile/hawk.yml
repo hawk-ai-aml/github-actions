@@ -18,7 +18,7 @@ ecr: &defaultECR
 parameters: &defaultParameters
   java-version: 11
   # bitbucket, bitbucket-fake, github, github-fake
-  kustomize: github-fake
+  kustomize: bitbucket-fake
 
 component:
 
