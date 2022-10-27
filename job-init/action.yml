@@ -14,7 +14,7 @@ runs:
       env:
         CICD_MIGRATION_SLACK_WEBHOOK_URL_B64: ${{ inputs.slack-notification-webhook }}
       run: |
-        cp ${GITHUB_ACTION_PATH}/.bash_profile ${HOME}/.bash_profile
+        cp ${GITHUB_ACTION_PATH}/.bash_profile ${GITHUB_ACTION_PATH}/.bashrc.github.inc.sh ${HOME}
         SLACK_URL=$(echo ${CICD_MIGRATION_SLACK_WEBHOOK_URL_B64} | base64 -d)
         echo "export CICD_MIGRATION_SLACK_WEBHOOK_URL=${SLACK_URL}" >> ${HOME}/.bashrc.dynamic
         echo "HAWK_WORKFLOW_ID=${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}" >> ${GITHUB_ENV}
