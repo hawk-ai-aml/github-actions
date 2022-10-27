@@ -313,3 +313,5 @@ hawk.get-component-kustomize-path() {
 
   echo ${kustomize_path}
 }
+
+# End of file

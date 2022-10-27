@@ -59,7 +59,7 @@ runs:
   steps:
     - id: job-init
       name: Init Job
-      uses: hawk-ai-aml/github-actions/job-init@feature/SRE-724
+      uses: hawk-ai-aml/github-actions/job-init@master
       with:
         slack-notification-webhook: ${{ inputs.slack-notification-webhook }}
 
