@@ -205,17 +205,17 @@ jobs:
         with:
           slack-notification-webhook: ${{ secrets.CICD_MIGRATION_SLACK_WEBHOOK_URL }}
 
-      # - id: udpate-overlay-github
-      #   name: Update kustomize overlay
-      #   if: fromJson(needs.init.outputs.parameters).kustomize == 'github' || fromJson(needs.init.outputs.parameters).kustomize == 'github-fake'
-      #   uses: hawk-ai-aml/github-actions/kustomize-overlay@feature/SRE-724
-      #   with:
-      #     component-name: ${{ inputs.component }}
-      #     component-module: ${{ matrix.module }}
-      #     component-overlay: ${{ matrix.overlay }}
-      #     component-tag: ${{ env.HAWK_IMAGE_TAG }}
-      #     kustomize-repo: ${{ fromJson(needs.init.outputs.parameters).kustomize == 'github-fake' && 'hawk-ai-aml/kustomize2.git' || 'hawk-ai-aml/kustomize.git' }}
-      #     kustomize-access-token: ${{ secrets.REPO_ACCESS_PAT }}
+      - id: udpate-overlay-github
+        name: Update kustomize overlay
+        if: fromJson(needs.init.outputs.parameters).kustomize == 'github' || fromJson(needs.init.outputs.parameters).kustomize == 'github-fake'
+        uses: hawk-ai-aml/github-actions/kustomize-overlay-multi@feature/SRE-724
+        with:
+          component-name: ${{ inputs.component }}
+          component-modules: ${{ needs.init.outputs.kustomizable-modules }}
+          component-overlays: ${{ needs.init.outputs.overlays }}
+          component-tag: ${{ env.HAWK_IMAGE_TAG }}
+          kustomize-repo: ${{ fromJson(needs.init.outputs.parameters).kustomize == 'github-fake' && 'hawk-ai-aml/kustomize2.git' || 'hawk-ai-aml/kustomize.git' }}
+          kustomize-access-token: ${{ secrets.REPO_ACCESS_PAT }}
 
       - id: udpate-overlay-bitbucket
         name: Update kustomize overlays

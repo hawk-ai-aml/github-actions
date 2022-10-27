@@ -18,7 +18,7 @@ ecr: &defaultECR
 parameters: &defaultParameters
   java-version: 11
   # bitbucket, bitbucket-fake, github, github-fake
-  kustomize: bitbucket-fake
+  kustomize: github-fake
 
 component:
 
@@ -100,7 +100,9 @@ component:
       overlays: *defaultOverlays
 
   audit-trail2:
-    parameters: *defaultParameters
+    parameters:
+      <<: *defaultParameters
+      kustomize: github-fake
     ecr:
       <<: *defaultECR
       repository-prefix: audit-trail

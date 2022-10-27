@@ -40,11 +40,10 @@ runs:
 
     - name: Update kustomize Overlay
       shell: bash -l -ET -eo pipefail {0}
-      run: |
-        # Need this for now, bc my emails are hardcoded in runner code
+      run: |        
         hawk.setup.git
 
-        git clone ${{ inputs.kustomize-repo }} kustomize && cd kustomize
+        cd kustomize
 
         overlays=$(hawk.util.ja2ba '${{ inputs.component-overlays }}')
         modules=$(hawk.util.ja2ba '${{ inputs.component-modules }}')

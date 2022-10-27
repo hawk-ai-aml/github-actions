@@ -42,7 +42,6 @@ runs:
         chmod 600 ${KUSTOMIZE_SSH_KEY_FILE}
         export GIT_SSH_COMMAND="ssh -i ${KUSTOMIZE_SSH_KEY_FILE}"
 
-        # Need this for now, bc my emails are hardcoded in runner code
         hawk.setup.git
 
         git clone ${{ inputs.kustomize-repo }} kustomize && cd kustomize
