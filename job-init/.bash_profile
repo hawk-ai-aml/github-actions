@@ -62,6 +62,11 @@ hawk.assert-command-or-die() {
   fi
 }
 
+# Convert json array string to loopable string
+hawk.util.ja2ba() {
+  echo $1 | jq -cr  '. | join(" ")'
+}
+
 ################################################################################
 # Runnner initialization and prechecks
 ################################################################################
@@ -203,16 +208,16 @@ hawk.get-component-image() {
   [[ ! -z "${component}" ]] || hawk.die "component profile should not be empty"
   [[ ! -z "${profile}" ]] || hawk.die "profile ref should be not empty"
 
-  local metadata=$(hawk.get-component-metadata ${{ inputs.component }} ${{ inputs.profile }})
+  local metadata=$(hawk.get-component-metadata ${component} ${profile})
 
   if [[ "${module}" == "" ]]; then
     local registry=$(echo ${metadata} | jq -cr .ecr.registry)
     local region=$(echo ${metadata} | jq -cr .ecr.region)
     local repository=$(echo ${metadata} | jq -cr .ecr.repository)
   else
-    local registry=$(echo ${metadata} | jq -cr .modules[env.MODULE].ecr.registry)
-    local region=$(echo ${metadata} | jq -cr .modules[env.MODULE].ecr.region)
-    local repository=$(echo ${metadata} | jq -cr .modules[env.MODULE].ecr.repository)
+    local registry=$(echo ${metadata} | jq -cr --arg MODULE ${module} '.modules[$MODULE].ecr.registry')
+    local region=$(echo ${metadata} | jq -cr --arg MODULE ${module} '.modules[env.MODULE].ecr.region')
+    local repository=$(echo ${metadata} | jq -cr --arg MODULE ${module} '.modules[env.MODULE].ecr.repository')
   fi
 
   [[ "${registry}" == "null" ]] && hawk.die "empty registry"
@@ -230,12 +235,12 @@ hawk.get-component-kustomize-path() {
   [[ ! -z "${component}" ]] || hawk.die "component profile should not be empty"
   [[ ! -z "${profile}" ]] || hawk.die "profile ref should be not empty"
 
-  local metadata=$(hawk.get-component-metadata ${{ inputs.component }} ${{ inputs.profile }})
+  local metadata=$(hawk.get-component-metadata ${component} ${profile})
 
   if [[ "${module}" == "" ]]; then
     local kustomize_path=$(echo ${metadata} | jq -cr .kustomize.path)
   else
-    local kustomize_path=$(echo ${metadata} | jq -cr .modules[env.MODULE].kustomize.path)
+    local kustomize_path=$(echo ${metadata} | jq -cr --arg MODULE ${module} '.modules[$MODULE].kustomize.path')
   fi
 
   [[ "${kustomize_path}" == "null" ]] && hawk.die "empty kustomize path"

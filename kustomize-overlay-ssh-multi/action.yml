@@ -35,7 +35,6 @@ runs:
       env:
         KUSTOMIZE_SSH_KEY_FILE: /home/builder/.ssh/id_kustomize_private_key
         KUSTOMIZE_SSH_KEY: ${{ inputs.kustomize-ssh-key }}
-        OVERLAY: ${{ inputs.component-overlay }}
       run: |
         # Prepare SSH key for kustomize
         mkdir -p $(dirname ${KUSTOMIZE_SSH_KEY_FILE})
@@ -46,12 +45,14 @@ runs:
         # Clone and setup git
         git clone ${{ inputs.kustomize-repo }} kustomize
 
-        for module in ${{ inputs.component-modules }}; do
-          for overlay in ${{ inputs.component-overlays }}; do
-            HAWK_IMAGE_NAME=$(hawk.get-component-image ${{ inputs.component-name }} hawk )
-            NAB_IMAGE_NAME=$(hawk.get-component-image ${{ inputs.component-name }} nab ${{ inputs.component-module }})
-            KUSTOMIZE_PATH=$(hawk.get-component-kustomize-path ${{ inputs.component-name }} hawk ${{ inputs.component-module }})
+        for module in $(hawk.util.ja2ba '${{ inputs.component-modules }}'); do
+          for overlay in $(hawk.util.ja2ba '${{ inputs.component-overlays }}'); do
+            HAWK_IMAGE_NAME=$(hawk.get-component-image ${{ inputs.component-name }} hawk ${module})
+            NAB_IMAGE_NAME=$(hawk.get-component-image ${{ inputs.component-name }} nab ${module})
+            KUSTOMIZE_PATH=$(hawk.get-component-kustomize-path ${{ inputs.component-name }} hawk ${module})
             
+            echo ${HAWK_IMAGE_NAME}
+
             (
               cd kustomize/${KUSTOMIZE_PATH}/overlays/${overlay}
 
@@ -69,6 +70,8 @@ runs:
           done
         done
 
+        git diff
+
         if ! git diff --quiet HEAD; then
-          git push
+          git push || hawk.die "git push failed"
         fi
