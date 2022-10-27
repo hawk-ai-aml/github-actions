@@ -95,25 +95,23 @@ runs:
         PARAMETERS_JSON=$(yj -y < ${GITHUB_ACTION_PATH}/profile/${{ inputs.profile }}.yml \
           | jq -cr --arg COMPONENT ${{ inputs.component }} '.component[$COMPONENT].parameters')
         
-        cat <<EOF | tee -a $GITHUB_STEP_SUMMARY
+        cat <<EOF | tee -a ${GITHUB_STEP_SUMMARY}
 
         [${{ github.run_id }}](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})
 
         \`\`\`
-        metadata::${METADATA_JSON}
-        overlays::${OVERLAYS_JSON}
-        modules::${MODULES_LIST_JSON}
-        kustomizable-modules::${KUSTOMIZABLE_MODULES_LIST_JSON}
-        parameters::${PARAMETERS_JSON}
-        update-kustomize::${UPDATE_KUSTOMIZE}
-        skip-tests::${SKIP_TESTS}
-        \`\`\`
         EOF
 
-        echo "::set-output name=metadata::${METADATA_JSON}"
-        echo "::set-output name=overlays::${OVERLAYS_JSON}"
-        echo "::set-output name=modules::${MODULES_LIST_JSON}"
-        echo "::set-output name=kustomizable-modules::${KUSTOMIZABLE_MODULES_LIST_JSON}"
-        echo "::set-output name=parameters::${PARAMETERS_JSON}"
-        echo "::set-output name=update-kustomize::${UPDATE_KUSTOMIZE}"
-        echo "::set-output name=skip-tests::${SKIP_TESTS}"
+        cat <<EOF | tee -a ${GITHUB_STEP_SUMMARY} | tee -a ${GITHUB_OUTPUT}
+        metadata=${METADATA_JSON}
+        overlays=${OVERLAYS_JSON}
+        modules=${MODULES_LIST_JSON}
+        kustomizable-modules=${KUSTOMIZABLE_MODULES_LIST_JSON}
+        parameters=${PARAMETERS_JSON}
+        update-kustomize=${UPDATE_KUSTOMIZE}
+        skip-tests=${SKIP_TESTS}
+        EOF
+
+        cat <<EOF | tee -a ${GITHUB_STEP_SUMMARY}
+        \`\`\`
+        EOF

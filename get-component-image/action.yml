@@ -54,5 +54,5 @@ runs:
         [[ "${REGION}" == "null" ]] && ( echo "Empty region"; exit 1)
         [[ "${REPOSITORY}" == "null" ]] && ( echo "Empty repository"; exit 1)
 
-        echo "::set-output name=image-name::${REGISTRY}.dkr.ecr.${REGION}.amazonaws.com/${REPOSITORY}"
-        echo "::set-output name=kustomize-path::${KUSTOMIZE_PATH}"
+        echo "image-name=${REGISTRY}.dkr.ecr.${REGION}.amazonaws.com/${REPOSITORY}" >> ${GITHUB_OUTPUT}
+        echo "kustomize-path=${KUSTOMIZE_PATH}" >> ${GITHUB_OUTPUT}
