@@ -6,6 +6,10 @@ on:
 
   workflow_dispatch:
 
+  pull_request:
+    branches:
+      - master
+
 jobs:
   test:
     runs-on: ubuntu-22.04
@@ -31,6 +35,12 @@ jobs:
             expected-image-name: 569345997196.dkr.ecr.us-east-1.amazonaws.com/hawk-current-secure-storage
 
     steps:
+      - id: job-init
+        name: Init Job
+        uses: hawk-ai-aml/github-actions/job-init@feature/SRE-724
+        with:
+          slack-notification-webhook: ${{ secrets.CICD_MIGRATION_SLACK_WEBHOOK_URL }}
+
       - id: init
         name: Get image name
         uses: hawk-ai-aml/github-actions/get-component-image@feature/SRE-724
@@ -40,6 +50,7 @@ jobs:
           module: ${{ matrix.module }}
       
       - id: show
+        shell: bash -l -ET -eo pipefail {0}
         run: echo ${{ steps.init.outputs.image-name }} | tee -a ${GITHUB_STEP_SUMMARY}
 
       - id: assert
@@ -61,6 +72,12 @@ jobs:
   test-missing-ecr-block:
     runs-on: ubuntu-22.04
     steps:
+      - id: job-init
+        name: Init Job
+        uses: hawk-ai-aml/github-actions/job-init@feature/SRE-724
+        with:
+          slack-notification-webhook: ${{ secrets.CICD_MIGRATION_SLACK_WEBHOOK_URL }}
+
       - id: init
         name: Get image name
         uses: hawk-ai-aml/github-actions/get-component-image@feature/SRE-724
