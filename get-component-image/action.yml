@@ -30,29 +30,6 @@ runs:
   steps:
     - id: vars
       shell: bash -l -eo pipefail {0}
-      env:
-        METADATA: ${{ steps.get-profile.outputs.metadata }}
-        MODULE: ${{ inputs.module }}
       run: |
-        METADATA=$(hawk.get-component-metadata ${{ inputs.component }} ${{ inputs.profile }})
-
-        if [[ "${MODULE}" == "" ]]; then
-          echo "Component: ${{ inputs.component }}"
-          REGISTRY=$(echo ${METADATA} | jq -cr .ecr.registry)
-          REGION=$(echo ${METADATA} | jq -cr .ecr.region)
-          REPOSITORY=$(echo ${METADATA} | jq -cr .ecr.repository)
-          KUSTOMIZE_PATH=$(echo ${METADATA} | jq -cr .kustomize.path)
-        else
-          echo "Component: ${{ inputs.component }}, module: ${{ inputs.module }}"
-          REGISTRY=$(echo ${METADATA} | jq -cr .modules[env.MODULE].ecr.registry)
-          REGION=$(echo ${METADATA} | jq -cr .modules[env.MODULE].ecr.region)
-          REPOSITORY=$(echo ${METADATA} | jq -cr .modules[env.MODULE].ecr.repository)
-          KUSTOMIZE_PATH=$(echo ${METADATA} | jq -cr .modules[env.MODULE].kustomize.path)
-        fi
-
-        [[ "${REGISTRY}" == "null" ]] && ( echo "Empty registry"; exit 1)
-        [[ "${REGION}" == "null" ]] && ( echo "Empty region"; exit 1)
-        [[ "${REPOSITORY}" == "null" ]] && ( echo "Empty repository"; exit 1)
-
-        echo "image-name=${REGISTRY}.dkr.ecr.${REGION}.amazonaws.com/${REPOSITORY}" >> ${GITHUB_OUTPUT}
-        echo "kustomize-path=${KUSTOMIZE_PATH}" >> ${GITHUB_OUTPUT}
+        echo "image-name=$(hawk.get-component-image ${{ inputs.component }} ${{ inputs.profile }} ${{ inputs.module }})" >> ${GITHUB_OUTPUT}
+        echo "kustomize-path=$(hawk.get-component-kustomize-path ${{ inputs.component }} ${{ inputs.profile }} ${{ inputs.module }})" >> ${GITHUB_OUTPUT}

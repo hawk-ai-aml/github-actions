@@ -177,5 +177,53 @@ hawk.get-component-metadata() {
   echo ${metadata}
 }
 
+hawk.get-component-image() {
+  local component=$1
+  local profile=$2
+  local module=${3:-}
+
+  [[ ! -z "${component}" ]] || hawk.die "component profile should not be empty"
+  [[ ! -z "${profile}" ]] || hawk.die "profile ref should be not empty"
+
+  local metadata=$(hawk.get-component-metadata ${{ inputs.component }} ${{ inputs.profile }})
+
+  if [[ "${module}" == "" ]]; then
+    local registry=$(echo ${metadata} | jq -cr .ecr.registry)
+    local region=$(echo ${metadata} | jq -cr .ecr.region)
+    local repository=$(echo ${metadata} | jq -cr .ecr.repository)
+  else
+    local registry=$(echo ${metadata} | jq -cr .modules[env.MODULE].ecr.registry)
+    local region=$(echo ${metadata} | jq -cr .modules[env.MODULE].ecr.region)
+    local repository=$(echo ${metadata} | jq -cr .modules[env.MODULE].ecr.repository)
+  fi
+
+  [[ "${registry}" == "null" ]] && hawk.die "empty registry"
+  [[ "${region}" == "null" ]] && hawk.die "empty region"
+  [[ "${repository}" == "null" ]] && hawk.die "empty repository"
+
+  echo "${registry}.dkr.ecr.${region}.amazonaws.com/${repository}"
+}
+
+hawk.get-component-kustomize-path() {
+  local component=$1
+  local profile=$2
+  local module=${3:-}
+
+  [[ ! -z "${component}" ]] || hawk.die "component profile should not be empty"
+  [[ ! -z "${profile}" ]] || hawk.die "profile ref should be not empty"
+
+  local metadata=$(hawk.get-component-metadata ${{ inputs.component }} ${{ inputs.profile }})
+
+  if [[ "${module}" == "" ]]; then
+    local kustomize_path=$(echo ${metadata} | jq -cr .kustomize.path)
+  else
+    local kustomize_path=$(echo ${metadata} | jq -cr .modules[env.MODULE].kustomize.path)
+  fi
+
+  [[ "${kustomize_path}" == "null" ]] && hawk.die "empty kustomize path"
+
+  echo ${kustomize_path}
+}
+
 # Source bashrc from the builder
 [[ -f ${HOME}/.bashrc ]] && source ${HOME}/.bashrc
