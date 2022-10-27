@@ -215,7 +215,7 @@ hawk.job-init() {
   cat << EOF | tee -a ${GITHUB_ENV}
 HAWK_METADATA_REPO=hawk-ai-aml/github-actions
 HAWK_METADATA_SUBPATH=workflow-init/profile
-HAWK_METADATA_DEFAULT_REF=feature/SRE-724
+HAWK_METADATA_DEFAULT_REF=master
 HAWK_METADATA_DEFAULT_PROFILE=hawk
 
 HAWK_BUILD_BRANCH=${BUILD_BRANCH}

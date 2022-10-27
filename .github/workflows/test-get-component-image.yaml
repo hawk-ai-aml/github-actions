@@ -6,10 +6,6 @@ on:
 
   workflow_dispatch:
 
-  pull_request:
-    branches:
-      - master
-
 
 env:
   OVERRIDE_SECURITY_GUARD: true
@@ -42,13 +38,13 @@ jobs:
     steps:
       - id: job-init
         name: Init Job
-        uses: hawk-ai-aml/github-actions/job-init@feature/SRE-724
+        uses: hawk-ai-aml/github-actions/job-init@master
         with:
           slack-notification-webhook: ${{ secrets.CICD_MIGRATION_SLACK_WEBHOOK_URL }}
 
       - id: init
         name: Get image name
-        uses: hawk-ai-aml/github-actions/get-component-image@feature/SRE-724
+        uses: hawk-ai-aml/github-actions/get-component-image@master
         with:
           profile: ${{ matrix.profile }}
           component: ${{ matrix.component }}
@@ -79,13 +75,13 @@ jobs:
     steps:
       - id: job-init
         name: Init Job
-        uses: hawk-ai-aml/github-actions/job-init@feature/SRE-724
+        uses: hawk-ai-aml/github-actions/job-init@master
         with:
           slack-notification-webhook: ${{ secrets.CICD_MIGRATION_SLACK_WEBHOOK_URL }}
 
       - id: init
         name: Get image name
-        uses: hawk-ai-aml/github-actions/get-component-image@feature/SRE-724
+        uses: hawk-ai-aml/github-actions/get-component-image@master
         continue-on-error: true
         with:
           profile: test-hawk
