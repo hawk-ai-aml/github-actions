@@ -15,6 +15,16 @@
 
 # Low-level github failure
 hawk.die() {
+  # prevent multiple trap execution
+  if [[ -f ${RUNNER_TEMP}/.untrap ]]; then
+    echo "Extra trap suppressed"
+    exit 1
+  else
+    touch ${RUNNER_TEMP}/.untrap
+  fi
+
+  # Prepare github error
+  # %0A because of https://github.com/actions/toolkit/issues/193
   (
     echo -n "::error title=stacktrace::"
 
@@ -23,27 +33,74 @@ hawk.die() {
     printf -- '-%.0s' {1..100}
 
     # Include original arguments into the stacktrace annotation
-    # %0A because of https://github.com/actions/toolkit/issues/193
-    echo -n "%0A${@}%0A%0AWorkflow: ${HAWK_WORKFLOW_ID}%0AStacktrace:%0A" | tee -a ${GITHUB_OUTPUT}
+    
+    echo -en "%0A${@}%0A%0AWorkflow: ${HAWK_WORKFLOW_ID}%0AStacktrace:%0A"
 
     # Include stacktrace
     local frame=0
     # https://wiki.bash-hackers.org/commands/builtin/caller
     while trace=$(caller $frame); do
       ((++frame));
-      echo -n "  ${trace}%0A"
+      echo "  ${trace}%0A" 
     done
 
     # end banner
     echo -n "--- >8 end copy here   "
     printf -- '-%.0s' {1..100}
 
-  ) | tee -a ${GITHUB_OUTPUT}
+    # Make sure there are no new lines
+  ) | tr -d '\n' | tee -a ${GITHUB_OUTPUT}
+  
+  # Prepare slack message
+  (
+    # Include original arguments into the stacktrace annotation
+    echo -n "${@}\n\nWorkflow: ${HAWK_WORKFLOW_ID}\nStacktrace:\n"
 
-  # Attempt to notify in Slack
-  curl --silent -X POST --data-urlencode "payload={\"channel\": \"#github-workflow-death\", \"text\": \":skull_and_crossbones: <${HAWK_WORKFLOW_ID}|workflow in ${GITHUB_REPOSITORY}> died: ${@}\"}" ${CICD_MIGRATION_SLACK_WEBHOOK_URL}
+    # Include stacktrace
+    local frame=0
+    # https://wiki.bash-hackers.org/commands/builtin/caller
+    while trace=$(caller $frame); do
+      ((++frame));
+      echo -n "  ${trace}\n"
+    done
+  ) | tee -a ${RUNNER_TEMP}/.slack-failure-message
+
+  # based on https://stackoverflow.com/a/67390352
+  # Attempt to notify in Slack, but do not produce error
+  fallback_message=":skull_and_crossbones: <${HAWK_WORKFLOW_ID}|workflow in ${GITHUB_REPOSITORY}> died"
+  markdown_message=":skull_and_crossbones: <${HAWK_WORKFLOW_ID}|workflow in ${GITHUB_REPOSITORY}> died\n\`\`\`$(cat ${RUNNER_TEMP}/.slack-failure-message)\`\`\`"
+
+  # Convert markdown message to correct format for jq parse
+  printf -v markdown_message_unescaped %b "$markdown_message"
+
+  # Create the json string
+  json_string=$( jq -nr \
+    --arg jq_fallback_message "$fallback_message" \
+    --arg jq_channel "#github-workflow-death" \
+    --arg jq_section_type "section" \
+    --arg jq_markdown_type "mrkdwn" \
+    --arg jq_markdown_message "$markdown_message_unescaped" \
+    '{
+        channel: $jq_channel,
+        text: $jq_fallback_message, 
+        blocks: [
+            {
+                type: $jq_section_type,
+                text: {
+                    type: $jq_markdown_type, 
+                    text: $jq_markdown_message
+                }
+            }
+        ]
+    }')
+
+  curl --silent -X POST -H 'Content-type: application/json' --data "$json_string" ${CICD_MIGRATION_SLACK_WEBHOOK_URL} || true
 
   exit 1
+}
+
+hawk.notice() {
+  echo "::notice::${1}"
 }
 
 # Fail if one-liner fails
@@ -76,6 +133,7 @@ hawk.runner-prechecks() {
   jq --version || hawk.die "jq is missing"
   locale | grep en_US.UTF-8 || hawk.die "locale should be en_US.UTF-8"
   hawk.get-component-metadata audit-trail hawk || hawk.die "cannot fetch component metadata during precheck"
+  hawk.get-component-metadata backend hawk core || hawk.die "cannot fetch component module metadata during precheck"
 
   # Uncomment this in case you want to simulate failure on precheck
   # hawk.get-component-metadata audit-trail-3000 hawk || hawk.die "simulated: cannot fetch non-existing component metadata during precheck, probably someone is debugging something, otherwise contact your favourite sre"
@@ -149,7 +207,7 @@ hawk.job-init() {
   cat << EOF | tee -a ${GITHUB_ENV}
 HAWK_METADATA_REPO=hawk-ai-aml/github-actions
 HAWK_METADATA_SUBPATH=workflow-init/profile
-HAWK_METADATA_DEFAULT_REF=master
+HAWK_METADATA_DEFAULT_REF=feature/SRE-724
 HAWK_METADATA_DEFAULT_PROFILE=hawk
 
 HAWK_BUILD_BRANCH=${BUILD_BRANCH}
@@ -216,8 +274,8 @@ hawk.get-component-image() {
     local repository=$(echo ${metadata} | jq -cr .ecr.repository)
   else
     local registry=$(echo ${metadata} | jq -cr --arg MODULE ${module} '.modules[$MODULE].ecr.registry')
-    local region=$(echo ${metadata} | jq -cr --arg MODULE ${module} '.modules[env.MODULE].ecr.region')
-    local repository=$(echo ${metadata} | jq -cr --arg MODULE ${module} '.modules[env.MODULE].ecr.repository')
+    local region=$(echo ${metadata} | jq -cr --arg MODULE ${module} '.modules[$MODULE].ecr.region')
+    local repository=$(echo ${metadata} | jq -cr --arg MODULE ${module} '.modules[$MODULE].ecr.repository')
   fi
 
   [[ "${registry}" == "null" ]] && hawk.die "empty registry"
@@ -247,6 +305,13 @@ hawk.get-component-kustomize-path() {
 
   echo ${kustomize_path}
 }
+
+# Setup trap
+set -e -o pipefail -T -E
+trap 'hawk.die ${LINENO} "${BASH_COMMAND}"' ERR
+
+# Source dynamic stuff
+[[ -f ${HOME}/.bashrc.dynamic ]] && source ${HOME}/.bashrc.dynamic
 
 # Source bashrc from the builder
 [[ -f ${HOME}/.bashrc ]] && source ${HOME}/.bashrc

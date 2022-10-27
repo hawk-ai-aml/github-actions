@@ -51,7 +51,7 @@ runs:
         module: ${{ inputs.component-module }}
 
     - name: Update kustomize Overlay
-      shell: bash -l -eo pipefail {0}
+      shell: bash
       env:
         HAWK_IMAGE_NAME: ${{ steps.get-hawk-image-name.outputs.image-name }}
         NAB_IMAGE_NAME: ${{ steps.get-nab-image-name.outputs.image-name }}
@@ -72,6 +72,7 @@ runs:
         # End prepare SSH
 
         git clone ${{ inputs.kustomize-repo }} kustomize
+
         cd kustomize/${KUSTOMIZE_PATH}/overlays/${OVERLAY}
 
         # https://hawkai.atlassian.net/browse/SRE-629

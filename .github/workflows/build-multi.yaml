@@ -56,143 +56,143 @@ jobs:
         with:
           slack-notification-webhook: ${{ secrets.CICD_MIGRATION_SLACK_WEBHOOK_URL }}
 
-      - name: Login to Docker Hub
-        uses: docker/login-action@v2
-        with:
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
+      # - name: Login to Docker Hub
+      #   uses: docker/login-action@v2
+      #   with:
+      #     username: ${{ secrets.DOCKERHUB_USERNAME }}
+      #     password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      - uses: actions/checkout@v3
+      # - uses: actions/checkout@v3
 
-      - name: Set up JDK
-        uses: actions/setup-java@v3
-        with:
-          java-version: ${{ fromJson(needs.init.outputs.parameters).java-version }}
-          distribution: temurin
-          cache: gradle
+      # - name: Set up JDK
+      #   uses: actions/setup-java@v3
+      #   with:
+      #     java-version: ${{ fromJson(needs.init.outputs.parameters).java-version }}
+      #     distribution: temurin
+      #     cache: gradle
 
-      - name: Set up Gradle
-        uses: gradle/gradle-build-action@v2
-        env:
-          GRADLE_BUILD_ACTION_CACHE_DEBUG_ENABLED: true
+      # - name: Set up Gradle
+      #   uses: gradle/gradle-build-action@v2
+      #   env:
+      #     GRADLE_BUILD_ACTION_CACHE_DEBUG_ENABLED: true
 
-      - name: Gradle Assemble
-        env:
-          ARTIFACTORY_CONTEXT_URL: ${{ secrets.ARTIFACTORY_CONTEXT_URL }}
-          ARTIFACTORY_USERNAME: ${{ secrets.ARTIFACTORY_USERNAME }}
-          ARTIFACTORY_PASSWORD: ${{ secrets.ARTIFACTORY_PASSWORD }}
-        run: ./gradlew clean assemble testClasses -isS
+      # - name: Gradle Assemble
+      #   env:
+      #     ARTIFACTORY_CONTEXT_URL: ${{ secrets.ARTIFACTORY_CONTEXT_URL }}
+      #     ARTIFACTORY_USERNAME: ${{ secrets.ARTIFACTORY_USERNAME }}
+      #     ARTIFACTORY_PASSWORD: ${{ secrets.ARTIFACTORY_PASSWORD }}
+      #   run: ./gradlew clean assemble testClasses -isS
 
-      - name: License Report
-        env:
-          ARTIFACTORY_CONTEXT_URL: ${{ secrets.ARTIFACTORY_CONTEXT_URL }}
-          ARTIFACTORY_USERNAME: ${{ secrets.ARTIFACTORY_USERNAME }}
-          ARTIFACTORY_PASSWORD: ${{ secrets.ARTIFACTORY_PASSWORD }}
-        run: ./gradlew licenseReport --no-parallel
+      # - name: License Report
+      #   env:
+      #     ARTIFACTORY_CONTEXT_URL: ${{ secrets.ARTIFACTORY_CONTEXT_URL }}
+      #     ARTIFACTORY_USERNAME: ${{ secrets.ARTIFACTORY_USERNAME }}
+      #     ARTIFACTORY_PASSWORD: ${{ secrets.ARTIFACTORY_PASSWORD }}
+      #   run: ./gradlew licenseReport --no-parallel
 
-      - name: Check Quality
-        env:
-          ARTIFACTORY_CONTEXT_URL: ${{ secrets.ARTIFACTORY_CONTEXT_URL }}
-          ARTIFACTORY_USERNAME: ${{ secrets.ARTIFACTORY_USERNAME }}
-          ARTIFACTORY_PASSWORD: ${{ secrets.ARTIFACTORY_PASSWORD }}
-        run: ./gradlew checkQualityMain
+      # - name: Check Quality
+      #   env:
+      #     ARTIFACTORY_CONTEXT_URL: ${{ secrets.ARTIFACTORY_CONTEXT_URL }}
+      #     ARTIFACTORY_USERNAME: ${{ secrets.ARTIFACTORY_USERNAME }}
+      #     ARTIFACTORY_PASSWORD: ${{ secrets.ARTIFACTORY_PASSWORD }}
+      #   run: ./gradlew checkQualityMain
 
-      - name: Run Tests
-        if: ${{ needs.init.outputs.skip-tests != 'true' }}
-        env:
-          ARTIFACTORY_CONTEXT_URL: ${{ secrets.ARTIFACTORY_CONTEXT_URL }}
-          ARTIFACTORY_USERNAME: ${{ secrets.ARTIFACTORY_USERNAME }}
-          ARTIFACTORY_PASSWORD: ${{ secrets.ARTIFACTORY_PASSWORD }}
-        run: |
-          ./gradlew check -isS
-          ./gradlew aggregateJacocoExecutions
+      # - name: Run Tests
+      #   if: ${{ needs.init.outputs.skip-tests != 'true' }}
+      #   env:
+      #     ARTIFACTORY_CONTEXT_URL: ${{ secrets.ARTIFACTORY_CONTEXT_URL }}
+      #     ARTIFACTORY_USERNAME: ${{ secrets.ARTIFACTORY_USERNAME }}
+      #     ARTIFACTORY_PASSWORD: ${{ secrets.ARTIFACTORY_PASSWORD }}
+      #   run: |
+      #     ./gradlew check -isS
+      #     ./gradlew aggregateJacocoExecutions
 
-      - name: Aggregate reports for upload
-        if: needs.init.outputs.skip-tests != 'true' && (success() || failure())
-        env:
-          METADATA: ${{ needs.init.outputs.metadata }}
-        run: |
-          for module in $(echo ${METADATA} | jq -r '.modules | keys | join(" ")'); do
-            mkdir -p reports/${module}/build
-            if [[ -d ${module}/build/reports ]]; then
-              cp -r ${module}/build/reports reports/${module}/build/reports
-            fi
-          done
+      # - name: Aggregate reports for upload
+      #   if: needs.init.outputs.skip-tests != 'true' && (success() || failure())
+      #   env:
+      #     METADATA: ${{ needs.init.outputs.metadata }}
+      #   run: |
+      #     for module in $(echo ${METADATA} | jq -r '.modules | keys | join(" ")'); do
+      #       mkdir -p reports/${module}/build
+      #       if [[ -d ${module}/build/reports ]]; then
+      #         cp -r ${module}/build/reports reports/${module}/build/reports
+      #       fi
+      #     done
 
-      - name: Upload Reports to S3
-        id: reports
-        if: needs.init.outputs.skip-tests != 'true' && (success() || failure())
-        uses: hawk-ai-aml/upload-s3-action@master
-        with:
-          aws_key_id: ${{ secrets.AWS_DEV_ACCESS_KEY_ID }}
-          aws_secret_access_key: ${{ secrets.AWS_DEV_SECRET_ACCESS_KEY }}
-          aws_bucket: github-actions-static-html-2
-          source_dir: reports
-          destination_dir: ${{ github.event.repository.name }}-${{ github.run_id }}
+      # - name: Upload Reports to S3
+      #   id: reports
+      #   if: needs.init.outputs.skip-tests != 'true' && (success() || failure())
+      #   uses: hawk-ai-aml/upload-s3-action@master
+      #   with:
+      #     aws_key_id: ${{ secrets.AWS_DEV_ACCESS_KEY_ID }}
+      #     aws_secret_access_key: ${{ secrets.AWS_DEV_SECRET_ACCESS_KEY }}
+      #     aws_bucket: github-actions-static-html-2
+      #     source_dir: reports
+      #     destination_dir: ${{ github.event.repository.name }}-${{ github.run_id }}
 
-      - name: Provide Links to Reports
-        if: needs.init.outputs.skip-tests != 'true' && (success() || failure())
-        run: |
-          echo "### Test Reports" | tee -a ${GITHUB_STEP_SUMMARY}
-          report_url=https://github-actions-static-html-2.s3.amazonaws.com/${{ github.event.repository.name }}-${{ github.run_id }}/
-          for report_file_loc in ${{ join(fromJSON(steps.reports.outputs.object_locations), ' ') }}; do
-            report_basename=${report_file_loc##${report_url}}
-            if [[ ${report_file_loc} == */main.html || ${report_file_loc} == */index.html || ${report_file_loc} == */licenseReport.html ]]; then
-              echo "* [${report_basename}](${report_file_loc})" | tee -a ${GITHUB_STEP_SUMMARY}
-            fi
-          done
+      # - name: Provide Links to Reports
+      #   if: needs.init.outputs.skip-tests != 'true' && (success() || failure())
+      #   run: |
+      #     echo "### Test Reports" | tee -a ${GITHUB_STEP_SUMMARY}
+      #     report_url=https://github-actions-static-html-2.s3.amazonaws.com/${{ github.event.repository.name }}-${{ github.run_id }}/
+      #     for report_file_loc in ${{ join(fromJSON(steps.reports.outputs.object_locations), ' ') }}; do
+      #       report_basename=${report_file_loc##${report_url}}
+      #       if [[ ${report_file_loc} == */main.html || ${report_file_loc} == */index.html || ${report_file_loc} == */licenseReport.html ]]; then
+      #         echo "* [${report_basename}](${report_file_loc})" | tee -a ${GITHUB_STEP_SUMMARY}
+      #       fi
+      #     done
 
-      - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v1-node16
-        with:
-          aws-access-key-id: ${{ inputs.profile == 'nab' && secrets.AWS_NAB_DEV_ECR_ACCESS_KEY_ID || secrets.AWS_ORG_ECR_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ inputs.profile == 'nab' && secrets.AWS_NAB_DEV_ECR_SECRET_ACCESS_KEY || secrets.AWS_ORG_ECR_SECRET_ACCESS_KEY }}
-          aws-region: ${{ fromJson(needs.init.outputs.metadata).ecr.region }}
+      # - name: Configure AWS credentials
+      #   uses: aws-actions/configure-aws-credentials@v1-node16
+      #   with:
+      #     aws-access-key-id: ${{ inputs.profile == 'nab' && secrets.AWS_NAB_DEV_ECR_ACCESS_KEY_ID || secrets.AWS_ORG_ECR_ACCESS_KEY_ID }}
+      #     aws-secret-access-key: ${{ inputs.profile == 'nab' && secrets.AWS_NAB_DEV_ECR_SECRET_ACCESS_KEY || secrets.AWS_ORG_ECR_SECRET_ACCESS_KEY }}
+      #     aws-region: ${{ fromJson(needs.init.outputs.metadata).ecr.region }}
 
-      - name: Login to Amazon ECR
-        id: login-ecr
-        uses: aws-actions/amazon-ecr-login@main
-        with:
-          registries: ${{ fromJson(needs.init.outputs.metadata).ecr.registry }}
+      # - name: Login to Amazon ECR
+      #   id: login-ecr
+      #   uses: aws-actions/amazon-ecr-login@main
+      #   with:
+      #     registries: ${{ fromJson(needs.init.outputs.metadata).ecr.registry }}
 
-      - name: Build Docker Images
-        env:
-          ARTIFACTORY_CONTEXT_URL: ${{ secrets.ARTIFACTORY_CONTEXT_URL }}
-          ARTIFACTORY_USERNAME: ${{ secrets.ARTIFACTORY_USERNAME }}
-          ARTIFACTORY_PASSWORD: ${{ secrets.ARTIFACTORY_PASSWORD }}
-          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
-          ECR_REPOSITORY_PREFIX: ${{ fromJson(needs.init.outputs.metadata).ecr.repository-prefix }}
-        run: |
-          ./gradlew build -Dskip.tests=true -x test
-          ./gradlew jibDockerBuild -DIMAGE_NAME="${ECR_REGISTRY}/${ECR_REPOSITORY_PREFIX}" -DTAG_COMMIT=${{ env.HAWK_IMAGE_TAG }}
+      # - name: Build Docker Images
+      #   env:
+      #     ARTIFACTORY_CONTEXT_URL: ${{ secrets.ARTIFACTORY_CONTEXT_URL }}
+      #     ARTIFACTORY_USERNAME: ${{ secrets.ARTIFACTORY_USERNAME }}
+      #     ARTIFACTORY_PASSWORD: ${{ secrets.ARTIFACTORY_PASSWORD }}
+      #     ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+      #     ECR_REPOSITORY_PREFIX: ${{ fromJson(needs.init.outputs.metadata).ecr.repository-prefix }}
+      #   run: |
+      #     ./gradlew build -Dskip.tests=true -x test
+      #     ./gradlew jibDockerBuild -DIMAGE_NAME="${ECR_REGISTRY}/${ECR_REPOSITORY_PREFIX}" -DTAG_COMMIT=${{ env.HAWK_IMAGE_TAG }}
 
-      - name: Push Docker Images
-        id: push-image
-        env:
-          METADATA: ${{ needs.init.outputs.metadata }}
-          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
-        run: |
-          export DOCKER_CLI_EXPERIMENTAL=enabled
+      # - name: Push Docker Images
+      #   id: push-image
+      #   env:
+      #     METADATA: ${{ needs.init.outputs.metadata }}
+      #     ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+      #   run: |
+      #     export DOCKER_CLI_EXPERIMENTAL=enabled
 
-          for module in $(echo ${METADATA} | jq -cr '.modules | keys | join(" ")'); do
-            module_repository=$(echo ${METADATA} | jq -cr --arg MODULE ${module} '.modules[$MODULE].ecr.repository')
-            [[ "${module_repository}" == "null" ]] && continue
-            echo "Module ${module} is configured to push image to ECR repository ${module_repository}"
+      #     for module in $(echo ${METADATA} | jq -cr '.modules | keys | join(" ")'); do
+      #       module_repository=$(echo ${METADATA} | jq -cr --arg MODULE ${module} '.modules[$MODULE].ecr.repository')
+      #       [[ "${module_repository}" == "null" ]] && continue
+      #       echo "Module ${module} is configured to push image to ECR repository ${module_repository}"
 
-            image_fqn=${ECR_REGISTRY}/${module_repository}:${{ env.HAWK_IMAGE_TAG }}
+      #       image_fqn=${ECR_REGISTRY}/${module_repository}:${{ env.HAWK_IMAGE_TAG }}
 
-            set +e
-            docker manifest inspect ${image_fqn} 2>&1> /dev/null
-            inspect_code=$?
-            set -e
+      #       set +e
+      #       docker manifest inspect ${image_fqn} 2>&1> /dev/null
+      #       inspect_code=$?
+      #       set -e
 
-            if [[ "${inspect_code}" != 0 ]]; then  
-              echo "Pushing image ${image_fqn}"
-              docker push ${image_fqn}
-            else
-              echo "Image ${image_fqn} exists, not pushing"
-            fi
-          done
+      #       if [[ "${inspect_code}" != 0 ]]; then  
+      #         echo "Pushing image ${image_fqn}"
+      #         docker push ${image_fqn}
+      #       else
+      #         echo "Image ${image_fqn} exists, not pushing"
+      #       fi
+      #     done
 
   update-overlays:
     needs: [ init, build ]
@@ -202,6 +202,8 @@ jobs:
       - id: init
         name: Init Job
         uses: hawk-ai-aml/github-actions/job-init@feature/SRE-724
+        with:
+          slack-notification-webhook: ${{ secrets.CICD_MIGRATION_SLACK_WEBHOOK_URL }}
 
       # - id: udpate-overlay-github
       #   name: Update kustomize overlay

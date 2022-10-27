@@ -64,7 +64,7 @@ runs:
         slack-notification-webhook: ${{ inputs.slack-notification-webhook }}
 
     - id: vars
-      shell: bash -l -eo pipefail {0}
+      shell: bash -l -ET -eo pipefail {0}
       run: |
         UPDATE_KUSTOMIZE=${{ inputs.update-kustomize }}
         UPDATE_KUSTOMIZE=${UPDATE_KUSTOMIZE:-true}

@@ -30,7 +30,7 @@ runs:
   using: composite
   steps:
     - id: vars
-      shell: bash -l -eo pipefail {0}
+      shell: bash -l -ET -eo pipefail {0}
       run: |
         echo "image-name=$(hawk.get-component-image ${{ inputs.component }} ${{ inputs.profile }} ${{ inputs.module }})" >> ${GITHUB_OUTPUT}
         echo "kustomize-path=$(hawk.get-component-kustomize-path ${{ inputs.component }} ${{ inputs.profile }} ${{ inputs.module }})" >> ${GITHUB_OUTPUT}

@@ -31,7 +31,7 @@ runs:
   using: composite
   steps:
     - name: Update kustomize Overlay
-      shell: bash -l -eo pipefail {0}
+      shell: bash -l -ET -eo pipefail {0}
       env:
         KUSTOMIZE_SSH_KEY_FILE: /home/builder/.ssh/id_kustomize_private_key
         KUSTOMIZE_SSH_KEY: ${{ inputs.kustomize-ssh-key }}
@@ -42,19 +42,26 @@ runs:
         chmod 600 ${KUSTOMIZE_SSH_KEY_FILE}
         export GIT_SSH_COMMAND="ssh -i ${KUSTOMIZE_SSH_KEY_FILE}"
 
-        # Clone and setup git
-        git clone ${{ inputs.kustomize-repo }} kustomize
+        # Need this for now, bc my emails are hardcoded in runner code
+        hawk.setup.git
 
-        for module in $(hawk.util.ja2ba '${{ inputs.component-modules }}'); do
-          for overlay in $(hawk.util.ja2ba '${{ inputs.component-overlays }}'); do
+        git clone ${{ inputs.kustomize-repo }} kustomize && cd kustomize
+
+        overlays=$(hawk.util.ja2ba '${{ inputs.component-overlays }}')
+        modules=$(hawk.util.ja2ba '${{ inputs.component-modules }}')
+
+        COMMIT_MSG="AUTOMATIC COMMIT: Update of ${{ inputs.component-name }} to ${{ inputs.component-tag }} for ${overlays}"
+
+        for overlay in ${overlays}; do
+          for module in ${modules}; do
             HAWK_IMAGE_NAME=$(hawk.get-component-image ${{ inputs.component-name }} hawk ${module})
             NAB_IMAGE_NAME=$(hawk.get-component-image ${{ inputs.component-name }} nab ${module})
             KUSTOMIZE_PATH=$(hawk.get-component-kustomize-path ${{ inputs.component-name }} hawk ${module})
             
-            echo ${HAWK_IMAGE_NAME}
+            echo "Updating ${KUSTOMIZE_PATH}/overlays/${overlay} for ${{ inputs.component-name }} to ${{ inputs.component-tag }}"
 
             (
-              cd kustomize/${KUSTOMIZE_PATH}/overlays/${overlay}
+              cd ${KUSTOMIZE_PATH}/overlays/${overlay}
 
               # https://hawkai.atlassian.net/browse/SRE-629
               # this relies that all nab overlays are called nab-dev
@@ -64,14 +71,15 @@ runs:
               else
                 kustomize edit set image ${HAWK_IMAGE_NAME}:${{ inputs.component-tag }}
               fi
-
-              git commit -m "AUTOMATIC COMMIT: Update ${KUSTOMIZE_PATH}/overlays/${overlay} for ${{ inputs.component-name }} to ${{ inputs.component-tag }}"
             )
           done
         done
 
-        git diff
-
-        if ! git diff --quiet HEAD; then
-          git push || hawk.die "git push failed"
+        if [[ -z $(git status -s) ]]; then
+          hawk.notice "no changes in overlays ${overlays}"
+        else
+          git diff
+          git commit -a -m "${COMMIT_MSG}" || hawk.die "failed to commit overlay changes"
         fi
+
+        git push || hawk.die "failed to push overlay changes"

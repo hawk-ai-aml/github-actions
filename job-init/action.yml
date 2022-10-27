@@ -4,31 +4,32 @@ description: Job Init Action
 inputs:
   slack-notification-webhook:
     description: "Component to retrieve metadata"
-    required: false
+    required: true
 
 runs:
   using: composite
   steps:
     - name: security-guard
       if: ${{ ! github.event.repository.private }}
-      shell: bash -l -eo pipefail {0}
+      shell: bash -l -ET -eo pipefail {0}
       run: |
         exit 1
 
     - name: Copy profile
-      shell: bash -l -eo pipefail {0}
+      shell: bash -l -ET -eo pipefail {0}
       env:
         CICD_MIGRATION_SLACK_WEBHOOK_URL_B64: ${{ inputs.slack-notification-webhook }}
       run: |
         cp ${GITHUB_ACTION_PATH}/.bash_profile ${HOME}/.bash_profile
-        echo -e "\nexport CICD_MIGRATION_SLACK_WEBHOOK_URL=$(echo ${CICD_MIGRATION_SLACK_WEBHOOK_URL_B64} | base64 -d)" >> ${HOME}/.bash_profile
+        SLACK_URL=$(echo ${CICD_MIGRATION_SLACK_WEBHOOK_URL_B64} | base64 -d)
+        echo "export CICD_MIGRATION_SLACK_WEBHOOK_URL=${SLACK_URL}" >> ${HOME}/.bashrc.dynamic
         echo "HAWK_WORKFLOW_ID=${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}" >> ${GITHUB_ENV}
 
     - id: init
-      shell: bash -l -eo pipefail {0}
+      shell: bash -l -ET -eo pipefail {0}
       run: hawk.job-init
 
     - name: Simulate running a step against prechecks
       id: precheck
-      shell: bash -l -eo pipefail {0}
+      shell: bash -l -ET -eo pipefail {0}
       run: hawk.runner-prechecks
