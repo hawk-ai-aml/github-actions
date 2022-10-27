@@ -53,6 +53,11 @@ hawk.die() {
     # Make sure there are no new lines
   ) | tr -d '\n' | tee -a ${GITHUB_OUTPUT}
   
+  # Exit early if slack was disabled
+  if [[ ${DISABLE_SLACK} == "true" ]]; then
+    exit 1
+  fi
+
   # Prepare slack message
   (
     # Include original arguments into the stacktrace annotation
@@ -96,7 +101,7 @@ hawk.die() {
         ]
     }')
 
-  # curl --silent -X POST -H 'Content-type: application/json' --data "$json_string" ${CICD_MIGRATION_SLACK_WEBHOOK_URL} || true
+  curl --silent -X POST -H 'Content-type: application/json' --data "$json_string" ${CICD_MIGRATION_SLACK_WEBHOOK_URL} || true
 
   exit 1
 }
