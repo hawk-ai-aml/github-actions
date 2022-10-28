@@ -1053,3 +1053,5 @@ component:
       kustomize: bitbucket-fake
     ecr:
       <<: *defaultECR
+
+# End of file

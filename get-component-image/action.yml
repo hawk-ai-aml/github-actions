@@ -1,4 +1,5 @@
-# Deprecated
+# Deprecated, use library function
+
 name: get-component-image
 description: Get Component Image for specific profile
 
@@ -36,3 +37,5 @@ runs:
         KUSTOMIZE_PATH=$(hawk.get-component-kustomize-path ${{ inputs.component }} ${{ inputs.profile }} ${{ inputs.module }} || hawk.die "cannot get kustomize path")
         echo "image-name=${IMAGE_NAME}" >> ${GITHUB_OUTPUT}
         echo "kustomize-path=$(KUSTOMIZE_PATH)" >> ${GITHUB_OUTPUT}
+
+# End of file

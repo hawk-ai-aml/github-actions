@@ -35,7 +35,6 @@ hawk.die() {
     printf -- '-%.0s' {1..100}
 
     # Include original arguments into the stacktrace annotation
-    
     echo -en "%0A${@}%0A%0AWorkflow: ${HAWK_WORKFLOW_ID}%0AStacktrace:%0A"
 
     # Include stacktrace

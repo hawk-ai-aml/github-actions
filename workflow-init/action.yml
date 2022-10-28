@@ -1,9 +1,11 @@
+# Deprecated, use library functions
+
 name: workflow-init
 description: Workflow Init Action
 
 inputs:
   slack-notification-webhook:
-    description: "Component to retrieve metadata"
+    description: "Encoded Slack URL"
     required: false
   component:
     description: "Component to retrieve metadata"
@@ -115,3 +117,5 @@ runs:
         cat <<EOF | tee -a ${GITHUB_STEP_SUMMARY}
         \`\`\`
         EOF
+
+# End of file

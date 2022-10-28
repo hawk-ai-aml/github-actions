@@ -7,7 +7,7 @@ inputs:
     required: true
 
   component-modules:
-    description: "Component modules to update (JSON)"
+    description: "Component modules to update (list, JSON)"
     required: false
     default: ""
 
@@ -82,3 +82,5 @@ runs:
         fi
 
         git push || hawk.die "failed to push overlay changes"
+
+# End of file

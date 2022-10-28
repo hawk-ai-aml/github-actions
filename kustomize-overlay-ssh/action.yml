@@ -1,3 +1,5 @@
+# Deprecated, use kustomize-overlay-multi-ssh
+
 name: kustomize-overlay-ssh
 description: Kustomize Overlay in BitBucket
 
@@ -90,3 +92,5 @@ runs:
           git commit -m "AUTOMATIC COMMIT: Update ${KUSTOMIZE_PATH}/overlays/${OVERLAY} for ${{ inputs.component-name }} to ${{ env.HAWK_IMAGE_TAG }}"
           git push
         fi
+
+# End of file

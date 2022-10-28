@@ -3,7 +3,7 @@ description: Job Init Action
 
 inputs:
   slack-notification-webhook:
-    description: "Component to retrieve metadata"
+    description: "Encoded Slack webhook"
     required: true
 
 runs:
@@ -16,7 +16,7 @@ runs:
       run: |
         cp ${GITHUB_ACTION_PATH}/.bash_profile ${GITHUB_ACTION_PATH}/.bashrc.github.inc.sh ${HOME}
         SLACK_URL=$(echo ${CICD_MIGRATION_SLACK_WEBHOOK_URL_B64} | base64 -d)
-        echo "export CICD_MIGRATION_SLACK_WEBHOOK_URL=${SLACK_URL}" >> ${HOME}/.bashrc.dynamic
+        echo "export CICD_MIGRATION_SLACK_WEBHOOK_URL=${SLACK_URL}" >> ${HOME}/.bashrc.dynamic.inc.sh
         echo "HAWK_WORKFLOW_ID=${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}" >> ${GITHUB_ENV}
 
     - id: init
@@ -26,7 +26,7 @@ runs:
     - name: Alert about workflows running in public
       if: ${{ ! github.event.repository.private && ! env.OVERRIDE_SECURITY_GUARD }}
       shell: bash -l -ET -eo pipefail {0}
-      run: hawk.notice "workflow is running in public"
+      run: hawk.die "workflow is running in public"
 
     - name: Notify about workflows running in public and being overriden
       if: ${{ ! github.event.repository.private && env.OVERRIDE_SECURITY_GUARD }}
@@ -37,3 +37,5 @@ runs:
       id: precheck
       shell: bash -l -ET -eo pipefail {0}
       run: hawk.runner-prechecks
+
+# End of file
