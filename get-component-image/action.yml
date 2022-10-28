@@ -1,3 +1,5 @@
+# Deprecated, use library function
+
 name: get-component-image
 description: Get Component Image for specific profile
 
@@ -28,37 +30,12 @@ outputs:
 runs:
   using: composite
   steps:
-    - id: get-profile
-      name: Get Profile
-      uses: hawk-ai-aml/github-actions/workflow-init@master
-      with:
-        profile: ${{ inputs.profile }}
-        component: ${{ inputs.component }}
-        update-kustomize: false
-
     - id: vars
-      shell: bash
-      env:
-        METADATA: ${{ steps.get-profile.outputs.metadata }}
-        MODULE: ${{ inputs.module }}
+      shell: bash -l -ET -eo pipefail {0}
       run: |
-        if [[ "${MODULE}" == "" ]]; then
-          echo "Component: ${{ inputs.component }}"
-          REGISTRY=$(echo ${METADATA} | jq -cr .ecr.registry)
-          REGION=$(echo ${METADATA} | jq -cr .ecr.region)
-          REPOSITORY=$(echo ${METADATA} | jq -cr .ecr.repository)
-          KUSTOMIZE_PATH=$(echo ${METADATA} | jq -cr .kustomize.path)
-        else
-          echo "Component: ${{ inputs.component }}, module: ${{ inputs.module }}"
-          REGISTRY=$(echo ${METADATA} | jq -cr .modules[env.MODULE].ecr.registry)
-          REGION=$(echo ${METADATA} | jq -cr .modules[env.MODULE].ecr.region)
-          REPOSITORY=$(echo ${METADATA} | jq -cr .modules[env.MODULE].ecr.repository)
-          KUSTOMIZE_PATH=$(echo ${METADATA} | jq -cr .modules[env.MODULE].kustomize.path)
-        fi
+        IMAGE_NAME=$(hawk.get-component-image ${{ inputs.component }} ${{ inputs.profile }} ${{ inputs.module }} || hawk.die "cannot get image")
+        KUSTOMIZE_PATH=$(hawk.get-component-kustomize-path ${{ inputs.component }} ${{ inputs.profile }} ${{ inputs.module }} || hawk.die "cannot get kustomize path")
+        echo "image-name=${IMAGE_NAME}" >> ${GITHUB_OUTPUT}
+        echo "kustomize-path=$(KUSTOMIZE_PATH)" >> ${GITHUB_OUTPUT}
 
-        [[ "${REGISTRY}" == "null" ]] && ( echo "Empty registry"; exit 1)
-        [[ "${REGION}" == "null" ]] && ( echo "Empty region"; exit 1)
-        [[ "${REPOSITORY}" == "null" ]] && ( echo "Empty repository"; exit 1)
-
-        echo "::set-output name=image-name::${REGISTRY}.dkr.ecr.${REGION}.amazonaws.com/${REPOSITORY}"
-        echo "::set-output name=kustomize-path::${KUSTOMIZE_PATH}"
+# End of file

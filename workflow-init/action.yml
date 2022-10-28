@@ -1,7 +1,12 @@
+# Deprecated, use library functions
+
 name: workflow-init
 description: Workflow Init Action
 
 inputs:
+  slack-notification-webhook:
+    description: "Encoded Slack URL"
+    required: false
   component:
     description: "Component to retrieve metadata"
     required: true
@@ -57,32 +62,11 @@ runs:
     - id: job-init
       name: Init Job
       uses: hawk-ai-aml/github-actions/job-init@master
-
-    - name: Install yj
-      shell: bash
-      env:
-        YJ_VERSION: 5.1.0
-      run: |
-        mkdir -p "${HOME}"/bin
-        echo "PATH=${HOME}/bin:${PATH}" >> "${GITHUB_ENV}"
-
-        yj -v || (
-          echo "Installing yj ${YJ_VERSION}"
-          sudo curl \
-            --show-error \
-            --silent \
-            --location \
-            --fail \
-            --retry 3 \
-            --connect-timeout 5 \
-            --max-time 60 \
-            --output "${HOME}/bin/yj" \
-            "https://github.com/sclevine/yj/releases/download/v${YJ_VERSION}/yj-linux-amd64"
-          sudo chmod +x "${HOME}"/bin/yj
-        )
+      with:
+        slack-notification-webhook: ${{ inputs.slack-notification-webhook }}
 
     - id: vars
-      shell: bash
+      shell: bash -l -ET -eo pipefail {0}
       run: |
         UPDATE_KUSTOMIZE=${{ inputs.update-kustomize }}
         UPDATE_KUSTOMIZE=${UPDATE_KUSTOMIZE:-true}
@@ -113,25 +97,25 @@ runs:
         PARAMETERS_JSON=$(yj -y < ${GITHUB_ACTION_PATH}/profile/${{ inputs.profile }}.yml \
           | jq -cr --arg COMPONENT ${{ inputs.component }} '.component[$COMPONENT].parameters')
         
-        cat <<EOF | tee -a $GITHUB_STEP_SUMMARY
+        cat <<EOF | tee -a ${GITHUB_STEP_SUMMARY}
 
         [${{ github.run_id }}](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})
 
         \`\`\`
-        metadata::${METADATA_JSON}
-        overlays::${OVERLAYS_JSON}
-        modules::${MODULES_LIST_JSON}
-        kustomizable-modules::${KUSTOMIZABLE_MODULES_LIST_JSON}
-        parameters::${PARAMETERS_JSON}
-        update-kustomize::${UPDATE_KUSTOMIZE}
-        skip-tests::${SKIP_TESTS}
+        EOF
+
+        cat <<EOF | tee -a ${GITHUB_STEP_SUMMARY} | tee -a ${GITHUB_OUTPUT}
+        metadata=${METADATA_JSON}
+        overlays=${OVERLAYS_JSON}
+        modules=${MODULES_LIST_JSON}
+        kustomizable-modules=${KUSTOMIZABLE_MODULES_LIST_JSON}
+        parameters=${PARAMETERS_JSON}
+        update-kustomize=${UPDATE_KUSTOMIZE}
+        skip-tests=${SKIP_TESTS}
+        EOF
+
+        cat <<EOF | tee -a ${GITHUB_STEP_SUMMARY}
         \`\`\`
         EOF
 
-        echo "::set-output name=metadata::${METADATA_JSON}"
-        echo "::set-output name=overlays::${OVERLAYS_JSON}"
-        echo "::set-output name=modules::${MODULES_LIST_JSON}"
-        echo "::set-output name=kustomizable-modules::${KUSTOMIZABLE_MODULES_LIST_JSON}"
-        echo "::set-output name=parameters::${PARAMETERS_JSON}"
-        echo "::set-output name=update-kustomize::${UPDATE_KUSTOMIZE}"
-        echo "::set-output name=skip-tests::${SKIP_TESTS}"
+# End of file

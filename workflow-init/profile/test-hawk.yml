@@ -259,6 +259,9 @@ component:
       grouping: *backend_grouping
       search: *backend_search
 
+  backend2-no-ecr:
+    parameters: *defaultParameters
+
   configuration:
     parameters:
       <<: *defaultParameters

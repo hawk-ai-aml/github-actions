@@ -1,3 +1,5 @@
+# Deprecated, use kustomize-overlay-multi-ssh
+
 name: kustomize-overlay-ssh
 description: Kustomize Overlay in BitBucket
 
@@ -72,6 +74,7 @@ runs:
         # End prepare SSH
 
         git clone ${{ inputs.kustomize-repo }} kustomize
+
         cd kustomize/${KUSTOMIZE_PATH}/overlays/${OVERLAY}
 
         # https://hawkai.atlassian.net/browse/SRE-629
@@ -89,3 +92,5 @@ runs:
           git commit -m "AUTOMATIC COMMIT: Update ${KUSTOMIZE_PATH}/overlays/${OVERLAY} for ${{ inputs.component-name }} to ${{ env.HAWK_IMAGE_TAG }}"
           git push
         fi
+
+# End of file
