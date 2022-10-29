@@ -77,7 +77,7 @@ runs:
           hawk.notice "no changes in overlays ${overlays}"
         else
           git diff
-          git commit -a -m "${COMMIT_MSG}" || hawk.die "failed to commit overlay changes"
+          git commit -a -m "${COMMIT_MSG}" -m "Workflow: ${HAWK_WORKFLOW_ID}" || hawk.die "failed to commit overlay changes"
         fi
 
         git push || hawk.die "failed to push overlay changes"

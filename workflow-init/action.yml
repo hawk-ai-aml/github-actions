@@ -99,8 +99,12 @@ runs:
         
         cat <<EOF | tee -a ${GITHUB_STEP_SUMMARY}
 
-        [${{ github.run_id }}](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})
-
+        \`\`\`
+        Workflow: ${HAWK_WORKFLOW_ID}
+        Attempt: ${GITHUB_RUN_ATTEMPT}
+        Name: ${GITHUB_WORKFLOW}
+        Inputs: ${{ toJSON(inputs) }}
+        \`\`\`
         \`\`\`
         EOF
 

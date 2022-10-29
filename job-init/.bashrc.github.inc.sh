@@ -35,7 +35,7 @@ hawk.die() {
     printf -- '-%.0s' {1..100}
 
     # Include original arguments into the stacktrace annotation
-    echo -en "%0A${@}%0A%0AWorkflow: ${HAWK_WORKFLOW_ID}%0AName: ${GITHUB_WORKFLOW}%0AStacktrace:%0A"
+    echo -en "%0A${@}%0A%0AWorkflow: ${HAWK_WORKFLOW_ID}%0AName: ${GITHUB_WORKFLOW}%0AAttempt: ${GITHUB_RUN_ATTEMPT}%0AStacktrace:%0A"
 
     # Include stacktrace
     local frame=0
@@ -60,7 +60,7 @@ hawk.die() {
   # Prepare slack message
   (
     # Include original arguments into the stacktrace annotation
-    echo -n "${@}\n\nWorkflow: ${HAWK_WORKFLOW_ID}\nName: ${GITHUB_WORKFLOW}\nStacktrace:\n"
+    echo -n "${@}\n\nWorkflow: ${HAWK_WORKFLOW_ID}\nName: ${GITHUB_WORKFLOW}\nAttempt: ${GITHUB_RUN_ATTEMPT}\nStacktrace:\n"
 
     # Include stacktrace
     local frame=0
