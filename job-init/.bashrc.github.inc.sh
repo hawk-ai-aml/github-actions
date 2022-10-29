@@ -35,14 +35,14 @@ hawk.die() {
     printf -- '-%.0s' {1..100}
 
     # Include original arguments into the stacktrace annotation
-    echo -en "%0A${@}%0A%0AWorkflow: ${HAWK_WORKFLOW_ID}%0AStacktrace:%0A"
+    echo -en "%0A${@}%0A%0AWorkflow: ${HAWK_WORKFLOW_ID}%0AName: ${GITHUB_WORKFLOW}%0AStacktrace:%0A"
 
     # Include stacktrace
     local frame=0
     # https://wiki.bash-hackers.org/commands/builtin/caller
     while trace=$(caller $frame); do
       ((++frame));
-      echo "  ${trace}%0A" 
+      echo -n "  ${trace}%0A" 
     done
 
     # end banner
@@ -60,7 +60,7 @@ hawk.die() {
   # Prepare slack message
   (
     # Include original arguments into the stacktrace annotation
-    echo -n "${@}\n\nWorkflow: ${HAWK_WORKFLOW_ID}\nStacktrace:\n"
+    echo -n "${@}\n\nWorkflow: ${HAWK_WORKFLOW_ID}\nName: ${GITHUB_WORKFLOW}\nStacktrace:\n"
 
     # Include stacktrace
     local frame=0
