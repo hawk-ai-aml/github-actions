@@ -27,6 +27,10 @@ on:
         type: string
         required: false
 
+defaults:
+  run:
+    shell: bash -l -ET -eo pipefail {0}
+
 jobs:
   init:
     runs-on: [ "self-hosted", "builder" ]
