@@ -69,7 +69,7 @@ hawk.die() {
       ((++frame));
       echo -n "  ${trace}\n"
     done
-  ) | tee -a ${RUNNER_TEMP}/.slack-failure-message
+  ) >> ${RUNNER_TEMP}/.slack-failure-message
 
   # based on https://stackoverflow.com/a/67390352
   # Attempt to notify in Slack, but do not produce error
