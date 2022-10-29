@@ -105,6 +105,11 @@ hawk.die() {
   exit 1
 }
 
+# Exit trap 
+hawk.exit-trap() {
+  [[ "$?" == 0 ]] && exit 0 || hawk.die "${@}"
+}
+
 hawk.notice() {
   echo "::notice::${1}"
 }

@@ -1,7 +1,6 @@
 
 # Setup trap
 set -e -o pipefail -T -E
-trap 'hawk.die ${LINENO} "${BASH_COMMAND}"' ERR EXIT
 
 # Source dynamic stuff
 [[ -f ${HOME}/.bashrc.dynamic.inc.sh ]] && source ${HOME}/.bashrc.dynamic.inc.sh
@@ -11,5 +10,8 @@ trap 'hawk.die ${LINENO} "${BASH_COMMAND}"' ERR EXIT
 
 # Source bashrc from the builder
 [[ -f ${HOME}/.bashrc ]] && source ${HOME}/.bashrc
+
+trap 'hawk.die ${LINENO} "${BASH_COMMAND}"' ERR
+trap 'hawk.exit-trap ${LINENO} "${BASH_COMMAND}"' EXIT
 
 # End of file
