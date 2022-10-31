@@ -46,8 +46,8 @@ runs:
 
         git clone ${{ inputs.kustomize-repo }} kustomize && cd kustomize
 
-        overlays=$(hawk.util.ja2ba '${{ inputs.component-overlays }}')
-        modules=$(hawk.util.ja2ba '${{ inputs.component-modules }}')
+        overlays=$(util.ja2ba '${{ inputs.component-overlays }}')
+        modules=$(util.ja2ba '${{ inputs.component-modules }}')
 
         COMMIT_MSG="AUTOMATIC COMMIT: Update of ${{ inputs.component-name }} to ${{ inputs.component-tag }} for ${overlays}"
 
@@ -75,7 +75,7 @@ runs:
         done
 
         if [[ -z $(git status -s) ]]; then
-          hawk.notice "no changes in overlays ${overlays}"
+          workflow.notice "no changes in overlays ${overlays}"
         else
           git diff
           git commit -a -m "${COMMIT_MSG}" -m "Workflow: ${HAWK_WORKFLOW_ID}" || workflow.die "failed to commit overlay changes"

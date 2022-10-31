@@ -106,32 +106,28 @@ workflow.die() {
 }
 
 # Exit trap 
-hawk.exit-trap() {
+workflow.exit-trap() {
   [[ "$?" == 0 ]] && exit 0 || workflow.die "${@}"
 }
 
-hawk.notice() {
+# Error handling
+workflow.errexit.disable() {
+  shopt -u -o errexit
+  trap - ERR EXIT
+}
+
+workflow.errexit.enable() {
+  shopt -s -o errexit
+  trap 'workflow.die ${LINENO} "${BASH_COMMAND}"' ERR
+  trap 'workflow.exit-trap ${LINENO} "${BASH_COMMAND}"' EXIT
+}
+
+workflow.notice() {
   echo "::notice::${1}"
 }
 
-# Fail if one-liner fails
-hawk.assert-command-or-die() {
-  local cmd=$1
-  local error_message=$2
-
-  set +e
-  eval ${cmd} 2>&1 > /dev/null
-  local exit_code=$?
-  set -e
-
-  if [[ "${exit_code}" != 0 ]]; then
-    # https://docs.github.com/en/actions/using-workflows/workflow-commands-for-github-actions#setting-an-error-message
-    workflow.die "${error_message}"
-  fi
-}
-
 # Convert json array string to loopable string
-hawk.util.ja2ba() {
+util.ja2ba() {
   echo $1 | jq -cr  '. | join(" ")'
 }
 
@@ -317,5 +313,25 @@ hawk.get-component-kustomize-path() {
 
   echo ${kustomize_path}
 }
+
+# Push Docker image
+
+hawk.push-docker-image() {
+  local image_fqn=${1}
+
+  [[ ! -z "${image_fqn}" ]] || workflow.die "image should be not empty"
+
+  export DOCKER_CLI_EXPERIMENTAL=enabled
+
+  workflow.errexit.disable
+  docker manifest inspect ${image_fqn} 2>&1> /dev/null
+  inspect_code=$?
+  workflow.errexit.enable
+
+  if [[ "${inspect_code}" != 0 ]]; then  
+    docker push ${image_fqn}
+  fi
+}
+
 
 # End of file
