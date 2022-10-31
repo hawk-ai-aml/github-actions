@@ -156,6 +156,7 @@ jobs:
 
       - name: Push Image
         id: push-image
+        if: ${{ needs.init.outputs.update-kustomize == 'true' }}
         env:
           ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
           ECR_REPOSITORY: ${{ fromJson(needs.init.outputs.metadata).ecr.repository }}
