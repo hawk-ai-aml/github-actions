@@ -14,7 +14,7 @@
 ################################################################################
 
 # Low-level github failure
-hawk.die() {
+workflow.die() {
   # prevent multiple trap execution
   if [[ -f ${RUNNER_TEMP}/.untrap ]]; then
     echo "Extra trap suppressed"
@@ -35,14 +35,14 @@ hawk.die() {
     printf -- '-%.0s' {1..100}
 
     # Include original arguments into the stacktrace annotation
-    echo -en "%0A${@}%0A%0AWorkflow: ${HAWK_WORKFLOW_ID}%0AStacktrace:%0A"
+    echo -en "%0A${@}%0A%0AWorkflow: ${HAWK_WORKFLOW_ID}%0AName: ${GITHUB_WORKFLOW}%0AAttempt: ${GITHUB_RUN_ATTEMPT}%0AStacktrace:%0A"
 
     # Include stacktrace
     local frame=0
     # https://wiki.bash-hackers.org/commands/builtin/caller
     while trace=$(caller $frame); do
       ((++frame));
-      echo "  ${trace}%0A" 
+      echo -n "  ${trace}%0A" 
     done
 
     # end banner
@@ -60,7 +60,7 @@ hawk.die() {
   # Prepare slack message
   (
     # Include original arguments into the stacktrace annotation
-    echo -n "${@}\n\nWorkflow: ${HAWK_WORKFLOW_ID}\nStacktrace:\n"
+    echo -n "${@}\n\nWorkflow: ${HAWK_WORKFLOW_ID}\nName: ${GITHUB_WORKFLOW}\nAttempt: ${GITHUB_RUN_ATTEMPT}\nStacktrace:\n"
 
     # Include stacktrace
     local frame=0
@@ -69,7 +69,7 @@ hawk.die() {
       ((++frame));
       echo -n "  ${trace}\n"
     done
-  ) | tee -a ${RUNNER_TEMP}/.slack-failure-message
+  ) >> ${RUNNER_TEMP}/.slack-failure-message
 
   # based on https://stackoverflow.com/a/67390352
   # Attempt to notify in Slack, but do not produce error
@@ -105,6 +105,11 @@ hawk.die() {
   exit 1
 }
 
+# Exit trap 
+hawk.exit-trap() {
+  [[ "$?" == 0 ]] && exit 0 || workflow.die "${@}"
+}
+
 hawk.notice() {
   echo "::notice::${1}"
 }
@@ -121,7 +126,7 @@ hawk.assert-command-or-die() {
 
   if [[ "${exit_code}" != 0 ]]; then
     # https://docs.github.com/en/actions/using-workflows/workflow-commands-for-github-actions#setting-an-error-message
-    hawk.die "${error_message}"
+    workflow.die "${error_message}"
   fi
 }
 
@@ -135,15 +140,15 @@ hawk.util.ja2ba() {
 ################################################################################
 
 hawk.runner-prechecks() {
-  yj -v || hawk.die "yj is missing"
-  jq --version || hawk.die "jq is missing"
-  locale | grep en_US.UTF-8 || hawk.die "locale should be en_US.UTF-8"
-  hawk.get-component-metadata audit-trail hawk || hawk.die "cannot fetch component metadata during precheck"
-  hawk.get-component-metadata backend hawk core || hawk.die "cannot fetch component module metadata during precheck"
+  yj -v || workflow.die "yj is missing"
+  jq --version || workflow.die "jq is missing"
+  locale | grep en_US.UTF-8 || workflow.die "locale should be en_US.UTF-8"
+  hawk.get-component-metadata audit-trail hawk || workflow.die "cannot fetch component metadata during precheck"
+  hawk.get-component-metadata backend hawk core || workflow.die "cannot fetch component module metadata during precheck"
 
   # Uncomment this in case you want to simulate failure on precheck
-  # hawk.get-component-metadata audit-trail-3000 hawk || hawk.die "simulated: cannot fetch non-existing component metadata during precheck, probably someone is debugging something, otherwise contact your favourite sre"
-  # false || hawk.die "this is a simulated failure, probably someone is debugging something, otherwise contact your favourite sre"
+  # hawk.get-component-metadata audit-trail-3000 hawk || workflow.die "simulated: cannot fetch non-existing component metadata during precheck, probably someone is debugging something, otherwise contact your favourite sre"
+  # false || workflow.die "this is a simulated failure, probably someone is debugging something, otherwise contact your favourite sre"
 }
 
 hawk.setup.locale() {
@@ -234,10 +239,10 @@ hawk.get-metadata-json() {
 
   local profile=${1:-${HAWK_METADATA_DEFAULT_PROFILE}}
 
-  [[ ! -z "${profile}" ]] || hawk.die "metadata profile should not be empty"
-  [[ ! -z "${ref}" ]] || hawk.die "metadata ref should be not empty"
-  [[ ! -z "${repo}" ]] || hawk.die "metadata repo should be not empty"
-  [[ ! -z "${subpath}" ]] || hawk.die "metadata subpath should be not empty"
+  [[ ! -z "${profile}" ]] || workflow.die "metadata profile should not be empty"
+  [[ ! -z "${ref}" ]] || workflow.die "metadata ref should be not empty"
+  [[ ! -z "${repo}" ]] || workflow.die "metadata repo should be not empty"
+  [[ ! -z "${subpath}" ]] || workflow.die "metadata subpath should be not empty"
 
   local metadata_url="https://raw.githubusercontent.com/${repo}/${ref}/${subpath}/${profile}.yml"
   local metadata_workspace_path="${GITHUB_WORKSPACE}/.hawk/profile/${profile}.yml"
@@ -255,12 +260,12 @@ hawk.get-component-metadata() {
   local component=$1
   local profile=$2
 
-  [[ ! -z "${component}" ]] || hawk.die "component should not be empty"
-  [[ ! -z "${profile}" ]] || hawk.die "profile should not be empty"
+  [[ ! -z "${component}" ]] || workflow.die "component should not be empty"
+  [[ ! -z "${profile}" ]] || workflow.die "profile should not be empty"
 
   local metadata=$(hawk.get-metadata-json ${profile} | jq -Mcr --arg COMPONENT ${component} '.component[$COMPONENT]')
 
-  [[ ${#metadata} -gt 10 ]] || hawk.die "metadata is too short: ${metadata}"
+  [[ ${#metadata} -gt 10 ]] || workflow.die "metadata is too short: ${metadata}"
 
   echo ${metadata}
 }
@@ -270,8 +275,8 @@ hawk.get-component-image() {
   local profile=$2
   local module=${3:-}
 
-  [[ ! -z "${component}" ]] || hawk.die "component profile should not be empty"
-  [[ ! -z "${profile}" ]] || hawk.die "profile ref should be not empty"
+  [[ ! -z "${component}" ]] || workflow.die "component profile should not be empty"
+  [[ ! -z "${profile}" ]] || workflow.die "profile ref should be not empty"
 
   local metadata=$(hawk.get-component-metadata ${component} ${profile})
 
@@ -285,9 +290,9 @@ hawk.get-component-image() {
     local repository=$(echo ${metadata} | jq -cr --arg MODULE ${module} '.modules[$MODULE].ecr.repository')
   fi
 
-  [[ "${registry}" == "null" ]] && hawk.die "empty registry"
-  [[ "${region}" == "null" ]] && hawk.die "empty region"
-  [[ "${repository}" == "null" ]] && hawk.die "empty repository"
+  [[ "${registry}" == "null" ]] && workflow.die "empty registry"
+  [[ "${region}" == "null" ]] && workflow.die "empty region"
+  [[ "${repository}" == "null" ]] && workflow.die "empty repository"
 
   echo "${registry}.dkr.ecr.${region}.amazonaws.com/${repository}"
 }
@@ -297,8 +302,8 @@ hawk.get-component-kustomize-path() {
   local profile=$2
   local module=${3:-}
 
-  [[ ! -z "${component}" ]] || hawk.die "component profile should not be empty"
-  [[ ! -z "${profile}" ]] || hawk.die "profile ref should be not empty"
+  [[ ! -z "${component}" ]] || workflow.die "component profile should not be empty"
+  [[ ! -z "${profile}" ]] || workflow.die "profile ref should be not empty"
 
   local metadata=$(hawk.get-component-metadata ${component} ${profile})
 
@@ -308,7 +313,7 @@ hawk.get-component-kustomize-path() {
     local kustomize_path=$(echo ${metadata} | jq -cr --arg MODULE ${module} '.modules[$MODULE].kustomize.path')
   fi
 
-  [[ "${kustomize_path}" == "null" ]] && hawk.die "empty kustomize path"
+  [[ "${kustomize_path}" == "null" ]] && workflow.die "empty kustomize path"
 
   echo ${kustomize_path}
 }

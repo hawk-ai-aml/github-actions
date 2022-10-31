@@ -33,8 +33,8 @@ runs:
     - id: vars
       shell: bash -l -ET -eo pipefail {0}
       run: |
-        IMAGE_NAME=$(hawk.get-component-image ${{ inputs.component }} ${{ inputs.profile }} ${{ inputs.module }} || hawk.die "cannot get image")
-        KUSTOMIZE_PATH=$(hawk.get-component-kustomize-path ${{ inputs.component }} ${{ inputs.profile }} ${{ inputs.module }} || hawk.die "cannot get kustomize path")
+        IMAGE_NAME=$(hawk.get-component-image ${{ inputs.component }} ${{ inputs.profile }} ${{ inputs.module }} || workflow.die "cannot get image")
+        KUSTOMIZE_PATH=$(hawk.get-component-kustomize-path ${{ inputs.component }} ${{ inputs.profile }} ${{ inputs.module }} || workflow.die "cannot get kustomize path")
         echo "image-name=${IMAGE_NAME}" >> ${GITHUB_OUTPUT}
         echo "kustomize-path=${KUSTOMIZE_PATH}" >> ${GITHUB_OUTPUT}
 
