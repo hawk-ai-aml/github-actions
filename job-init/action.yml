@@ -26,7 +26,7 @@ runs:
     - name: Alert about workflows running in public
       if: ${{ ! github.event.repository.private && ! env.OVERRIDE_SECURITY_GUARD }}
       shell: bash -l -ET -eo pipefail {0}
-      run: hawk.die "workflow is running in public"
+      run: workflow.die "workflow is running in public"
 
     - name: Notify about workflows running in public and being overriden
       if: ${{ ! github.event.repository.private && env.OVERRIDE_SECURITY_GUARD }}
