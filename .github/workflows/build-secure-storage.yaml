@@ -23,6 +23,10 @@ on:
         type: string
         required: false
 
+defaults:
+  run:
+    shell: bash -l -ET -eo pipefail {0}
+
 jobs:
   init:
     runs-on: [ "self-hosted", "builder" ]
@@ -37,6 +41,7 @@ jobs:
         name: Init Workflow
         uses: hawk-ai-aml/github-actions/workflow-init@master
         with:
+          slack-notification-webhook: ${{ secrets.CICD_MIGRATION_SLACK_WEBHOOK_URL }}
           profile: ${{ inputs.profile }}
           component: ${{ inputs.component }}
           update-kustomize: ${{ inputs.updateKustomize }}
@@ -50,6 +55,8 @@ jobs:
       - id: init
         name: Init Job
         uses: hawk-ai-aml/github-actions/job-init@master
+        with:
+          slack-notification-webhook: ${{ secrets.CICD_MIGRATION_SLACK_WEBHOOK_URL }}
 
       - name: Login to Docker Hub
         uses: docker/login-action@v2
@@ -163,16 +170,7 @@ jobs:
           ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
           ECR_REPOSITORY: ${{ fromJson(needs.init.outputs.metadata).ecr.repository }}
         run: |
-          export DOCKER_CLI_EXPERIMENTAL=enabled
-
-          set +e
-          docker manifest inspect ${ECR_REGISTRY}/${ECR_REPOSITORY}:${{ env.HAWK_IMAGE_TAG }} 2>&1> /dev/null
-          inspect_code=$?
-          set -e
-
-          if [[ "${inspect_code}" != 0 ]]; then  
-            docker push ${ECR_REGISTRY}/${ECR_REPOSITORY}:${{ env.HAWK_IMAGE_TAG }}
-          fi
+          hawk.push-docker-image ${ECR_REGISTRY}/${ECR_REPOSITORY}:${{ env.HAWK_IMAGE_TAG }}
 
   update-overlays:
     needs: [ init, build ]
@@ -188,6 +186,8 @@ jobs:
       - id: init
         name: Init Job
         uses: hawk-ai-aml/github-actions/job-init@master
+        with:
+          slack-notification-webhook: ${{ secrets.CICD_MIGRATION_SLACK_WEBHOOK_URL }}
 
       - id: udpate-overlay-github
         name: Update kustomize overlay

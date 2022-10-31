@@ -176,26 +176,12 @@ jobs:
           METADATA: ${{ needs.init.outputs.metadata }}
           ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
         run: |
-          export DOCKER_CLI_EXPERIMENTAL=enabled
-
           for module in $(echo ${METADATA} | jq -cr '.modules | keys | join(" ")'); do
             module_repository=$(echo ${METADATA} | jq -cr --arg MODULE ${module} '.modules[$MODULE].ecr.repository')
             [[ "${module_repository}" == "null" ]] && continue
             echo "Module ${module} is configured to push image to ECR repository ${module_repository}"
 
-            image_fqn=${ECR_REGISTRY}/${module_repository}:${{ env.HAWK_IMAGE_TAG }}
-
-            set +e
-            docker manifest inspect ${image_fqn} 2>&1> /dev/null
-            inspect_code=$?
-            set -e
-
-            if [[ "${inspect_code}" != 0 ]]; then  
-              echo "Pushing image ${image_fqn}"
-              docker push ${image_fqn}
-            else
-              echo "Image ${image_fqn} exists, not pushing"
-            fi
+            hawk.push-docker-image ${ECR_REGISTRY}/${module_repository}:${{ env.HAWK_IMAGE_TAG }}
           done
 
   update-overlays:

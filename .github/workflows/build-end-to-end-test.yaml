@@ -11,6 +11,10 @@ on:
         description: Environment
         required: true
 
+defaults:
+  run:
+    shell: bash -l -ET -eo pipefail {0}
+
 jobs:
   test:
     runs-on: [ "self-hosted", "builder" ]
