@@ -176,7 +176,7 @@ jobs:
 
       - name: Push Docker Images
         id: push-image
-        if: ${{ contains(needs.init.outputs.kustomizable-modules, inputs.module) }}
+        if: ${{ contains(needs.init.outputs.kustomizable-modules, inputs.module) && needs.init.outputs.update-kustomize == 'true' }}
         env:
           METADATA: ${{ needs.init.outputs.metadata }}
           ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
