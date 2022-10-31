@@ -1,5 +1,4 @@
 name: end-to-end-tests
-
 on:
   workflow_call:
     inputs:
@@ -7,45 +6,141 @@ on:
         type: string
         description: Environment
         required: true
+      test:
+        type: string
+        description: Environment
+        required: true
 
 jobs:
-  end-to-end-tests:
+  test:
     runs-on: [ "self-hosted", "builder" ]
-    steps:
-      - name: Checkout E2E-Tests
-        uses: actions/checkout@v3
-        with:
-          repository: hawk-ai-aml/end-to-end-tests.git
-          token: ${{ secrets.REPO_ACCESS_PAT }}
-          ref: ${{ inputs.environment }}
 
+    outputs:
+      url: ${{ steps.report-url.outputs.url }}
+      test_status: ${{ steps.status.outputs.test_status }}
+
+    steps:
+      - uses: actions/checkout@v3
+
+    # +++++++++++++++++++++++++++++++++++++ START-SETUP +++++++++++++++++++++++++++++++++++++
       - name: Set up JDK 11
-        uses: actions/setup-java@v2
+        uses: actions/setup-java@v3
         with:
           java-version: 11
           distribution: 'adopt'
 
-      - name: Run end to end test
+      - uses: actions/cache@v3
+        with:
+          path: '**/node_modules'
+          key: ${{ runner.os }}-modules-${{ hashFiles('**/yarn.lock') }}
+
+      - name: Set up Node
+        uses: actions/setup-node@v3
+        with:
+          node-version: 18.x
+
+      - name: Install Allure
+        run: |
+          npm install -g allure-commandline --save-dev
+          allure --version
+
+      - name: Set up Wget
+        if: steps.cache-chromedriver.outputs.cache-hit != 'true' && (success() || failure())
+        run: |
+          sudo apt-get update
+          sudo apt-get install wget
+          wget --version
+
+      - name: Set up Chrome driver
+        if: steps.cache-chromedriver.outputs.cache-hit != 'true' && (success() || failure())
+        run: |
+          wget -O - https://dl-ssl.google.com/linux/linux_signing_key.pub | gpg --dearmor | sudo tee /etc/apt/trusted.gpg.d/spotify.gpg
+          echo "deb http://dl.google.com/linux/chrome/deb/ stable main" | sudo tee -a /etc/apt/sources.list.d/google-chrome.list
+          sudo apt-get update -qqy
+          sudo apt-get -qqy install google-chrome-stable
+          CHROME_VERSION=$(google-chrome-stable --version)
+          CHROME_FULL_VERSION=${CHROME_VERSION%%.*}
+          CHROME_MAJOR_VERSION=${CHROME_FULL_VERSION//[!0-9]}
+          sudo rm /etc/apt/sources.list.d/google-chrome.list
+          export CHROMEDRIVER_VERSION=`curl -s https://chromedriver.storage.googleapis.com/LATEST_RELEASE_${CHROME_MAJOR_VERSION%%.*}`
+          curl -L -O "https://chromedriver.storage.googleapis.com/${CHROMEDRIVER_VERSION}/chromedriver_linux64.zip"
+          unzip chromedriver_linux64.zip && chmod +x chromedriver && sudo mv chromedriver /usr/local/bin
+          export CHROMEDRIVER_VERSION=`curl -s https://chromedriver.storage.googleapis.com/LATEST_RELEASE_${CHROME_MAJOR_VERSION%%.*}`
+          curl -L -O "https://chromedriver.storage.googleapis.com/${CHROMEDRIVER_VERSION}/chromedriver_linux64.zip"
+          unzip chromedriver_linux64.zip && chmod +x chromedriver && sudo mv chromedriver /usr/local/bin
+          chromedriver -version
+          which chromedriver
+          which google-chrome
+
+      - name: Generate cache ID
+        run: |
+          echo CACHE_ID=$(date +'%Y-%m-%dT%H:%M:%S') >> $GITHUB_ENV
+
+      - name: Create cache folder
+        continue-on-error: true
+        run: |
+          pwd
+          mkdir ${{ inputs.environment }}-${{ inputs.test }}-test-histories
+          echo "init at - $(date +'%Y-%m-%dT%H:%M:%S')" >> ${{ inputs.environment }}-${{ inputs.test }}-test-histories/init-cache.txt
+
+      - name: Caching test history
+        id: cache-test-history
+        if: always()
+        uses: actions/cache@v3
+        continue-on-error: true
+        with:
+          path: /runner/_work/end-to-end-tests/end-to-end-tests/${{ inputs.environment }}-${{ inputs.test }}-test-histories/
+          key: ${{ runner.os }}-${{ inputs.environment }}-${{ inputs.test }}-test-histories-${{ env.CACHE_ID }}
+          restore-keys: |
+            ${{ runner.os }}-${{ inputs.environment }}-${{ inputs.test }}-test-histories-
+
+    # ------------------------------------- END-SETUP --------------------------------------
+    # +++++++++++++++++++++++++++++++++++++ START-TEST +++++++++++++++++++++++++++++++++++++
+      - name: Build <${{ inputs.test }}> tests
+        if: always()
         env:
+          environment: ${{ inputs.environment }}
+        run: |
+          ./gradlew :${{ inputs.test }}:clean :${{ inputs.test }}:assemble :${{ inputs.test }}:testClasses -isS
+
+      - name: Run <${{ inputs.test }} tests on ${{ inputs.environment }}>......................（ （（（（（（（　゜□゜）ノ ......................
+        id: run-e2e-test
+        if: always()
+        env:
+          TEST_MAILBOX_PASSWORD: ${{ secrets.AUTH0_DEV_API_CLIENT_SECRET }}
           AUTH0_DEV_API_CLIENT_SECRET: ${{ secrets.AUTH0_DEV_API_CLIENT_SECRET }}
           AUTH0_PROD_API_CLIENT_SECRET: ${{ secrets.AUTH0_PROD_API_CLIENT_SECRET }}
           AUTH0_PROD_US_EAST_API_CLIENT_SECRET: ${{ secrets.AUTH0_PROD_US_EAST_API_CLIENT_SECRET }}
-
+          AUTH0_NAB_QA_API_CLIENT_SECRET: ${{ secrets.AUTH0_PROD_US_EAST_API_CLIENT_SECRET }}
+          AUTH0_NAB_PROD_API_CLIENT_SECRET: ${{ secrets.AUTH0_PROD_US_EAST_API_CLIENT_SECRET }}
           environment: ${{ inputs.environment }}
+        continue-on-error: true
         run: |
-          # sudo apt update
-          # sudo apt-get -y install libnspr4 libnss3 libnss3-tools
-          ./gradlew :demo:clean :demo:assemble :demo:testClasses -isS
-          ./gradlew :demo:check -Denvironment=${{ inputs.environment }} -isS
+          ./gradlew :${{ inputs.test }}:check -Denvironment=${{ inputs.environment }} -isS
           ls *
-          ls ./demo/*
-          ls ./demo/allure*
+          ls ./${{ inputs.test }}/*
+          ls ./${{ inputs.test }}/allure*
 
       - name: Copy result files for upload to GitHub Artifact
+        if: always()
         run: |
           pwd
           mkdir github-artifact
-          mv /home/runner/work/kustomize-cicd/kustomize-cicd/demo/build/reports/tests/* github-artifact
+          mv ${{ inputs.test }}/build/reports/tests/* github-artifact
+
+    # -------------------------------------- END-TEST --------------------------------------
+    # ++++++++++++++++++++++++++++++++++++ START-REPORT ++++++++++++++++++++++++++++++++++++
+
+      - name: Generate Allure reports
+        if: always()
+        run: |
+          pwd
+          mkdir ${{ inputs.test }}/allure-report
+          echo "allure-results+++++++++++"
+          ls ${{ inputs.test }}/allure-results/*
+          echo "allure-results-----------"
+          allure generate ${{ inputs.test }}/allure-results -o ${{ inputs.test }}/allure-report --clean
+          ls ${{ inputs.test }}/allure-report/*
 
       - name: Upload plain test results to GitHub Artifact
         uses: actions/upload-artifact@v2
@@ -54,16 +149,72 @@ jobs:
           name: test-results
           path: github-artifact
 
-      - name: Upload Allure results to GitHub Artifact
-        uses: actions/upload-artifact@v2
+      - name: Check cache
         if: always()
-        with:
-          name: test-results
-          path: allure-reports
+        run: |
+          pwd
+          ls ${{ inputs.environment }}-${{ inputs.test }}-test-histories/*
+
+      - name: Init/Update cache
+        if: always()
+        run: |
+          pwd
+          cp -a -r ${{ inputs.environment }}-${{ inputs.test }}-test-histories/* ${{ inputs.test }}/allure-results
+          echo "----------------------------------->>> Allure-results after merged"
+          ls ${{ inputs.test }}/allure-results/*
+          mkdir ${{ inputs.test }}/allure-report2
+          allure generate ${{ inputs.test }}/allure-results -o ${{ inputs.test }}/allure-report2 --clean
+          echo "----------------------------------->>> New Allure report"
+          ls ${{ inputs.test }}/allure-report2/*
+          cp -a -r ${{ inputs.test }}/allure-report2/history ${{ inputs.environment }}-${{ inputs.test }}-test-histories
+
+      - name: Check cache after generating new report
+        if: always()
+        run: |
+          pwd
+          ls ${{ inputs.environment }}-${{ inputs.test }}-test-histories/*
 
       - name: Upload Allure results to GitHub Artifact
         uses: actions/upload-artifact@v2
         if: always()
         with:
           name: allure-results
-          path: demo/allure-results
+          path: ${{ inputs.test }}/allure-results
+
+      - name: Upload reports to S3
+        if: always()
+        uses: hawk-ai-aml/upload-s3-action@master
+        with:
+          aws_key_id: ${{ secrets.AWS_DEV_ACCESS_KEY_ID }}
+          aws_secret_access_key: ${{ secrets.AWS_DEV_SECRET_ACCESS_KEY }}
+          aws_bucket: github-actions-static-html-2
+          source_dir: ${{ inputs.test }}/allure-report2
+          destination_dir: e2e-${{ inputs.test }}-test-${{ env.CACHE_ID }}
+
+      - name: Provide test result URL
+        id: report-url
+        if: always()
+        run: |
+          echo "url=https://github-actions-static-html-2.s3.eu-central-1.amazonaws.com/e2e-${{ inputs.test }}-test-${{ env.CACHE_ID }}/index.html" >> $GITHUB_OUTPUT
+
+      - name: Check test status
+        id: status
+        if: steps.run-e2e-test.outcome != 'success'
+        run: |
+          echo "test_status=1" >> $GITHUB_OUTPUT
+
+    # -------------------------------------- END-REPORT --------------------------------------
+  test-results:
+    needs: test
+    runs-on: [ "self-hosted", "builder" ]
+    environment:
+      name: aws-s3
+      url: ${{ needs.test.outputs.url }}
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Mark with failed result if e2e test fails
+        if: needs.test.outputs.test_status == 1
+        run: |
+          exit 1
