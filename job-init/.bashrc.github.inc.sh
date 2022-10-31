@@ -319,7 +319,7 @@ hawk.get-component-kustomize-path() {
 hawk.push-docker-image() {
   local image_fqn=${1}
 
-  [[ ! -z "${image}" ]] || workflow.die "image should be not empty"
+  [[ ! -z "${image_fqn}" ]] || workflow.die "image should be not empty"
 
   export DOCKER_CLI_EXPERIMENTAL=enabled
 
