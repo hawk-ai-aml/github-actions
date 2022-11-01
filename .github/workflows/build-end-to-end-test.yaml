@@ -49,14 +49,14 @@ jobs:
           allure --version
 
       - name: Set up Wget
-        if: steps.cache-chromedriver.outputs.cache-hit != 'true' && (success() || failure())
+        if: always()
         run: |
           sudo apt-get update
           sudo apt-get install wget
           wget --version
 
       - name: Set up Chrome driver
-        if: steps.cache-chromedriver.outputs.cache-hit != 'true' && (success() || failure())
+        if: always()
         run: |
           wget -O - https://dl-ssl.google.com/linux/linux_signing_key.pub | gpg --dearmor | sudo tee /etc/apt/trusted.gpg.d/spotify.gpg
           echo "deb http://dl.google.com/linux/chrome/deb/ stable main" | sudo tee -a /etc/apt/sources.list.d/google-chrome.list
@@ -66,9 +66,6 @@ jobs:
           CHROME_FULL_VERSION=${CHROME_VERSION%%.*}
           CHROME_MAJOR_VERSION=${CHROME_FULL_VERSION//[!0-9]}
           sudo rm /etc/apt/sources.list.d/google-chrome.list
-          export CHROMEDRIVER_VERSION=`curl -s https://chromedriver.storage.googleapis.com/LATEST_RELEASE_${CHROME_MAJOR_VERSION%%.*}`
-          curl -L -O "https://chromedriver.storage.googleapis.com/${CHROMEDRIVER_VERSION}/chromedriver_linux64.zip"
-          unzip chromedriver_linux64.zip && chmod +x chromedriver && sudo mv chromedriver /usr/local/bin
           export CHROMEDRIVER_VERSION=`curl -s https://chromedriver.storage.googleapis.com/LATEST_RELEASE_${CHROME_MAJOR_VERSION%%.*}`
           curl -L -O "https://chromedriver.storage.googleapis.com/${CHROMEDRIVER_VERSION}/chromedriver_linux64.zip"
           unzip chromedriver_linux64.zip && chmod +x chromedriver && sudo mv chromedriver /usr/local/bin
@@ -97,6 +94,14 @@ jobs:
           key: ${{ runner.os }}-${{ inputs.environment }}-${{ inputs.test }}-test-histories-${{ env.CACHE_ID }}
           restore-keys: |
             ${{ runner.os }}-${{ inputs.environment }}-${{ inputs.test }}-test-histories-
+
+      - name: Cache Gradle
+        uses: actions/cache@v3
+        with:
+          path: /home/builder/.gradle/
+          key: ${{ runner.os }}-gradle-${{ github.run_id }}
+          restore-keys: |
+            ${{ runner.os }}-gradle-
 
     # ------------------------------------- END-SETUP --------------------------------------
     # +++++++++++++++++++++++++++++++++++++ START-TEST +++++++++++++++++++++++++++++++++++++
