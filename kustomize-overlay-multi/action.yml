@@ -53,7 +53,6 @@ runs:
         for overlay in ${overlays}; do
           for module in ${modules}; do
             HAWK_IMAGE_NAME=$(hawk.get-component-image ${{ inputs.component-name }} hawk ${module})
-            NAB_IMAGE_NAME=$(hawk.get-component-image ${{ inputs.component-name }} nab ${module})
             KUSTOMIZE_PATH=$(hawk.get-component-kustomize-path ${{ inputs.component-name }} hawk ${module})
             
             echo "Updating ${KUSTOMIZE_PATH}/overlays/${overlay} for ${{ inputs.component-name }} to ${{ inputs.component-tag }}"
@@ -65,6 +64,7 @@ runs:
               # this relies that all nab overlays are called nab-dev
               # nicer way is to pass profile, than evaluating overlay
               if [[ ${overlay} == 'nab-dev' ]]; then
+                NAB_IMAGE_NAME=$(hawk.get-component-image ${{ inputs.component-name }} nab ${module})
                 kustomize edit set image ${HAWK_IMAGE_NAME}=${NAB_IMAGE_NAME}:${{ inputs.component-tag }}
               else
                 kustomize edit set image ${HAWK_IMAGE_NAME}:${{ inputs.component-tag }}
