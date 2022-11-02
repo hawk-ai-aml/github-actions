@@ -23,6 +23,9 @@ on:
         type: string
         required: false
 
+env:
+  DISABLE_SLACK: true
+
 jobs:
   init:
     runs-on: [ "self-hosted", "builder" ]
