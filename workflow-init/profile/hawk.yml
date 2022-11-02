@@ -117,7 +117,7 @@ component:
           repository-prefix: audit-trail
         kustomize:
           path: plattform/utility/audit-trail
-          overlays: *defaultOverlays      
+          overlays: *defaultOverlays
 
   backend:
     parameters:

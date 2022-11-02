@@ -26,7 +26,7 @@ jobs:
           component: ${{ inputs.component }}
           profile: hawk
           update-kustomize: false
-          
+
   lock-dependencies:
     needs: [ init ]
     runs-on: [ "self-hosted", "builder" ]
@@ -60,12 +60,12 @@ jobs:
           git config --global user.name "GitHub Actions"
           git config --global user.email "github-actions@hawk.ai"
           git add .
-          
+
           if ! git diff --quiet HEAD; then
             git commit -m "build(gradle): Update gradle.lockfile"
             git push --force origin update-dependencies
             echo "result=success" >> $GITHUB_OUTPUT
-          else 
+          else
             echo "result=skipped" >> $GITHUB_OUTPUT
             echo "no dynamic dependencies updates"
           fi

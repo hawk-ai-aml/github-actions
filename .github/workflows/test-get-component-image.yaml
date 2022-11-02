@@ -49,7 +49,7 @@ jobs:
           profile: ${{ matrix.profile }}
           component: ${{ matrix.component }}
           module: ${{ matrix.module }}
-      
+
       - id: show
         shell: bash -l -ET -eo pipefail {0}
         run: echo ${{ steps.init.outputs.image-name }} | tee -a ${GITHUB_STEP_SUMMARY}

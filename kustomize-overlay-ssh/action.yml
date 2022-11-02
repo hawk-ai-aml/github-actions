@@ -16,7 +16,7 @@ inputs:
   component-overlay:
     description: "Overlay to update"
     required: true
-  
+
   component-tag:
     description: "New component tag"
     required: true

@@ -96,7 +96,7 @@ runs:
 
         PARAMETERS_JSON=$(yj -y < ${GITHUB_ACTION_PATH}/profile/${{ inputs.profile }}.yml \
           | jq -cr --arg COMPONENT ${{ inputs.component }} '.component[$COMPONENT].parameters')
-        
+
         cat <<EOF | tee -a ${GITHUB_STEP_SUMMARY}
 
         \`\`\`

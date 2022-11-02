@@ -6,7 +6,7 @@
 # function-namespace.primary-function-name.secondary-function-name
 #
 # Avoid using :: in names of functions or printing it, it is used as a magic separator by github and using it will break error messages and who knows what else
-#  
+#
 ################################################################################
 
 ################################################################################
@@ -42,7 +42,7 @@ workflow.die() {
     # https://wiki.bash-hackers.org/commands/builtin/caller
     while trace=$(caller $frame); do
       ((++frame));
-      echo -n "  ${trace}%0A" 
+      echo -n "  ${trace}%0A"
     done
 
     # end banner
@@ -51,7 +51,7 @@ workflow.die() {
 
     # Make sure there are no new lines
   ) | tr -d '\n' | tee -a ${GITHUB_OUTPUT}
-  
+
   # Exit early if slack was disabled
   if [[ ${DISABLE_SLACK} == "true" ]]; then
     exit 1
@@ -88,12 +88,12 @@ workflow.die() {
     --arg jq_markdown_message "$markdown_message_unescaped" \
     '{
         channel: $jq_channel,
-        text: $jq_fallback_message, 
+        text: $jq_fallback_message,
         blocks: [
             {
                 type: $jq_section_type,
                 text: {
-                    type: $jq_markdown_type, 
+                    type: $jq_markdown_type,
                     text: $jq_markdown_message
                 }
             }
@@ -105,7 +105,7 @@ workflow.die() {
   exit 1
 }
 
-# Exit trap 
+# Exit trap
 workflow.exit-trap() {
   [[ "$?" == 0 ]] && exit 0 || workflow.die "${@}"
 }
@@ -198,7 +198,7 @@ hawk.job-init() {
   # Make sure yj is installed, which may be not the case
   hawk.setup.yj
 
-  # Setup known hosts 
+  # Setup known hosts
   hawk.setup.ssh-known-hosts
 
   # Prepar git for potential pushes
@@ -242,7 +242,7 @@ hawk.get-metadata-json() {
 
   local metadata_url="https://raw.githubusercontent.com/${repo}/${ref}/${subpath}/${profile}.yml"
   local metadata_workspace_path="${GITHUB_WORKSPACE}/.hawk/profile/${profile}.yml"
-  
+
   # if there is profile folder in the repo we get profiles from there, otherwise we fetch it from github-actions
   # We pass it through both yj and jq to make sure there are no unexpected basic parsing errors
   if [[ -f ${metadata_workspace_path} ]]; then
@@ -328,7 +328,7 @@ hawk.push-docker-image() {
   inspect_code=$?
   workflow.errexit.enable
 
-  if [[ "${inspect_code}" != 0 ]]; then  
+  if [[ "${inspect_code}" != 0 ]]; then
     docker push ${image_fqn}
   fi
 }

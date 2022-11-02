@@ -14,7 +14,7 @@ inputs:
   component-overlays:
     description: "Overlays to update (list, JSON)"
     required: true
-  
+
   component-tag:
     description: "New component tag"
     required: true
@@ -56,7 +56,7 @@ runs:
             HAWK_IMAGE_NAME=$(hawk.get-component-image ${{ inputs.component-name }} hawk ${module})
             NAB_IMAGE_NAME=$(hawk.get-component-image ${{ inputs.component-name }} nab ${module})
             KUSTOMIZE_PATH=$(hawk.get-component-kustomize-path ${{ inputs.component-name }} hawk ${module})
-            
+
             echo "Updating ${KUSTOMIZE_PATH}/overlays/${overlay} for ${{ inputs.component-name }} to ${{ inputs.component-tag }}"
 
             (
