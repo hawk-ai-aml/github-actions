@@ -168,6 +168,7 @@ component:
     parameters: *defaultParameters
     ecr:
       <<: *defaultECR
+      repository-prefix: hawk-
     kustomize:
       overlays: *defaultOverlays
     modules:
@@ -294,6 +295,7 @@ component:
     parameters: *defaultParameters
     ecr:
       <<: *defaultECR
+      repository-prefix: hawk-
     kustomize:
       overlays: *defaultOverlays
     modules:
@@ -874,6 +876,7 @@ component:
       <<: *defaultParameters
     ecr:
       <<: *defaultECR
+      repository-prefix: hawk-
     kustomize:
       overlays: *defaultOverlays
     modules:
