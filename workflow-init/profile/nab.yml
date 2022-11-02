@@ -339,13 +339,6 @@ component:
         parameters:
           <<: *defaultParameters
           kustomize: bitbucket
-        ecr:
-          <<: *defaultECR
-          repository: hawk-hawkai-gateway-activemq
-          repository-prefix: hawk-
-        kustomize:
-          overlays: *defaultOverlays
-          path: plattform/processing/gateway
 
   features:
     parameters:
