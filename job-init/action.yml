@@ -19,6 +19,9 @@ runs:
         echo "export CICD_MIGRATION_SLACK_WEBHOOK_URL=${SLACK_URL}" >> ${HOME}/.bashrc.dynamic.inc.sh
         echo "HAWK_WORKFLOW_ID=${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}" >> ${GITHUB_ENV}
 
+        # Remove .bash_logout
+        rm ${HOME}/.bash_logout
+
     - id: init
       shell: bash -l -ET -eo pipefail {0}
       run: hawk.job-init
