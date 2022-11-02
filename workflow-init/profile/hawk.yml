@@ -119,70 +119,59 @@ component:
           path: plattform/utility/audit-trail
           overlays: *defaultOverlays      
 
-  backend_core: &backend_core
-    parameters: *defaultParameters
-
-  backend_msg: &backend_msg
-    parameters: *defaultParameters
-    ecr:
-      <<: *defaultECR
-      repository: hawkai-case-manager-backend-msg
-    kustomize:
-      path: plattform/case-manager/backend
-      overlays: *defaultOverlays
-
-  backend_rest: &backend_rest
-    parameters: *defaultParameters
-    ecr:
-      <<: *defaultECR
-      repository: hawkai-case-manager-backend-rest
-    kustomize:
-      path: plattform/case-manager/backend
-      overlays: *defaultOverlays
-
-  backend_grouping: &backend_grouping
-    parameters: *defaultParameters
-    ecr:
-      <<: *defaultECR
-      repository: backend-grouping
-    kustomize:
-      path: plattform/case-manager/backend
-      overlays: *defaultOverlays
-
-  backend_search: &backend_search
-    parameters: *defaultParameters
-    ecr:
-      <<: *defaultECR
-      repository: backend-search
-    kustomize:
-      path: plattform/case-manager/backend
-      overlays: *defaultOverlays
-
   backend:
-    parameters: *defaultParameters
+    parameters:
+      <<: *defaultParameters
+      kustomize: bitbucket
     ecr:
       <<: *defaultECR
     kustomize:
       overlays: *defaultOverlays
     modules:
-      core: *backend_core
-      msg: *backend_msg
-      rest: *backend_rest
-      grouping: *backend_grouping
-      search: *backend_search
-
-  backend2:
-    parameters: *defaultParameters
-    ecr:
-      <<: *defaultECR
-    kustomize:
-      overlays: *defaultOverlays
-    modules:
-      core: *backend_core
-      msg: *backend_msg
-      rest: *backend_rest
-      grouping: *backend_grouping
-      search: *backend_search
+      core:
+        parameters:
+          <<: *defaultParameters
+          kustomize: bitbucket
+      msg:
+        parameters:
+          <<: *defaultParameters
+          kustomize: bitbucket
+        ecr:
+          <<: *defaultECR
+          repository: hawkai-case-manager-backend-msg
+        kustomize:
+          path: plattform/case-manager/backend
+          overlays: *defaultOverlays
+      rest:
+        parameters:
+          <<: *defaultParameters
+          kustomize: bitbucket
+        ecr:
+          <<: *defaultECR
+          repository: hawkai-case-manager-backend-rest
+        kustomize:
+          path: plattform/case-manager/backend
+          overlays: *defaultOverlays
+      grouping:
+        parameters:
+          <<: *defaultParameters
+          kustomize: bitbucket
+        ecr:
+          <<: *defaultECR
+          repository: backend-grouping
+        kustomize:
+          path: plattform/case-manager/backend
+          overlays: *defaultOverlays
+      search:
+        parameters:
+          <<: *defaultParameters
+          kustomize: bitbucket
+        ecr:
+          <<: *defaultECR
+          repository: backend-search
+        kustomize:
+          path: plattform/case-manager/backend
+          overlays: *defaultOverlays
 
   blacklist:
     parameters:
@@ -219,7 +208,9 @@ component:
       overlays: *defaultOverlays
 
   customer-risk-rating:
-    parameters: *defaultParameters
+    parameters:
+      <<: *defaultParameters
+      kustomize: bitbucket
     ecr:
       <<: *defaultECR
     kustomize:
@@ -228,9 +219,11 @@ component:
       core:
         parameters:
           <<: *defaultParameters
+          kustomize: bitbucket
       app:
         parameters:
           <<: *defaultParameters
+          kustomize: bitbucket
         ecr:
           <<: *defaultECR
           repository: customer-risk-rating
@@ -240,6 +233,7 @@ component:
       crr-risk-factor-sar:
         parameters:
           <<: *defaultParameters
+          kustomize: bitbucket
         ecr:
           <<: *defaultECR
           repository: crr-risk-factor-sar
@@ -249,6 +243,7 @@ component:
       crr-risk-factor-expected-volume:
         parameters:
           <<: *defaultParameters
+          kustomize: bitbucket
         ecr:
           <<: *defaultECR
           repository: crr-risk-factor-expected-volume
@@ -258,6 +253,7 @@ component:
       crr-risk-factor-payment-means:
         parameters:
           <<: *defaultParameters
+          kustomize: bitbucket
         ecr:
           <<: *defaultECR
           repository: crr-risk-factor-payment-means
@@ -339,7 +335,9 @@ component:
       overlays: *defaultOverlays
 
   gateway:
-    parameters: *defaultParameters
+    parameters:
+      <<: *defaultParameters
+      kustomize: bitbucket
     ecr:
       <<: *defaultECR
     kustomize:
@@ -348,12 +346,15 @@ component:
       core:
         parameters:
           <<: *defaultParameters
+          kustomize: bitbucket
       engine:
         parameters:
           <<: *defaultParameters
+          kustomize: bitbucket
       msg:
         parameters:
           <<: *defaultParameters
+          kustomize: bitbucket
         ecr:
           <<: *defaultECR
           repository: hawkai-gateway-msg
@@ -363,6 +364,7 @@ component:
       batch:
         parameters:
           <<: *defaultParameters
+          kustomize: bitbucket
         ecr:
           <<: *defaultECR
           repository: hawkai-gateway-batch
@@ -372,6 +374,7 @@ component:
       rest:
         parameters:
           <<: *defaultParameters
+          kustomize: bitbucket
         ecr:
           <<: *defaultECR
           repository: hawkai-gateway
@@ -381,6 +384,7 @@ component:
       activemq:
         parameters:
           <<: *defaultParameters
+          kustomize: bitbucket
         ecr:
           <<: *defaultECR
           repository: hawkai-gateway-activemq
@@ -391,6 +395,7 @@ component:
   features:
     parameters:
       <<: *defaultParameters
+      kustomize: bitbucket
       java-version: 17
     ecr:
       <<: *defaultECR
@@ -401,10 +406,12 @@ component:
       core:
         parameters:
           <<: *defaultParameters
+          kustomize: bitbucket
           java-version: 17
       countryrisk:
         parameters:
           <<: *defaultParameters
+          kustomize: bitbucket
           java-version: 17
         ecr:
           <<: *defaultECR
@@ -416,6 +423,7 @@ component:
       volumerisk:
         parameters:
           <<: *defaultParameters
+          kustomize: bitbucket
           java-version: 17
         ecr:
           <<: *defaultECR
@@ -427,6 +435,7 @@ component:
       pepsanction-lookup-match-analyzer:
         parameters:
           <<: *defaultParameters
+          kustomize: bitbucket
           java-version: 17
         ecr:
           <<: *defaultECR
@@ -438,6 +447,7 @@ component:
       simple:
         parameters:
           <<: *defaultParameters
+          kustomize: bitbucket
           java-version: 17
         ecr:
           <<: *defaultECR
@@ -449,6 +459,7 @@ component:
       assessment-engine:
         parameters:
           <<: *defaultParameters
+          kustomize: bitbucket
           java-version: 17
         ecr:
           <<: *defaultECR
@@ -460,6 +471,7 @@ component:
       passthrough:
         parameters:
           <<: *defaultParameters
+          kustomize: bitbucket
           java-version: 17
         ecr:
           <<: *defaultECR
@@ -471,6 +483,7 @@ component:
       smurfing:
         parameters:
           <<: *defaultParameters
+          kustomize: bitbucket
           java-version: 17
         ecr:
           <<: *defaultECR
@@ -482,6 +495,7 @@ component:
       roundamount:
         parameters:
           <<: *defaultParameters
+          kustomize: bitbucket
           java-version: 17
         ecr:
           <<: *defaultECR
@@ -493,6 +507,7 @@ component:
       round-amount-ratio-increase-decrease:
         parameters:
           <<: *defaultParameters
+          kustomize: bitbucket
           java-version: 17
         ecr:
           <<: *defaultECR
@@ -504,6 +519,7 @@ component:
       unusualfrequency:
         parameters:
           <<: *defaultParameters
+          kustomize: bitbucket
           java-version: 17
         ecr:
           <<: *defaultECR
@@ -515,6 +531,7 @@ component:
       dormantaccount:
         parameters:
           <<: *defaultParameters
+          kustomize: bitbucket
           java-version: 17
         ecr:
           <<: *defaultECR
@@ -526,6 +543,7 @@ component:
       crossbordervolume:
         parameters:
           <<: *defaultParameters
+          kustomize: bitbucket
           java-version: 17
         ecr:
           <<: *defaultECR
@@ -537,6 +555,7 @@ component:
       volumeincreasedecrease:
         parameters:
           <<: *defaultParameters
+          kustomize: bitbucket
           java-version: 17
         ecr:
           <<: *defaultECR
@@ -548,6 +567,7 @@ component:
       suspiciousavgticketsize:
         parameters:
           <<: *defaultParameters
+          kustomize: bitbucket
           java-version: 17
         ecr:
           <<: *defaultECR
@@ -559,6 +579,7 @@ component:
       account-based-frequency-increase-decrease:
         parameters:
           <<: *defaultParameters
+          kustomize: bitbucket
           java-version: 17
         ecr:
           <<: *defaultECR
@@ -570,6 +591,7 @@ component:
       volumeriskv2:
         parameters:
           <<: *defaultParameters
+          kustomize: bitbucket
           java-version: 17
         ecr:
           <<: *defaultECR
@@ -581,6 +603,7 @@ component:
       countryriskv2:
         parameters:
           <<: *defaultParameters
+          kustomize: bitbucket
           java-version: 17
         ecr:
           <<: *defaultECR
@@ -592,6 +615,7 @@ component:
       passthroughv2:
         parameters:
           <<: *defaultParameters
+          kustomize: bitbucket
           java-version: 17
         ecr:
           <<: *defaultECR
@@ -603,6 +627,7 @@ component:
       passthroughv3:
         parameters:
           <<: *defaultParameters
+          kustomize: bitbucket
           java-version: 17
         ecr:
           <<: *defaultECR
@@ -614,6 +639,7 @@ component:
       counterparty-volume:
         parameters:
           <<: *defaultParameters
+          kustomize: bitbucket
           java-version: 17
         ecr:
           <<: *defaultECR
@@ -916,6 +942,7 @@ component:
   pep-sanction:
     parameters:
       <<: *defaultParameters
+      kustomize: bitbucket
     ecr:
       <<: *defaultECR
     kustomize:
@@ -924,6 +951,7 @@ component:
       core:
         parameters:
           <<: *defaultParameters
+          kustomize: bitbucket
       rest:
         parameters:
           <<: *defaultParameters
@@ -936,6 +964,7 @@ component:
       msg:
         parameters:
           <<: *defaultParameters
+          kustomize: bitbucket
         ecr:
           <<: *defaultECR
           repository: hawkai-pepsanction-msg
@@ -945,6 +974,7 @@ component:
       import-dowjones:
         parameters:
           <<: *defaultParameters
+          kustomize: bitbucket
         ecr:
           <<: *defaultECR
           repository: hawkai-pepsanction-import-dowjones
@@ -954,6 +984,7 @@ component:
       import-info4c:
         parameters:
           <<: *defaultParameters
+          kustomize: bitbucket
         ecr:
           <<: *defaultECR
           repository: hawkai-pepsanction-import-info4c
@@ -963,6 +994,7 @@ component:
       import-lexis-nexis:
         parameters:
           <<: *defaultParameters
+          kustomize: bitbucket
         ecr:
           <<: *defaultECR
           repository: hawkai-pepsanction-import-lexis-nexis
