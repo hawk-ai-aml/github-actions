@@ -1086,4 +1086,9 @@ component:
     ecr:
       <<: *defaultECR
 
+  template-java-gradle-spring:
+    parameters:
+      <<: *defaultParameters
+      java-version: 17
+
 # End of file
