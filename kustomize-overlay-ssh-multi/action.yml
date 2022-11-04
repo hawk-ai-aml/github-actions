@@ -81,6 +81,6 @@ runs:
           git commit -a -m "${COMMIT_MSG}" -m "Workflow: ${HAWK_WORKFLOW_ID}" || workflow.die "failed to commit overlay changes"
         fi
 
-        git push || workflow.die "failed to push overlay changes"
+        hawk.git-push || workflow.die "failed to push overlay changes"
 
 # End of file

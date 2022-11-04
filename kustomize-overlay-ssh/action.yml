@@ -90,7 +90,7 @@ runs:
           git config --global user.email "github-actions@hawk.ai"
           git add .
           git commit -m "AUTOMATIC COMMIT: Update ${KUSTOMIZE_PATH}/overlays/${OVERLAY} for ${{ inputs.component-name }} to ${{ env.HAWK_IMAGE_TAG }}"
-          git push
+          hawk.git-push || workflow.die "failed to push overlay changes"
         fi
 
 # End of file
