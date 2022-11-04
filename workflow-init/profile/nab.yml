@@ -54,7 +54,7 @@ component:
           repository-prefix: hawk-audit-trail
         kustomize:
           path: plattform/utility/audit-trail
-          overlays: *defaultOverlays      
+          overlays: *defaultOverlays
 
   backend:
     parameters:

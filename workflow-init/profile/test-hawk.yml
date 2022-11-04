@@ -29,7 +29,7 @@ component:
       <<: *defaultECR
       repository: audit-trail
     kustomize:
-      path: plattform/utility/audit-trail 
+      path: plattform/utility/audit-trail
       overlays: *defaultOverlays
 
   audit-trail:
