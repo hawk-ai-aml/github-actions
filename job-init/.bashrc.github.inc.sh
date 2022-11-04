@@ -333,5 +333,23 @@ hawk.push-docker-image() {
   fi
 }
 
+# Simple push with retry
+hawk.git-push() {
+  local remote=${1:-origin}
+  local current_branch=$(git rev-parse --abbrev-ref HEAD)
+  local pushed="false"
+
+  for interval in 0 1 2 5 10; do
+    [[ ${interval} -gt 0 ]] && echo "Retrying in ${interval} seconds..."
+    sleep ${interval}
+    git pull --rebase ${remote} ${current_branch} || return $?
+    if git push ${remote} ${current_branch}; then
+      pushed="true"
+      break
+    fi
+  done
+
+  [[ ${pushed} == "true" ]] || return 1
+}
 
 # End of file
