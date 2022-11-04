@@ -284,7 +284,9 @@ component:
       overlays: *defaultOverlays
 
   decision-engine:
-    parameters: *defaultParameters
+    parameters:
+      <<: *defaultParameters
+      kustomize: bitbucket
     ecr:
       <<: *defaultECR
     kustomize:
@@ -296,6 +298,7 @@ component:
       opening:
         parameters:
           <<: *defaultParameters
+          kustomize: bitbucket
         ecr:
           <<: *defaultECR
           repository: hawkai-decision-engine-msg
@@ -305,6 +308,7 @@ component:
       autoclosing:
         parameters:
           <<: *defaultParameters
+          kustomize: bitbucket
         ecr:
           <<: *defaultECR
           repository: decision-engine-auto-closing
