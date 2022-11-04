@@ -16,6 +16,20 @@ parameters: &defaultParameters
   kustomize: bitbucket-fake
 
 component:
+  # This is an example single-module template, that you need to copy and modify according to specific project
+  template-java-gradle-spring:
+    parameters:
+      <<: *defaultParameters
+      kustomize: bitbucket-fake
+      java-version: 17
+    ecr:
+      <<: *defaultECR
+      repository: hawk-template-java-gradle-spring
+      repository-prefix: hawk-
+    kustomize:
+      path: plattform/utility/template-java-gradle-spring
+      overlays: *defaultOverlays
+
   ai-data-sink:
     parameters:
       <<: *defaultParameters
