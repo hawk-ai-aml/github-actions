@@ -99,7 +99,7 @@ jobs:
         uses: actions/cache@v3
         with:
           path: /home/builder/.gradle/
-          key: ${{ runner.os }}-gradle-${{ github.run_id }}
+          key: ${{ runner.os }}-gradle-
           restore-keys: |
             ${{ runner.os }}-gradle-
 
