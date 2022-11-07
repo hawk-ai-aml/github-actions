@@ -31,7 +31,7 @@ jobs:
         uses: actions/setup-java@v3
         with:
           java-version: 11
-          distribution: 'adopt'
+          distribution: 'temurin'
 
       - uses: actions/cache@v3
         with:
@@ -90,7 +90,7 @@ jobs:
         uses: actions/cache@v3
         continue-on-error: true
         with:
-          path: /runner/_work/end-to-end-tests/end-to-end-tests/${{ inputs.environment }}-${{ inputs.test }}-test-histories/
+          path: ${{ env.GITHUB_WORKSPACE }}/${{ inputs.environment }}-${{ inputs.test }}-test-histories/
           key: ${{ runner.os }}-${{ inputs.environment }}-${{ inputs.test }}-test-histories-${{ env.CACHE_ID }}
           restore-keys: |
             ${{ runner.os }}-${{ inputs.environment }}-${{ inputs.test }}-test-histories-
@@ -112,7 +112,7 @@ jobs:
         run: |
           ./gradlew :${{ inputs.test }}:clean :${{ inputs.test }}:assemble :${{ inputs.test }}:testClasses -isS
 
-      - name: Run <${{ inputs.test }} tests on ${{ inputs.environment }}>......................（ （（（（（（（　゜□゜）ノ ......................
+      - name: Run <${{ inputs.test }} tests on ${{ inputs.environment }}>
         id: run-e2e-test
         if: always()
         env:
@@ -126,9 +126,9 @@ jobs:
         continue-on-error: true
         run: |
           ./gradlew :${{ inputs.test }}:check -Denvironment=${{ inputs.environment }} -isS
-          ls *
-          ls ./${{ inputs.test }}/*
-          ls ./${{ inputs.test }}/allure*
+          # ls *
+          # ls ./${{ inputs.test }}/*
+          # ls ./${{ inputs.test }}/allure*
 
       - name: Copy result files for upload to GitHub Artifact
         if: always()
@@ -170,11 +170,11 @@ jobs:
           pwd
           cp -a -r ${{ inputs.environment }}-${{ inputs.test }}-test-histories/* ${{ inputs.test }}/allure-results
           echo "----------------------------------->>> Allure-results after merged"
-          ls ${{ inputs.test }}/allure-results/*
+          # ls ${{ inputs.test }}/allure-results/*
           mkdir ${{ inputs.test }}/allure-report2
           allure generate ${{ inputs.test }}/allure-results -o ${{ inputs.test }}/allure-report2 --clean
           echo "----------------------------------->>> New Allure report"
-          ls ${{ inputs.test }}/allure-report2/*
+          # ls ${{ inputs.test }}/allure-report2/*
           cp -a -r ${{ inputs.test }}/allure-report2/history ${{ inputs.environment }}-${{ inputs.test }}-test-histories
 
       - name: Check cache after generating new report
