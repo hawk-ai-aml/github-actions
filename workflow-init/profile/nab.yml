@@ -277,7 +277,7 @@ component:
           kustomize: bitbucket
         ecr:
           <<: *defaultECR
-          repository: hawk-hawkai-decision-engine-auto-closing
+          repository: hawk-decision-engine-auto-closing
           repository-prefix: hawk-
         kustomize:
           overlays: *defaultOverlays
