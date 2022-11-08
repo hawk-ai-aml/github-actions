@@ -176,7 +176,10 @@ jobs:
           ECR_REPOSITORY_PREFIX: ${{ fromJson(needs.init.outputs.metadata).ecr.repository-prefix }}
         run: |
           ./gradlew :${{ inputs.module }}:build -Dskip.tests=true -x test
-          ./gradlew :${{ inputs.module }}:jibDockerBuild -DIMAGE_NAME="${ECR_REGISTRY}/${ECR_REPOSITORY_PREFIX}" -DTAG_COMMIT=${{ env.HAWK_IMAGE_TAG }}
+          ./gradlew :${{ inputs.module }}:jibDockerBuild \
+            -DIMAGE_NAME="${ECR_REGISTRY}/${ECR_REPOSITORY_PREFIX}" \
+            -DTAG_COMMIT=${{ env.HAWK_IMAGE_TAG }} \
+            -DIS_NAB=${{ inputs.profile == 'nab' }}
 
       - name: Push Docker Images
         id: push-image
