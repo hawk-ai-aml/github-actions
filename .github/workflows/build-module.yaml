@@ -89,6 +89,7 @@ jobs:
           ARTIFACTORY_CONTEXT_URL: ${{ secrets.ARTIFACTORY_CONTEXT_URL }}
           ARTIFACTORY_USERNAME: ${{ secrets.ARTIFACTORY_USERNAME }}
           ARTIFACTORY_PASSWORD: ${{ secrets.ARTIFACTORY_PASSWORD }}
+          DISABLE_SLACK: true
         run: ./gradlew clean :${{ inputs.module }}:assemble :${{ inputs.module }}:testClasses -isS
 
       - name: License Report
@@ -96,6 +97,7 @@ jobs:
           ARTIFACTORY_CONTEXT_URL: ${{ secrets.ARTIFACTORY_CONTEXT_URL }}
           ARTIFACTORY_USERNAME: ${{ secrets.ARTIFACTORY_USERNAME }}
           ARTIFACTORY_PASSWORD: ${{ secrets.ARTIFACTORY_PASSWORD }}
+          DISABLE_SLACK: true
         run: ./gradlew :${{ inputs.module }}:licenseReport --no-parallel
 
       - name: Check Quality
@@ -103,6 +105,7 @@ jobs:
           ARTIFACTORY_CONTEXT_URL: ${{ secrets.ARTIFACTORY_CONTEXT_URL }}
           ARTIFACTORY_USERNAME: ${{ secrets.ARTIFACTORY_USERNAME }}
           ARTIFACTORY_PASSWORD: ${{ secrets.ARTIFACTORY_PASSWORD }}
+          DISABLE_SLACK: true
         run: ./gradlew :${{ inputs.module }}:checkQualityMain
 
       - name: Run Tests
@@ -111,6 +114,7 @@ jobs:
           ARTIFACTORY_CONTEXT_URL: ${{ secrets.ARTIFACTORY_CONTEXT_URL }}
           ARTIFACTORY_USERNAME: ${{ secrets.ARTIFACTORY_USERNAME }}
           ARTIFACTORY_PASSWORD: ${{ secrets.ARTIFACTORY_PASSWORD }}
+          DISABLE_SLACK: true
         run: |
           ./gradlew :${{ inputs.module }}:check :${{ inputs.module }}:jacocoTestReport :jacocoTestCoverageVerification -isS
 
