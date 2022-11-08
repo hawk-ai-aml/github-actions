@@ -253,7 +253,6 @@ component:
       kustomize: bitbucket
     ecr:
       <<: *defaultECR
-      repository-prefix: hawk-
     kustomize:
       overlays: *defaultOverlays
     modules:
@@ -267,7 +266,6 @@ component:
         ecr:
           <<: *defaultECR
           repository: hawk-hawkai-decision-engine-msg
-          repository-prefix: hawk-
         kustomize:
           overlays: *defaultOverlays
           path: plattform/processing/decision-engine
@@ -277,8 +275,7 @@ component:
           kustomize: bitbucket
         ecr:
           <<: *defaultECR
-          repository: hawk-decision-engine-auto-closing
-          repository-prefix: hawk-
+          repository: hawk-hawkai-decision-engine-auto-closing
         kustomize:
           overlays: *defaultOverlays
           path: plattform/processing/decision-engine
