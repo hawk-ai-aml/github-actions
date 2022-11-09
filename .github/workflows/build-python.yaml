@@ -22,7 +22,7 @@ on:
       profile:
         type: string
         required: false
-      python-version:
+      pythonVersion:
         type: string
         required: false
         default: 3.8
