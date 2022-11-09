@@ -23,7 +23,7 @@ on:
         type: string
         required: false
       python-version:
-        type: number
+        type: string
         required: false
         default: 3.8
 
