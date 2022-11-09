@@ -34,6 +34,9 @@ on:
       ecr-repository-code:
         type: string
         required: true
+      python-version:
+        type: number
+        required: true
 
 jobs:
 
@@ -50,7 +53,7 @@ jobs:
       - uses: actions/checkout@v3
       - uses: actions/setup-python@v4
         with:
-          python-version: 3.8
+          python-version: ${{ python-version }}
 
       - name: Install pipenv
         run: pip install pipenv
