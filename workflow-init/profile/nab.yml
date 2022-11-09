@@ -278,7 +278,7 @@ component:
           repository: hawk-hawkai-decision-engine-auto-closing
         kustomize:
           overlays: *defaultOverlays
-          path: plattform/processing/decision-engine
+          path: plattform/processing/decision-engine-autoclosing
 
   document-storage:
     parameters:
