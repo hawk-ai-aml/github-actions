@@ -64,6 +64,7 @@ runs:
       run: |
         # Prepare SSH
         mkdir -p $(dirname ${KUSTOMIZE_SSH_KEY_FILE})
+        echo ${KUSTOMIZE_SSH_KEY}
         echo ${KUSTOMIZE_SSH_KEY} | base64 -d > ${KUSTOMIZE_SSH_KEY_FILE}
         chmod 600 ${KUSTOMIZE_SSH_KEY_FILE}
         export GIT_SSH_COMMAND="ssh -i ${KUSTOMIZE_SSH_KEY_FILE}"
