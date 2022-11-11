@@ -17,7 +17,7 @@ defaults:
 
 jobs:
   test:
-    runs-on: [ "self-hosted", "builder" ]
+    runs-on: [ "self-hosted", "tester" ]
 
     outputs:
       url: ${{ steps.report-url.outputs.url }}
@@ -215,7 +215,7 @@ jobs:
     # -------------------------------------- END-REPORT --------------------------------------
   test-results:
     needs: test
-    runs-on: [ "self-hosted", "builder" ]
+    runs-on: [ "self-hosted", "tester" ]
     environment:
       name: aws-s3
       url: ${{ needs.test.outputs.url }}
