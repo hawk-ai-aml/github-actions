@@ -44,8 +44,8 @@ jobs:
           distribution: temurin
 
       - uses: actions/checkout@v3
-        with:
-          token: ${{ secrets.REPO_ACCESS_PAT }}
+      #  with:
+      #    token: ${{ secrets.REPO_ACCESS_PAT }}
 
       - name: Checkout update-dependencies
         run: git checkout -B update-dependencies
