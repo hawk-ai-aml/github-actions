@@ -54,6 +54,11 @@ jobs:
         run: |
           ${{ inputs.write-lock }}
           git status
+        env:
+          ARTIFACTORY_USERNAME: ${{ secrets.ARTIFACTORY_USERNAME }}
+          ARTIFACTORY_CONTEXT_URL: ${{ secrets.ARTIFACTORY_CONTEXT_URL }}
+          ARTIFACTORY_PASSWORD: ${{ secrets.ARTIFACTORY_PASSWORD }}
+
       - name: Commit, push, create pull request
         id: commit-and-push
         run: |
