@@ -117,7 +117,7 @@ jobs:
             fi
             GITHUB_REF=$(echo ${GITHUB_REF_NAME} | sed 's,\/,-,g; s,\#,,g')
             # add github commit sha if it's develop
-            if [[ $GITHUB_REF == 'develop' ]]
+            if [[ $GITHUB_REF == 'develop' ]]; then
               TAG=${GITHUB_REF}-${{ github.sha }}
             else
               TAG=$GITHUB_REF
@@ -156,7 +156,7 @@ jobs:
           # kustomize edit set image $REPOSITORY_FULL_NAME:${{ env.HAWK_IMAGE_TAG }}
           GITHUB_REF=$(echo ${GITHUB_REF_NAME} | sed 's,\/,-,g; s,\#,,g')
            # add github commit sha if it's develop
-           if [[ $GITHUB_REF == 'develop' ]]
+           if [[ $GITHUB_REF == 'develop' ]]; then
              TAG=${GITHUB_REF}-${{ github.sha }}
            else
              TAG=$GITHUB_REF
@@ -207,7 +207,7 @@ jobs:
           echo "Image Name = ${IMAGE_NAME}"
           GITHUB_REF=$(echo ${GITHUB_REF_NAME} | sed 's,\/,-,g; s,\#,,g')
           # add github commit sha if it's develop
-          if [[ $GITHUB_REF == 'develop' ]]
+          if [[ $GITHUB_REF == 'develop' ]]; then
             TAG=${GITHUB_REF}-${{ github.sha }}
           else
             TAG=$GITHUB_REF
