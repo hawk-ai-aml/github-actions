@@ -63,7 +63,7 @@ jobs:
           AWS_SECRET_ACCESS_KEY: ${{ secrets.BACKEND_FILE_AWS_SECRET_ACCESS_KEY }}
         run: |
           pipenv install --dev
-          pipenv lock --keep-outdated > pipenv-requirements.txt
+          pipenv requirements > pipenv-requirements.txt
           cat manual-requirements.txt pipenv-requirements.txt > requirements.txt
           pipenv run pip install pip-licenses
           pipenv run pip install -r manual-requirements.txt
