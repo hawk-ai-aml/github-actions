@@ -82,7 +82,7 @@ jobs:
         run: npm install -g yarn
 
       - name: Install packages
-        run: yarn --prefer-offline
+        run: yarn run yarn:install
 
       - name: Build license report
         run: ./node_modules/license-checker/bin/license-checker > licenseReport.txt
