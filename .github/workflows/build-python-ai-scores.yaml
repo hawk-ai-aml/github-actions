@@ -111,11 +111,17 @@ jobs:
           do
             REPOSITORY_FOLDER=$(echo ${module} | sed 's/\_/\-/g')
             if [[ ${{ inputs.profile }} == 'nab' ]]; then
-              REPOSITORY_FULL_NAME="$REGISTRY/hawk-ai-scores-${REPOSITORY_FOLDER}"
+              REPOSITORY_FULL_NAME="${REGISTRY}/hawk-ai-scores-${REPOSITORY_FOLDER}"
             else
-              REPOSITORY_FULL_NAME="$REGISTRY/ai-scores-${REPOSITORY_FOLDER}"
+              REPOSITORY_FULL_NAME="${REGISTRY}/ai-scores-${REPOSITORY_FOLDER}"
             fi
-            TAG=$(echo ${GITHUB_REF_NAME} | sed 's,\/,-,g; s,\#,,g')
+            GITHUB_REF=$(echo ${GITHUB_REF_NAME} | sed 's,\/,-,g; s,\#,,g')
+            # add github commit sha if it's develop
+            if [[ $GITHUB_REF == 'develop' ]]
+              TAG=${GITHUB_REF}-${{ github.sha }}
+            else
+              TAG=$GITHUB_REF
+            fi
             echo "$REPOSITORY_FULL_NAME is building..."
             DOCKER_BUILDKIT=1 docker build --build-arg SERVICE=${module} -t ${REPOSITORY_FULL_NAME}:${TAG} .
             docker push ${REPOSITORY_FULL_NAME}:${TAG}
@@ -148,7 +154,14 @@ jobs:
           REPOSITORY_FOLDER=$(echo ${{ matrix.service }} | sed 's/\_/\-/g')
           REPOSITORY_FULL_NAME="${ECR_REGISTRY}/ai-scores-${REPOSITORY_FOLDER}"
           # kustomize edit set image $REPOSITORY_FULL_NAME:${{ env.HAWK_IMAGE_TAG }}
-          kustomize edit set image $REPOSITORY_FULL_NAME:${{ github.ref_name }}
+          GITHUB_REF=$(echo ${GITHUB_REF_NAME} | sed 's,\/,-,g; s,\#,,g')
+           # add github commit sha if it's develop
+           if [[ $GITHUB_REF == 'develop' ]]
+             TAG=${GITHUB_REF}-${{ github.sha }}
+           else
+             TAG=$GITHUB_REF
+           fi
+          kustomize edit set image $REPOSITORY_FULL_NAME:$TAG
           git config --global user.name "GitHub Actions"
           git config --global user.email "github-actions@hawk.ai"
           git add .
@@ -184,7 +197,7 @@ jobs:
 
           cd ${REPO_SLUG}/${KUSTOMIZE_PATH}${{ matrix.module }}/overlays/${OVERLAY}
           echo ${HAWK_IMAGE_NAME}
-          echo ${Nb_IMAGE_NAME}
+          echo ${NAB_IMAGE_NAME}
           echo ${GITHUB_REF_NAME}
           if [[ ${{ inputs.profile }} == 'nab' ]]; then
             IMAGE_NAME=${NAB_IMAGE_NAME}
@@ -192,6 +205,13 @@ jobs:
             IMAGE_NAME=${HAWK_IMAGE_NAME}
           fi
           echo "Image Name = ${IMAGE_NAME}"
+          GITHUB_REF=$(echo ${GITHUB_REF_NAME} | sed 's,\/,-,g; s,\#,,g')
+          # add github commit sha if it's develop
+          if [[ $GITHUB_REF == 'develop' ]]
+            TAG=${GITHUB_REF}-${{ github.sha }}
+          else
+            TAG=$GITHUB_REF
+          fi
           kustomize edit set image ${IMAGE_NAME}:${TAG}
           git config --global user.name "GitHub Actions"
           git config --global user.email "github-actions@hawk.ai"
