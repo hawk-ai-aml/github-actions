@@ -140,6 +140,8 @@ jobs:
         overlay: ${{fromJson(inputs.environments)}}
         module: ${{fromJson(inputs.modules)}}
 
+     steps:
+
 #    steps:
 #      - name: Checkout Kustomize (GitHub)
 #        if: contains(inputs.kustomize-repository, 'github')
