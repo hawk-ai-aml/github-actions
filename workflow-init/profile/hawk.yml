@@ -356,9 +356,9 @@ component:
       kustomize: bitbucket
     ecr:
       <<: *defaultECR
-      repository: risky-words-score
+      repository: risky-words
     kustomize:
-      path: plattform/ai/risky-words-score
+      path: plattform/processing/features/risky-words
       overlays: *defaultOverlays
 
   gateway:
