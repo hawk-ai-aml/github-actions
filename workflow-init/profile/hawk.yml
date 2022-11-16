@@ -349,6 +349,17 @@ component:
     kustomize:
       path: plattform/ai/entity-resolution
       overlays: *defaultOverlays
+      
+  risky-words-score:
+    parameters:
+      <<: *defaultParameters
+      kustomize: bitbucket
+    ecr:
+      <<: *defaultECR
+      repository: risky-words-score
+    kustomize:
+      path: plattform/ai/risky-words-score
+      overlays: *defaultOverlays
 
   gateway:
     parameters:
