@@ -224,6 +224,18 @@ component:
         kustomize:
           overlays: *defaultOverlays
           path: plattform/processing/crr-risk-factors/crr-risk-factor-payment-means
+      # NOT YET READY FOR NAB AS ECR WILL NEED TO BE CREATED
+      # crr-risk-factor-anomaly-detection:
+      #   parameters:
+      #     <<: *defaultParameters
+      #     kustomize: bitbucket
+      #   ecr:
+      #     <<: *defaultECR
+      #     repository: hawk-crr-risk-factor-anomaly-detection
+      #     repository-prefix: hawk-
+      #   kustomize:
+      #     overlays: *defaultOverlays
+      #     path: plattform/processing/crr-risk-factors/crr-risk-factor-anomaly-detection
 
   customer-risk-rating-events-sink:
     parameters:
