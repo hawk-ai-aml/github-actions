@@ -140,7 +140,7 @@ jobs:
         overlay: ${{fromJson(inputs.environments)}}
         module: ${{fromJson(inputs.modules)}}
 
-     steps:
+    steps:
 
 #    steps:
 #      - name: Checkout Kustomize (GitHub)
