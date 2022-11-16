@@ -34,6 +34,9 @@ on:
       ecr-repository-code:
         type: string
         required: true
+      ecr-repository-region:
+        type: string
+        required: true
       caller-workflow-type:
         type: string
         required: true
