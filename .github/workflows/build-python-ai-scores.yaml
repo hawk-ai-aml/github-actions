@@ -43,7 +43,7 @@ jobs:
   build:
     runs-on: ubuntu-latest
     outputs:
-      tag: ${{ steps.build&tag.outputs.tag }}
+      tag: ${{ steps.build-and-tag.outputs.tag }}
     steps:
 
       - name: Login to Docker Hub
@@ -101,7 +101,7 @@ jobs:
           registries: ${{ inputs.ecr-repository-code }}
 
       - name: Build and tag images
-        id: build&tag
+        id: build-and-tag
         env:
           MODULES: ${{ inputs.modules-string }}
 
