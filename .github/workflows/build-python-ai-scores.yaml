@@ -117,7 +117,6 @@ jobs:
           # add github commit sha if the job is not called by the TAG pipeline
           if [[ ! ${{ inputs.caller-workflow-type }} == 'tag' ]]; then
             TAG+="-${{ github.sha }}"
-            echo "tag=${TAG}" >> $GITHUB_OUTPUT
           fi
           echo "tag=${TAG}" >> $GITHUB_OUTPUT
           for module in $MODULES
@@ -201,7 +200,6 @@ jobs:
           git clone ${{ inputs.kustomize-repository }}
           #either kustomize or kustomize2
           REPO_SLUG=$(echo ${{ inputs.kustomize-repository }} | cut -d "/" -f 2 | cut -d "." -f 1)
-          TAG=$(echo ${GITHUB_REF_NAME} | sed 's,\/,-,g; s,\#,,g')
 
 
           cd ${REPO_SLUG}/${KUSTOMIZE_PATH}${{ matrix.module }}/overlays/${OVERLAY}
