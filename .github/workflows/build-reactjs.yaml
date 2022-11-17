@@ -98,7 +98,7 @@ jobs:
       - name: Yarn test
         env:
           NODE_OPTIONS: "--max_old_space_size=8192"
-        run: yarn run test --silent
+        run: yarn run test
 
       - name: Yarn build
         env:
