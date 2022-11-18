@@ -315,6 +315,18 @@ component:
     kustomize:
       path: plattform/ai/entity-resolution
       overlays: *defaultOverlays
+      
+  risky-words-score:
+    parameters:
+      <<: *defaultParameters
+      kustomize: bitbucket-fake
+    ecr:
+      <<: *defaultECR
+      repository: hawk-risky-words
+      repository-prefix: hawk-
+    kustomize:
+      path: plattform/processing/features/risky-words
+      overlays: *defaultOverlays
 
   gateway:
     parameters:
