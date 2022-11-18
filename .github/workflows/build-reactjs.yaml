@@ -17,6 +17,12 @@ on:
       profile:
         type: string
         required: false
+      useCacheResults:
+        type: boolean
+        required: false
+      deleteCache:
+        type: boolean
+        required: false
 
 defaults:
   run:
@@ -46,9 +52,8 @@ jobs:
     needs: [ init ]
     runs-on: [ "self-hosted", "builder" ]
 
-    strategy:
-      matrix:
-        node: [ 18.x ]
+    outputs:
+      releaseVersion: ${{ steps.release-version.outputs.releaseVersion }}
 
     steps:
       - id: init
@@ -74,15 +79,35 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-node-modules-
 
+      - name: Get current release version
+        id: release-version
+        run: |
+          echo "RELEASE_VERSION=${GITHUB_REF#refs/*/}" >> $GITHUB_ENV
+          echo "releaseVersion=${GITHUB_REF#refs/*/}" >> $GITHUB_OUTPUT
+          echo "current release: ${{ env.RELEASE_VERSION }}"
+
+      - name: Cache build results
+        id: cache-build-results
+        if: ${{ inputs.useCacheResults == true }}
+        uses: actions/cache@v3
+        with:
+          path: ./build/
+          key: ${{ runner.os }}-frontend-build-${{ env.RELEASE_VERSION }}
+          restore-keys: |
+            ${{ runner.os }}-frontend-build-${{ env.RELEASE_VERSION }}
+
       - name: Set up Node
+        if: steps.cache-build-results.outputs.cache-hit != 'true'
         uses: actions/setup-node@v3
         with:
-          node-version: ${{ matrix.node }}
+          node-version: '18.x'
 
       - name: Npm install
+        if: steps.cache-build-results.outputs.cache-hit != 'true'
         uses: jaid/action-npm-install@v1.2.1
 
       - name: Install Yarn
+        if: steps.cache-build-results.outputs.cache-hit != 'true'
         run: npm install -g yarn
 
       - name: Install packages
@@ -90,17 +115,21 @@ jobs:
         run: yarn run yarn:install
 
       - name: Build license report
+        if: steps.cache-build-results.outputs.cache-hit != 'true'
         run: ./node_modules/license-checker/bin/license-checker > licenseReport.txt
 
       - name: Lint check
+        if: steps.cache-build-results.outputs.cache-hit != 'true'
         run: yarn run prettier:check
 
       - name: Yarn test
+        if: steps.cache-build-results.outputs.cache-hit != 'true'
         env:
           NODE_OPTIONS: "--max_old_space_size=8192"
         run: yarn run test:ci
 
       - name: Yarn build
+        if: steps.cache-build-results.outputs.cache-hit != 'true'
         env:
           NODE_OPTIONS: "--max_old_space_size=4096"
         run: yarn run build
@@ -139,7 +168,6 @@ jobs:
     if: ${{ needs.init.outputs.update-kustomize == 'true' }}
     runs-on: [ "self-hosted", "builder" ]
     strategy:
-      # Avoid race condition issues with github
       max-parallel: 1
       matrix:
         overlay: ${{fromJson(needs.init.outputs.overlays)}}
@@ -174,3 +202,22 @@ jobs:
           component-tag: ${{ env.HAWK_IMAGE_TAG }}
           kustomize-repo: ${{ fromJson(needs.init.outputs.parameters).kustomize == 'bitbucket-fake' && 'git@bitbucket.org:hawkai/kustomize2.git' || 'git@bitbucket.org:hawkai/kustomize.git' }}
           kustomize-ssh-key: ${{ secrets.KUSTOMIZE_DEPLOY_PRIVATE_KEY }}
+
+  clean-up:
+    needs: [ init, build, update-overlays ]
+    runs-on: [ "self-hosted", "builder" ]
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Clean cache
+        if: ${{ inputs.deleteCache == true }}
+        env:
+          USER: ${{ secrets.RECREATE_DEVELOP_GITHUB_USER }}
+          TOKEN: ${{ secrets.RECREATE_DEVELOP_GITHUB_TOKEN }}
+          REPOSITORY: ${{ inputs.component }}
+          CACHE_KEY: ${{ runner.os }}-frontend-build-${{ needs.build.outputs.releaseVersion }}
+        run: |
+          chmod +x ./lib/delete-cache.sh
+          ./lib/delete-cache.sh
+        shell: bash
