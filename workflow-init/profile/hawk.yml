@@ -1147,4 +1147,9 @@ component:
     ecr:
       <<: *defaultECR
 
+  coding-standard:
+    parameters:
+      <<: *defaultParameters
+      java-version: 17
+
 # End of file
