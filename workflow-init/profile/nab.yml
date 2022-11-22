@@ -640,6 +640,18 @@ component:
         kustomize:
           overlays: *defaultOverlays
           path: plattform/processing/features/counterparty-volume
+      plausibility:
+        parameters:
+          <<: *defaultParameters
+          kustomize: bitbucket
+          java-version: 17
+        ecr:
+          <<: *defaultECR
+          repository-prefix: hawk-features
+          repository: hawk-features-plausibility
+        kustomize:
+          overlays: *defaultOverlays
+          path: plattform/processing/features/plausibility
 
   features2:
     parameters:
@@ -897,6 +909,18 @@ component:
         kustomize:
           overlays: *defaultOverlays
           path: plattform/processing/features/counterparty-volume
+      plausibility:
+        parameters:
+          <<: *defaultParameters
+          kustomize: github-fake
+          java-version: 17
+        ecr:
+          <<: *defaultECR
+          repository-prefix: hawk-features
+          repository: hawk-features-plausibility
+        kustomize:
+          overlays: *defaultOverlays
+          path: plattform/processing/features/plausibility
 
   feature-enrichment:
     parameters:
