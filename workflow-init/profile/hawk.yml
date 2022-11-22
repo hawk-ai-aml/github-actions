@@ -366,7 +366,7 @@ component:
       kustomize: bitbucket
     ecr:
       <<: *defaultECR
-      repository: risky-words
+      repository: features-risky-words
     kustomize:
       path: plattform/processing/features/risky-words
       overlays: *defaultOverlays

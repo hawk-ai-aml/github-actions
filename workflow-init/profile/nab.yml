@@ -322,7 +322,7 @@ component:
       kustomize: bitbucket-fake
     ecr:
       <<: *defaultECR
-      repository: hawk-risky-words
+      repository: hawk-features-risky-words
       repository-prefix: hawk-
     kustomize:
       path: plattform/processing/features/risky-words
