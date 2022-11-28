@@ -37,6 +37,7 @@ jobs:
       update-kustomize: ${{ steps.init.outputs.update-kustomize }}
       skip-tests: ${{ steps.init.outputs.skip-tests }}
       parameters: ${{ steps.init.outputs.parameters }}
+      hawk-image-tag: ${{ env.HAWK_IMAGE_TAG }}
     steps:
       - id: init
         name: Init Workflow
@@ -48,12 +49,12 @@ jobs:
           update-kustomize: ${{ inputs.updateKustomize }}
           overlays: ${{ inputs.kustomizeOverlays }}
 
-  build:
+  setup-and-lint:
     needs: [ init ]
     runs-on: [ "self-hosted", "builder" ]
-
     outputs:
       releaseVersion: ${{ steps.release-version.outputs.releaseVersion }}
+      buildResultCached: ${{ steps.cache-build-results-flag.outputs.buildResultCached }}
 
     steps:
       - id: init
@@ -79,6 +80,12 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-node-modules-
 
+      - name: Set up Node
+        if: steps.cache-node-modules.outputs.cache-hit != 'true'
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18.x'
+
       - name: Get current release version
         id: release-version
         run: |
@@ -86,7 +93,7 @@ jobs:
           echo "releaseVersion=${GITHUB_REF#refs/*/}" >> $GITHUB_OUTPUT
           echo "current release: ${{ env.RELEASE_VERSION }}"
 
-      - name: Cache build results
+      - name: Check build results
         id: cache-build-results
         if: ${{ inputs.useCacheResults == true }}
         uses: actions/cache@v3
@@ -96,11 +103,10 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-frontend-build-${{ env.RELEASE_VERSION }}
 
-      - name: Set up Node
-        if: steps.cache-build-results.outputs.cache-hit != 'true'
-        uses: actions/setup-node@v3
-        with:
-          node-version: '18.x'
+      - name: Store build results flag
+        id: cache-build-results-flag
+        run: |
+          echo "buildResultCached=${{ steps.cache-build-results.outputs.cache-hit }}" >> $GITHUB_OUTPUT
 
       - name: Npm install
         if: steps.cache-build-results.outputs.cache-hit != 'true'
@@ -110,10 +116,6 @@ jobs:
         if: steps.cache-build-results.outputs.cache-hit != 'true'
         run: npm install -g yarn
 
-      - name: Install packages
-        if: steps.cache-node-modules.outputs.cache-hit != 'true'
-        run: yarn run yarn:install
-
       - name: Build license report
         if: steps.cache-build-results.outputs.cache-hit != 'true'
         run: ./node_modules/license-checker/bin/license-checker > licenseReport.txt
@@ -122,11 +124,74 @@ jobs:
         if: steps.cache-build-results.outputs.cache-hit != 'true'
         run: yarn run prettier:check
 
+
+  tests:
+    needs: [ init, setup-and-lint ]
+    runs-on: [ "self-hosted", "builder" ]
+
+    strategy:
+      matrix:
+        shard: [1, 2, 3, 4]
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Cache Node modules
+        id: cache-node-modules
+        uses: actions/cache@v3
+        with:
+          path: ./node_modules/
+          key: ${{ runner.os }}-node-modules-
+          restore-keys: |
+            ${{ runner.os }}-node-modules-
+
+      - name: Install packages
+        if: steps.cache-node-modules.outputs.cache-hit != 'true'
+        run: yarn run yarn:install
+
+      - name: Check
+        run: |
+          echo "buildResultCached: ${{ needs.setup-and-lint.outputs.buildResultCached }}"
+
       - name: Yarn test
+        if: needs.setup-and-lint.outputs.buildResultCached != 'true'
+        run: yarn run test:ci --shard=${{ matrix.shard }}/${{ strategy.job-total }}
+
+
+  build:
+    needs: [ init, setup-and-lint, tests ]
+    runs-on: [ "self-hosted", "builder" ]
+    steps:
+      - id: init
+        name: Init Job
+        uses: hawk-ai-aml/github-actions/job-init@master
+        with:
+          slack-notification-webhook: ${{ secrets.CICD_MIGRATION_SLACK_WEBHOOK_URL }}
+
+      - uses: actions/checkout@v3
+
+      - name: Cache build results
+        id: cache-build-results
+        if: ${{ inputs.useCacheResults == true }}
+        uses: actions/cache@v3
+        with:
+          path: ./build/
+          key: ${{ runner.os }}-frontend-build-${{ needs.setup-and-lint.outputs.releaseVersion }}
+          restore-keys: |
+            ${{ runner.os }}-frontend-build-${{ needs.setup-and-lint.outputs.releaseVersion }}
+
+      - name: Cache Node modules
+        id: cache-node-modules
         if: steps.cache-build-results.outputs.cache-hit != 'true'
-        env:
-          NODE_OPTIONS: "--max_old_space_size=8192"
-        run: yarn run test:ci
+        uses: actions/cache@v3
+        with:
+          path: ./node_modules/
+          key: ${{ runner.os }}-node-modules-
+          restore-keys: |
+            ${{ runner.os }}-node-modules-
+
+      - name: Install packages
+        if: (inputs.useCacheResults == true && steps.cache-build-results.outputs.cache-hit != 'true') || (inputs.useCacheResults != true && steps.cache-node-modules.outputs.cache-hit != 'true')
+        run: yarn run yarn:install
 
       - name: Yarn build
         if: steps.cache-build-results.outputs.cache-hit != 'true'
@@ -152,7 +217,7 @@ jobs:
           ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
           ECR_REPOSITORY: ${{ fromJson(needs.init.outputs.metadata).ecr.repository }}
         run: |
-          docker build -t ${ECR_REGISTRY}/${ECR_REPOSITORY}:${{ env.HAWK_IMAGE_TAG }} .
+          docker build -t ${ECR_REGISTRY}/${ECR_REPOSITORY}:${{ needs.init.outputs.hawk-image-tag }} .
 
       - name: Push Image
         id: push-image
@@ -161,10 +226,11 @@ jobs:
           ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
           ECR_REPOSITORY: ${{ fromJson(needs.init.outputs.metadata).ecr.repository }}
         run: |
-          hawk.push-docker-image ${ECR_REGISTRY}/${ECR_REPOSITORY}:${{ env.HAWK_IMAGE_TAG }}
+          hawk.push-docker-image ${ECR_REGISTRY}/${ECR_REPOSITORY}:${{ needs.init.outputs.hawk-image-tag }}
+
 
   update-overlays:
-    needs: [ init, build ]
+    needs: [ init, setup-and-lint, tests, build ]
     if: ${{ needs.init.outputs.update-kustomize == 'true' }}
     runs-on: [ "self-hosted", "builder" ]
     strategy:
@@ -187,7 +253,7 @@ jobs:
           component-name: ${{ inputs.component }}
           component-metadata: ${{ needs.init.outputs.metadata }}
           component-overlay: ${{ matrix.overlay }}
-          component-tag: ${{ env.HAWK_IMAGE_TAG }}
+          component-tag: ${{ needs.init.outputs.hawk-image-tag }}
           kustomize-repo: ${{ fromJson(needs.init.outputs.parameters).kustomize == 'github-fake' && 'hawk-ai-aml/kustomize2.git' || 'hawk-ai-aml/kustomize.git' }}
           kustomize-access-token: ${{ secrets.REPO_ACCESS_PAT }}
 
@@ -199,12 +265,13 @@ jobs:
           component-name: ${{ inputs.component }}
           component-metadata: ${{ needs.init.outputs.metadata }}
           component-overlay: ${{ matrix.overlay }}
-          component-tag: ${{ env.HAWK_IMAGE_TAG }}
+          component-tag: ${{ needs.init.outputs.hawk-image-tag }}
           kustomize-repo: ${{ fromJson(needs.init.outputs.parameters).kustomize == 'bitbucket-fake' && 'git@bitbucket.org:hawkai/kustomize2.git' || 'git@bitbucket.org:hawkai/kustomize.git' }}
           kustomize-ssh-key: ${{ secrets.KUSTOMIZE_DEPLOY_PRIVATE_KEY }}
 
+
   clean-up:
-    needs: [ init, build, update-overlays ]
+    needs: [ init, setup-and-lint, build, tests, update-overlays ]
     runs-on: [ "self-hosted", "builder" ]
 
     steps:
@@ -216,7 +283,7 @@ jobs:
           USER: ${{ secrets.RECREATE_DEVELOP_GITHUB_USER }}
           TOKEN: ${{ secrets.RECREATE_DEVELOP_GITHUB_TOKEN }}
           REPOSITORY: ${{ inputs.component }}
-          CACHE_KEY: ${{ runner.os }}-frontend-build-${{ needs.build.outputs.releaseVersion }}
+          CACHE_KEY: ${{ runner.os }}-frontend-build-${{ needs.setup-and-lint.outputs.releaseVersion }}
         run: |
           chmod +x ./lib/delete-cache.sh
           ./lib/delete-cache.sh
