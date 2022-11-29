@@ -697,6 +697,18 @@ component:
         kustomize:
           overlays: *defaultOverlays
           path: plattform/processing/features/plausibility
+      reference-account-mismatch:
+        parameters:
+          <<: *defaultParameters
+          kustomize: bitbucket
+          java-version: 17
+        ecr:
+          <<: *defaultECR
+          repository: features-reference-account-mismatch
+          repository-prefix: features
+        kustomize:
+          overlays: *defaultOverlays
+          path: plattform/processing/features/reference-account-mismatch
 
   features2:
     parameters:
@@ -966,6 +978,18 @@ component:
         kustomize:
           overlays: *defaultOverlays
           path: plattform/processing/features/plausibility
+      reference-account-mismatch:
+        parameters:
+          <<: *defaultParameters
+          kustomize: github-fake
+          java-version: 17
+        ecr:
+          <<: *defaultECR
+          repository: features-reference-account-mismatch
+          repository-prefix: features
+        kustomize:
+          overlays: *defaultOverlays
+          path: plattform/processing/features/reference-account-mismatch
 
   feature-enrichment:
     parameters:
