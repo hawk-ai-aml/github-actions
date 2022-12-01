@@ -307,7 +307,7 @@ component:
   entity-resolution:
     parameters:
       <<: *defaultParameters
-      kustomize: bitbucket-fake
+      kustomize: bitbucket
     ecr:
       <<: *defaultECR
       repository: hawk-entity-resolution
@@ -319,7 +319,7 @@ component:
   risky-words-score:
     parameters:
       <<: *defaultParameters
-      kustomize: bitbucket-fake
+      kustomize: bitbucket
     ecr:
       <<: *defaultECR
       repository: hawk-features-risky-words
