@@ -1,0 +1,25 @@
+name: Validate overlays
+on:
+  workflow_call:
+
+jobs:
+  build-image:
+    name: Validate overlays
+    runs-on: ubuntu-latest
+    continue-on-error: false
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Validation
+        shell: bash
+        run: |
+          while IFS= read -r line; do
+            kustomize build $line
+          
+            if [ $? -ne 0 ]; then
+              echo "Error detected path $line"
+              exit
+            fi
+          
+          done <<< $(find . -type f -name "kustomization.yaml" -exec dirname "{}" \; |sort -u)
