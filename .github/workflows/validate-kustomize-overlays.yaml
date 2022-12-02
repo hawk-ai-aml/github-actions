@@ -1,6 +1,6 @@
 name: Validate overlays
 on:
-  push:
+  workflow_call:
 
 jobs:
   build-image:
