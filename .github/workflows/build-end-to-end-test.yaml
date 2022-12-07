@@ -211,7 +211,7 @@ jobs:
     # -------------------------------------- END-REPORT --------------------------------------
   test-results:
     needs: test
-    runs-on: ubuntu-latest
+    runs-on: [ "self-hosted", "tester" ]
     environment:
       name: aws-s3
       url: ${{ needs.test.outputs.url }}
