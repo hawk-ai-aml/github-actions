@@ -8,7 +8,11 @@ on:
         required: true
       test:
         type: string
-        description: Environment
+        description: Test module
+        required: true
+      ref:
+        type: string
+        description: Tag or branch name
         required: true
 
 defaults:
@@ -24,7 +28,13 @@ jobs:
       test_status: ${{ steps.status.outputs.test_status }}
 
     steps:
+      - name: Checkout
+        run: |
+          echo "Checkout ref: ${{ inputs.ref }}"
+
       - uses: actions/checkout@v3
+        with:
+          ref: ${{ inputs.ref }}
 
     # +++++++++++++++++++++++++++++++++++++ START-SETUP +++++++++++++++++++++++++++++++++++++
       - name: Set up JDK 11
@@ -218,6 +228,8 @@ jobs:
 
     steps:
       - uses: actions/checkout@v3
+        with:
+          ref: ${{ inputs.ref }}
 
       - name: Mark with failed result if e2e test fails
         if: needs.test.outputs.test_status == 1
