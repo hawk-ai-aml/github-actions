@@ -1,0 +1,59 @@
+name: add-gitops-tag
+
+on:
+  workflow_call:
+    inputs:
+      tag:
+        type: string
+        description: Tag name
+        required: true
+      description:
+        type: string
+        description: Description for the release
+        required: false
+      overlay:
+        type: string
+        description: Gitops overlay will be updated
+        required: false
+jobs:
+  tag:
+    runs-on: [ "self-hosted", "builder" ]
+
+    steps:
+      - name: Checkout Kustomize
+        uses: actions/checkout@v3
+        with:
+          repository: hawk-ai-aml/kustomize.git
+          ref: master
+          token: ${{ secrets.REPO_ACCESS_PAT }}
+
+      - name: Tag Kustomize
+        uses: rickstaa/action-create-tag@v1
+        with:
+          tag: ${{ inputs.tag }}
+          message: ${{ inputs.description }}
+
+      - name: Checkout Gitops
+        path: gitops
+        uses: actions/checkout@v3
+        with:
+          repository: hawk-ai-aml/gitops.git
+          ref: master
+          token: ${{ secrets.REPO_ACCESS_PAT }}
+
+      - name: Update targetRevision for ${{ inputs.overlay }} overlay
+        run: |
+          hawk.setup.git
+
+          cd gitops
+
+          for f in overlays/${{ inputs.overlay }}/*
+          do
+            if [ \$f != "./kustomization.yaml" ]; then
+              echo Set Tag for \$f
+              kubectl patch --local -f \$f -p '{"spec":{"source":{"targetRevision":"'${{ inputs.tag }}'"}}}' --type merge -o yaml > overlay.tmp && mv overlay.tmp \$f
+          fi
+          done
+
+          git commit -am "${{ inputs.description }}"
+          git push --set-upstream origin master
