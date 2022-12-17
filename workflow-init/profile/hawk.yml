@@ -135,6 +135,7 @@ component:
     parameters:
       <<: *defaultParameters
       kustomize: bitbucket
+      java-version: 17
     ecr:
       <<: *defaultECR
     kustomize:
@@ -144,10 +145,12 @@ component:
         parameters:
           <<: *defaultParameters
           kustomize: bitbucket
+          java-version: 17
       msg:
         parameters:
           <<: *defaultParameters
           kustomize: bitbucket
+          java-version: 17
         ecr:
           <<: *defaultECR
           repository: hawkai-case-manager-backend-msg
@@ -158,6 +161,7 @@ component:
         parameters:
           <<: *defaultParameters
           kustomize: bitbucket
+          java-version: 17
         ecr:
           <<: *defaultECR
           repository: hawkai-case-manager-backend-rest
@@ -168,6 +172,7 @@ component:
         parameters:
           <<: *defaultParameters
           kustomize: bitbucket
+          java-version: 17
         ecr:
           <<: *defaultECR
           repository: backend-grouping
@@ -178,6 +183,7 @@ component:
         parameters:
           <<: *defaultParameters
           kustomize: bitbucket
+          java-version: 17
         ecr:
           <<: *defaultECR
           repository: backend-search
