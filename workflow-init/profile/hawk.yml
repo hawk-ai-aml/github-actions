@@ -309,6 +309,7 @@ component:
     parameters:
       <<: *defaultParameters
       kustomize: bitbucket
+      java-version: 17
     ecr:
       <<: *defaultECR
     kustomize:
