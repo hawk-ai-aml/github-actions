@@ -8,7 +8,11 @@ on:
         required: true
       test:
         type: string
-        description: Environment
+        description: Test module
+        required: true
+      ref:
+        type: string
+        description: Tag or branch name
         required: true
 
 defaults:
@@ -17,14 +21,20 @@ defaults:
 
 jobs:
   test:
-    runs-on: [ "self-hosted", "builder" ]
+    runs-on: [ "self-hosted", "tester" ]
 
     outputs:
       url: ${{ steps.report-url.outputs.url }}
       test_status: ${{ steps.status.outputs.test_status }}
 
     steps:
+      - name: Checkout
+        run: |
+          echo "Checkout ref: ${{ inputs.ref }}"
+
       - uses: actions/checkout@v3
+        with:
+          ref: ${{ inputs.ref }}
 
     # +++++++++++++++++++++++++++++++++++++ START-SETUP +++++++++++++++++++++++++++++++++++++
       - name: Set up JDK 11
@@ -32,11 +42,6 @@ jobs:
         with:
           java-version: 11
           distribution: 'temurin'
-
-      - uses: actions/cache@v3
-        with:
-          path: '**/node_modules'
-          key: ${{ runner.os }}-modules-${{ hashFiles('**/yarn.lock') }}
 
       - name: Set up Node
         uses: actions/setup-node@v3
@@ -76,6 +81,7 @@ jobs:
       - name: Generate cache ID
         run: |
           echo CACHE_ID=$(date +'%Y-%m-%dT%H:%M:%S') >> $GITHUB_ENV
+          echo CACHE_PATH="$GITHUB_WORKSPACE/${{ inputs.environment }}-${{ inputs.test }}-test-histories/" >> $GITHUB_ENV
 
       - name: Create cache folder
         continue-on-error: true
@@ -90,7 +96,7 @@ jobs:
         uses: actions/cache@v3
         continue-on-error: true
         with:
-          path: ${{ env.GITHUB_WORKSPACE }}/${{ inputs.environment }}-${{ inputs.test }}-test-histories/
+          path: ${{ env.CACHE_PATH }}
           key: ${{ runner.os }}-${{ inputs.environment }}-${{ inputs.test }}-test-histories-${{ env.CACHE_ID }}
           restore-keys: |
             ${{ runner.os }}-${{ inputs.environment }}-${{ inputs.test }}-test-histories-
@@ -215,13 +221,15 @@ jobs:
     # -------------------------------------- END-REPORT --------------------------------------
   test-results:
     needs: test
-    runs-on: [ "self-hosted", "builder" ]
+    runs-on: [ "self-hosted", "tester" ]
     environment:
       name: aws-s3
       url: ${{ needs.test.outputs.url }}
 
     steps:
       - uses: actions/checkout@v3
+        with:
+          ref: ${{ inputs.ref }}
 
       - name: Mark with failed result if e2e test fails
         if: needs.test.outputs.test_status == 1
