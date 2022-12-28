@@ -84,6 +84,7 @@ jobs:
           KAFKA_AUTO_OFFSET_RESET: "latest"
           FILES_STORAGE: "files.dev.aml-ai.net"
           APP_CONFIG_YAML_PATH: "tests"
+          PY_UTILS_PAT: ${{ secrets.PY_UTILS_PAT}}
         run: |
           pipenv install --dev
           pipenv lock --keep-outdated > pipenv-requirements.txt
