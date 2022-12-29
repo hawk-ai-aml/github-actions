@@ -309,6 +309,7 @@ component:
     parameters:
       <<: *defaultParameters
       kustomize: bitbucket
+      java-version: 17
     ecr:
       <<: *defaultECR
     kustomize:
@@ -321,6 +322,7 @@ component:
         parameters:
           <<: *defaultParameters
           kustomize: bitbucket
+          java-version: 17
         ecr:
           <<: *defaultECR
           repository: hawkai-decision-engine-msg
@@ -331,6 +333,7 @@ component:
         parameters:
           <<: *defaultParameters
           kustomize: bitbucket
+          java-version: 17
         ecr:
           <<: *defaultECR
           repository: decision-engine-auto-closing
