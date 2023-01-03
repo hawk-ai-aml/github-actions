@@ -145,35 +145,35 @@ jobs:
 
     steps:
 
-#    steps:
-#      - name: Checkout Kustomize (GitHub)
-#        if: contains(inputs.kustomize-repository, 'github')
-#        uses: actions/checkout@v3
-#        with:
-#          repository: hawk-ai-aml/kustomize2.git
-#          token: ${{ secrets.TEST_TOKEN }}
-#          ref: master
-#
-#      - name: Update Kustomize (GitHub)
-#        if: contains(inputs.kustomize-repository, 'github')
-#        run: |
-#          cd ${{ github.workspace }}/plattform/processing/features/${{ matrix.module }}/overlays/${{ matrix.overlay }}
-#          REPOSITORY_FOLDER=$(echo ${{ matrix.service }} | sed 's/\_/\-/g')
-#          REPOSITORY_FULL_NAME="${ECR_REGISTRY}/ai-scores-${REPOSITORY_FOLDER}"
-#          # kustomize edit set image $REPOSITORY_FULL_NAME:${{ env.HAWK_IMAGE_TAG }}
-#          GITHUB_REF=$(echo ${GITHUB_REF_NAME} | sed 's,\/,-,g; s,\#,,g')
-#           # add github commit sha if it's develop
-#           if [[ $GITHUB_REF == 'develop' ]]
-#             TAG=${GITHUB_REF}-${{ github.sha }}
-#           else
-#             TAG=$GITHUB_REF
-#           fi
-#          kustomize edit set image $REPOSITORY_FULL_NAME:$TAG
-#          git config --global user.name "GitHub Actions"
-#          git config --global user.email "github-actions@hawk.ai"
-#          git add .
-#          git commit -m "Change Tag"
-#          git push
+      #    steps:
+      #      - name: Checkout Kustomize (GitHub)
+      #        if: contains(inputs.kustomize-repository, 'github')
+      #        uses: actions/checkout@v3
+      #        with:
+      #          repository: hawk-ai-aml/kustomize2.git
+      #          token: ${{ secrets.TEST_TOKEN }}
+      #          ref: master
+      #
+      #      - name: Update Kustomize (GitHub)
+      #        if: contains(inputs.kustomize-repository, 'github')
+      #        run: |
+      #          cd ${{ github.workspace }}/plattform/processing/features/${{ matrix.module }}/overlays/${{ matrix.overlay }}
+      #          REPOSITORY_FOLDER=$(echo ${{ matrix.service }} | sed 's/\_/\-/g')
+      #          REPOSITORY_FULL_NAME="${ECR_REGISTRY}/ai-scores-${REPOSITORY_FOLDER}"
+      #          # kustomize edit set image $REPOSITORY_FULL_NAME:${{ env.HAWK_IMAGE_TAG }}
+      #          GITHUB_REF=$(echo ${GITHUB_REF_NAME} | sed 's,\/,-,g; s,\#,,g')
+      #           # add github commit sha if it's develop
+      #           if [[ $GITHUB_REF == 'develop' ]]
+      #             TAG=${GITHUB_REF}-${{ github.sha }}
+      #           else
+      #             TAG=$GITHUB_REF
+      #           fi
+      #          kustomize edit set image $REPOSITORY_FULL_NAME:$TAG
+      #          git config --global user.name "GitHub Actions"
+      #          git config --global user.email "github-actions@hawk.ai"
+      #          git add .
+      #          git commit -m "Change Tag"
+      #          git push
 
       - name: Update Kustomize (Bitbucket)
         if: contains(inputs.kustomize-repository, 'bitbucket')
@@ -215,6 +215,11 @@ jobs:
           kustomize edit set image ${IMAGE_NAME}:${TAG}
           git config --global user.name "GitHub Actions"
           git config --global user.email "github-actions@hawk.ai"
-          git add .
-          git commit -m "AUTOMATIC COMMIT: Update ${KUSTOMIZE_PATH}/overlays/${OVERLAY} for ${{ matrix.module }} to $TAG }}"
-          git push
+          # true if the string of git status is null, meaning nothing changed
+          if [[ -z $(git status -s) ]]; then
+            echo "no changes"
+          else
+            git add .
+            git commit -m "AUTOMATIC COMMIT: Update ${KUSTOMIZE_PATH}/overlays/${OVERLAY} for ${{ matrix.module }} to $TAG }}"
+            git push
+          fi
