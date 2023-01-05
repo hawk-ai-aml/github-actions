@@ -141,6 +141,19 @@ component:
       path: plattform/processing/features/blacklist
       overlays: *defaultOverlays
 
+  case-note:
+    parameters:
+      <<: *defaultParameters
+      kustomize: bitbucket
+    ecr:
+      <<: *defaultECR
+      repository: hawk-case-note
+      repository-prefix: hawk-
+    kustomize:
+      path: plattform/utility/case-note
+      overlays: *defaultOverlays
+
+
   case-sink:
     parameters:
       <<: *defaultParameters
