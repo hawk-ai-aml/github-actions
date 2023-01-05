@@ -33,7 +33,7 @@ component:
   ai-data-sink:
     parameters:
       <<: *defaultParameters
-      kustomize: bitbucket-fake
+      kustomize: bitbucket
     ecr:
       <<: *defaultECR
       repository: hawk-ai-data-sink
@@ -145,6 +145,7 @@ component:
     parameters:
       <<: *defaultParameters
       kustomize: bitbucket
+      java-version: 17
     ecr:
       <<: *defaultECR
       repository: hawk-case-note
