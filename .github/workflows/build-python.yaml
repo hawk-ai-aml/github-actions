@@ -79,7 +79,7 @@ jobs:
       - name: Run Pytest
         env:
           SCHEMA_REGISTRY_URL: "http://internal-aed0c439480b011ea821006d55bdfaa3-2040159056.eu-central-1.elb.amazonaws.com:8081"
-          KAFKA_SERVICE: "b-2.hawkai-dev-kafka.agx8wi.c3.kafka.eu-central-1.amazonaws.com:9092"
+          KAFKA_SERVICE: "kafka-service:9092"
           KAFKA_CONSUMER_THREADS: 1
           KAFKA_AUTO_OFFSET_RESET: "latest"
           FILES_STORAGE: "files.dev.aml-ai.net"
