@@ -318,6 +318,7 @@ component:
       core:
         parameters:
           <<: *defaultParameters
+          java-version: 17
       opening:
         parameters:
           <<: *defaultParameters
