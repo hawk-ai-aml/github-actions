@@ -346,6 +346,18 @@ component:
       path: plattform/processing/features/risky-words
       overlays: *defaultOverlays
 
+  rule-builder:
+    parameters:
+      <<: *defaultParameters
+      kustomize: bitbucket
+    ecr:
+      <<: *defaultECR
+      repository: hawk-rule-builder
+      repository-prefix: hawk-
+    kustomize:
+      path: plattform/processing/rule-builder
+      overlays: *defaultOverlays
+
   gateway:
     parameters:
       <<: *defaultParameters
