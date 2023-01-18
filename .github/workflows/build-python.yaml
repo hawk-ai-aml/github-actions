@@ -80,7 +80,8 @@ jobs:
         env:
           PY_UTILS_PAT: ${{ secrets.PY_UTILS_PAT}}
         run: |
-          python -c "import os; print(os.getenv('PY_UTILS_PAT'))"          pipenv install --dev
+          python -c "import os; print(os.getenv('PY_UTILS_PAT'))"          
+          pipenv install --dev
           pipenv lock --keep-outdated > pipenv-requirements.txt
           pipenv requirements > requirements.txt
 
