@@ -81,8 +81,6 @@ jobs:
           eval `ssh-agent -s`
           ssh-add - <<< '${{ secrets.PY_UTILS_SSH_KEY_PRIVATE }}'
 
-          ssh-add -l
-
           pipenv install --dev
           pipenv lock --keep-outdated > pipenv-requirements.txt
           pipenv requirements > requirements.txt
@@ -132,6 +130,8 @@ jobs:
           PY_UTILS_PAT: ${{ secrets.PY_UTILS_PAT}}
 
         run: |
+          eval `ssh-agent -s`
+          ssh-add - <<< '${{ secrets.PY_UTILS_SSH_KEY_PRIVATE }}'
           DOCKER_BUILDKIT=1 docker build --ssh default --build-arg PY_UTILS_PAT=${PY_UTILS_PAT} -t ${ECR_REGISTRY}/${ECR_REPOSITORY}:${{ env.HAWK_IMAGE_TAG }} .
 
       - name: Push Image
