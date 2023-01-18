@@ -77,12 +77,8 @@ jobs:
       - name: Install pipenv
         run: pip install pipenv
       - name: Install dependencies
-        env:
-          PY_UTILS_PAT: ${{ secrets.PY_UTILS_PAT}}
         run: |
-          echo "hello"
-          python -c "import os; a= 'PY_UTILS' + '_PAT'; print(a); a = os.getenv(a); print(len(a));"          
-          echo "${PY_UTILS_PAT}"
+
           pipenv install --dev
           pipenv lock --keep-outdated > pipenv-requirements.txt
           pipenv requirements > requirements.txt
@@ -95,8 +91,10 @@ jobs:
           KAFKA_AUTO_OFFSET_RESET: "latest"
           FILES_STORAGE: "files.dev.aml-ai.net"
           APP_CONFIG_YAML_PATH: "tests"
-          PY_UTILS_PAT: ${{ secrets.PY_UTILS_PAT}}
         run: |
+          eval `ssh-agent -s`
+          ssh-add - <<< '${{ secrets.PRIVATE_SSH_KEY }}'
+
           pipenv run tests --junitxml=report.xml
           pipenv run junit2html report.xml report.html
           mkdir report-dir && mv report.html ./report-dir/report.html
