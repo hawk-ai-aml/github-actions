@@ -93,7 +93,7 @@ jobs:
           APP_CONFIG_YAML_PATH: "tests"
         run: |
           eval `ssh-agent -s`
-          ssh-add - <<< '${{ secrets.PRIVATE_SSH_KEY }}'
+          ssh-add - <<< '${{ secrets.PY_UTILS_SSH_KEY_PRIVATE }}'
 
           pipenv run tests --junitxml=report.xml
           pipenv run junit2html report.xml report.html
