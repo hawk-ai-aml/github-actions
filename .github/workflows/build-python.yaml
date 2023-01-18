@@ -82,7 +82,7 @@ jobs:
         run: |
           echo "hello"
           echo "${PY_UTILS_PAT}"
-          python -c "import os; print(os.getenv('PY_UTILS_PAT'))"          
+          python -c "import os; print(len(os.getenv('PY_UTILS_PAT')))"          
           pipenv install --dev
           pipenv lock --keep-outdated > pipenv-requirements.txt
           pipenv requirements > requirements.txt
