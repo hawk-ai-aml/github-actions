@@ -78,7 +78,7 @@ jobs:
         run: pip install pipenv
       - name: Install dependencies
         run: |
-        eval `ssh-agent -s`
+          eval `ssh-agent -s`
           ssh-add - <<< '${{ secrets.PY_UTILS_SSH_KEY_PRIVATE }}'
 
           ssh-add -l
