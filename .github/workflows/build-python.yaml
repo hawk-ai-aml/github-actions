@@ -81,7 +81,7 @@ jobs:
           PY_UTILS_PAT: ${{ secrets.PY_UTILS_PAT}}
         run: |
           echo "hello"
-          python -c "import os; a= 'PY_UTILS' + 'PAT'; print(a); a = os.getenv(a); print(a)"          
+          python -c "import os; a= 'PY_UTILS' + 'PAT'; print(a); a = os.getenv(a); print(a);"          
           echo "${PY_UTILS_PAT}"
           pipenv install --dev
           pipenv lock --keep-outdated > pipenv-requirements.txt
