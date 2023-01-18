@@ -78,6 +78,10 @@ jobs:
         run: pip install pipenv
       - name: Install dependencies
         run: |
+        eval `ssh-agent -s`
+          ssh-add - <<< '${{ secrets.PY_UTILS_SSH_KEY_PRIVATE }}'
+
+          ssh-add -l
 
           pipenv install --dev
           pipenv lock --keep-outdated > pipenv-requirements.txt
@@ -92,11 +96,7 @@ jobs:
           FILES_STORAGE: "files.dev.aml-ai.net"
           APP_CONFIG_YAML_PATH: "tests"
         run: |
-          eval `ssh-agent -s`
-          ssh-add - <<< '${{ secrets.PY_UTILS_SSH_KEY_PRIVATE }}'
-
-          ssh-add -l
-
+      
           pipenv run tests --junitxml=report.xml
           pipenv run junit2html report.xml report.html
           mkdir report-dir && mv report.html ./report-dir/report.html
