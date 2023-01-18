@@ -387,6 +387,17 @@ component:
       path: plattform/processing/features/risky-words
       overlays: *defaultOverlays
 
+  rule-builder:
+    parameters:
+      <<: *defaultParameters
+      kustomize: bitbucket
+    ecr:
+      <<: *defaultECR
+      repository: rule-builder
+    kustomize:
+      path: plattform/processing/rule-builder
+      overlays: *defaultOverlays
+
   gateway:
     parameters:
       <<: *defaultParameters
