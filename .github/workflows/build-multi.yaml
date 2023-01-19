@@ -195,6 +195,8 @@ jobs:
   vulnerability-check-init:
     needs: [ init, build ]
     runs-on: ubuntu-latest
+    outputs:
+      imageList: ${{ steps.composeImageList.outputs.images }}
     steps:
       - name: Compose Image List
         id: composeImageList
@@ -216,7 +218,7 @@ jobs:
       fail-fast: false
       max-parallel: 10
       matrix:
-        test: ${{ steps.vulnerability-check-init.composeImageList.outputs.images }}
+        test: ${{ needs.vulnerability-check-init.outputs.imageList }}
     steps:
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v1-node16
