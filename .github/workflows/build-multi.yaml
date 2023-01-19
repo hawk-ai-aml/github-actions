@@ -195,17 +195,19 @@ jobs:
   vulnerability-check-init:
     needs: [ init, build ]
     runs-on: ubuntu-latest
-    id: vulnerability-check-init
-    run: |
-      for module in $(echo ${METADATA} | jq -cr '.modules | keys | join(" ")'); do
-        module_repository=$(echo ${METADATA} | jq -cr --arg MODULE ${module} '.modules[$MODULE].ecr.repository')
-        [[ "${module_repository}" == "null" ]] && continue
-        echo "Module ${module} is configured to push image to ECR repository ${module_repository}"
-
-        list="${list} ${ECR_REGISTRY}/${module_repository}"
-      done
-      
-      echo "images=${list}" >> $GITHUB_OUTPUT
+    steps:
+      - name: Compose Image List
+        id: composeImageList
+        run: |
+          for module in $(echo ${METADATA} | jq -cr '.modules | keys | join(" ")'); do
+            module_repository=$(echo ${METADATA} | jq -cr --arg MODULE ${module} '.modules[$MODULE].ecr.repository')
+            [[ "${module_repository}" == "null" ]] && continue
+            echo "Module ${module} is configured to push image to ECR repository ${module_repository}"
+    
+            list="${list} ${ECR_REGISTRY}/${module_repository}"
+          done
+          
+          echo "images=${list}" >> $GITHUB_OUTPUT
 
   vulnerability-check-run:
     needs: [ vulnerability-check-init ]
@@ -214,7 +216,7 @@ jobs:
       fail-fast: false
       max-parallel: 10
       matrix:
-        test: ${{ steps.vulnerability-check-init.outputs.images }}
+        test: ${{ steps.vulnerability-check-init.composeImageList.outputs.images }}
     steps:
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v1-node16
