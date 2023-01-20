@@ -156,9 +156,15 @@ jobs:
             list="${list}, ${ECR_REGISTRY}/${module_repository}"
           done
           
+          echo ${list}
+          
           list="${list:2}"
           
+          ${list}
+          
           echo "images=${list}" >> $GITHUB_OUTPUT
+          
+          echo ${images}
 
   vulnerability-check-run:
     needs: [ vulnerability-check-init ]
