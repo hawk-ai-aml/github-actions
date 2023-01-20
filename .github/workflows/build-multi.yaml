@@ -164,7 +164,7 @@ jobs:
           echo "-----"
           echo "images=${list}" >> $GITHUB_OUTPUT
           echo "-----"
-          echo ${images}
+          echo $GITHUB_OUTPUT
 
   vulnerability-check-run:
     needs: [ vulnerability-check-init ]
