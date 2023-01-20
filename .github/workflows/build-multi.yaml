@@ -74,7 +74,7 @@ jobs:
           METADATA: ${{ needs.init.outputs.metadata }}
           ECR_REGISTRY: ${{ fromJson(needs.init.outputs.metadata).ecr.registry }}
         run: |
-          list = "[ "
+          list="[ "
           for module in $(echo ${METADATA} | jq -cr '.modules | keys | join(" ")'); do
             module_repository=$(echo ${METADATA} | jq -cr --arg MODULE ${module} '.modules[$MODULE].ecr.repository')
             [[ "${module_repository}" == "null" ]] && continue
@@ -86,7 +86,7 @@ jobs:
           echo ${list}
           
           list="${list:-2}"
-          list= '${list} ]'
+          list='${list} ]'
           echo "-----"
           echo ${list}
           echo "-----103"
