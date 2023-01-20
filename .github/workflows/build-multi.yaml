@@ -101,10 +101,8 @@ jobs:
           echo "-----"
           echo ${list}
           echo "-----103"
-          echo images=${list} >> $GITHUB_OUTPUT
+          echo images="${list}" >> $GITHUB_OUTPUT
           echo "-----105"
-          echo "foo" >> $GITHUB_OUTPUT
-          echo ${GITHUB_OUTPUT}
 
   vulnerability-check-run:
     needs: [ vulnerability-check-init ]
