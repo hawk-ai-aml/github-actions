@@ -100,9 +100,9 @@ jobs:
           list="${list:2}"
           echo "-----"
           echo ${list}
-          echo "-----"
+          echo "-----103"
           echo images=${list} >> $GITHUB_OUTPUT
-          echo "-----"
+          echo "-----105"
           echo ${GITHUB_OUTPUT}
 
   vulnerability-check-run:
