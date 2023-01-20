@@ -183,7 +183,7 @@ jobs:
       - uses: lacework/lw-scanner-action@v1.3.0
         name: Scan container image for vulnerabilities using Lacework
         env:
-          JAVA_OFFLINE_MODE: true
+          JAVA_OFFLINE_MODE: ${{ env.LACEWORK_JAVA_OFFLINE_MODE }}
         with:
           LW_ACCOUNT_NAME: ${{ secrets.LACEWORK_ACCOUNT_NAME }}
           LW_ACCESS_TOKEN: ${{ secrets.LACEWORK_ACCESS_TOKEN }}

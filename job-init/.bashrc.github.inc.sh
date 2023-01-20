@@ -221,6 +221,13 @@ HAWK_METADATA_DEFAULT_PROFILE=hawk
 HAWK_BUILD_BRANCH=${BUILD_BRANCH}
 HAWK_IMAGE_TAG=${IMAGE_TAG}
 HAWK_GIT_SHA_SHORT=${GIT_SHA_SHORT}
+
+# By default, the Inline Scanner accesses https://search.maven.org/solrsearch/select when searching for Maven Java dependencies/jars.
+# If this Maven site is down, the Inline Scanner can fail with EOF and 504 timeouts.
+#
+# Use the following environment variable if you want to stop the Inline Scanner from accessing https://search.maven.org/solrsearch/select for Maven Java dependencies
+# https://docs.lacework.com/onboarding/integrate-inline-scanner#scan-java-images-offline
+LACEWORK_JAVA_OFFLINE_MODE=false
 EOF
 }
 
