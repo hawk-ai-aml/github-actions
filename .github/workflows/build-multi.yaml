@@ -101,7 +101,7 @@ jobs:
           echo "-----"
           echo ${list}
           echo "-----"
-          echo "images=test" >> $GITHUB_OUTPUT
+          echo images=${list} >> $GITHUB_OUTPUT
           echo "-----"
           echo ${GITHUB_OUTPUT}
 
