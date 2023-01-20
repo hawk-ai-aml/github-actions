@@ -85,6 +85,7 @@ jobs:
           echo ${list}
           
           list="${list:2}"
+          list='${{ toJSON(${list}) }}'
           echo "-----"
           echo ${list}
           echo "-----103"
@@ -98,7 +99,7 @@ jobs:
       fail-fast: false
       max-parallel: 10
       matrix:
-        test: ${{ needs.vulnerability-check-init.outputs.imageList }}
+        test: ${{ fromJSON(needs.vulnerability-check-init.outputs.imageList) }}
     steps:
       - name: test-echo
         run: echo ${{ needs.vulnerability-check-init.outputs.imageList }}
