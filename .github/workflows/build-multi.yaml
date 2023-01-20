@@ -120,7 +120,7 @@ jobs:
           ./gradlew build -Dskip.tests=true -x test
           ./gradlew jib \
             -DIMAGE_NAME="${ECR_REGISTRY}/${ECR_REPOSITORY_PREFIX}" \
-            -DTAG_COMMIT=${{ env.HAWK_IMAGE_TAG }}tag-change-delete-me-10 \
+            -DTAG_COMMIT=${{ env.HAWK_IMAGE_TAG }}tag-change-delete-me-11 \
             -DIS_NAB=${{ inputs.profile == 'nab' }}
 
   vulnerability-check-init:
@@ -182,6 +182,8 @@ jobs:
 
       - uses: lacework/lw-scanner-action@v1.3.0
         name: Scan container image for vulnerabilities using Lacework
+        env:
+          JAVA_OFFLINE_MODE: true
         with:
           LW_ACCOUNT_NAME: ${{ secrets.LACEWORK_ACCOUNT_NAME }}
           LW_ACCESS_TOKEN: ${{ secrets.LACEWORK_ACCESS_TOKEN }}
