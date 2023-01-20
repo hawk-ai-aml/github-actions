@@ -171,30 +171,17 @@ jobs:
           ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
           ECR_REPOSITORY_PREFIX: ${{ fromJson(needs.init.outputs.metadata).ecr.repository-prefix }}
         run: |
-          ./gradlew build -Dskip.tests=true -x test
-          ./gradlew jibDockerBuild \
+          ./gradlew jib \
             -DIMAGE_NAME="${ECR_REGISTRY}/${ECR_REPOSITORY_PREFIX}" \
             -DTAG_COMMIT=${{ env.HAWK_IMAGE_TAG }} \
             -DIS_NAB=${{ inputs.profile == 'nab' }}
 
-      - name: Push Docker Images
-        id: push-image
-#        if: ${{ needs.init.outputs.update-kustomize == 'true' }}
-        env:
-          METADATA: ${{ needs.init.outputs.metadata }}
-          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
-        run: |
-          for module in $(echo ${METADATA} | jq -cr '.modules | keys | join(" ")'); do
-            module_repository=$(echo ${METADATA} | jq -cr --arg MODULE ${module} '.modules[$MODULE].ecr.repository')
-            [[ "${module_repository}" == "null" ]] && continue
-            echo "Module ${module} is configured to push image to ECR repository ${module_repository}"
-
-            hawk.push-docker-image ${ECR_REGISTRY}/${module_repository}:${{ env.HAWK_IMAGE_TAG }}
-          done
-
   vulnerability-check-init:
     needs: [ init, build ]
     runs-on: ubuntu-latest
+    env:
+      METADATA: ${{ needs.init.outputs.metadata }}
+      ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
     outputs:
       imageList: ${{ steps.composeImageList.outputs.images }}
     steps:
