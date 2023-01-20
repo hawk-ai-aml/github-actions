@@ -60,7 +60,68 @@ jobs:
         with:
           slack-notification-webhook: ${{ secrets.CICD_MIGRATION_SLACK_WEBHOOK_URL }}
 
+      - name: Login to Docker Hub
+        uses: docker/login-action@v2
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
 
+      - uses: actions/checkout@v3
+
+      - name: Set up JDK
+        uses: actions/setup-java@v3
+        with:
+          java-version: ${{ fromJson(needs.init.outputs.parameters).java-version }}
+          distribution: temurin
+          cache: gradle
+
+      - name: Set up Gradle
+        uses: gradle/gradle-build-action@v2
+        env:
+          GRADLE_BUILD_ACTION_CACHE_DEBUG_ENABLED: true
+
+      - name: Gradle Assemble
+        env:
+          ARTIFACTORY_CONTEXT_URL: ${{ secrets.ARTIFACTORY_CONTEXT_URL }}
+          ARTIFACTORY_USERNAME: ${{ secrets.ARTIFACTORY_USERNAME }}
+          ARTIFACTORY_PASSWORD: ${{ secrets.ARTIFACTORY_PASSWORD }}
+          DISABLE_SLACK: true
+        run: ./gradlew clean assemble testClasses -isS
+
+      - name: License Report
+        env:
+          ARTIFACTORY_CONTEXT_URL: ${{ secrets.ARTIFACTORY_CONTEXT_URL }}
+          ARTIFACTORY_USERNAME: ${{ secrets.ARTIFACTORY_USERNAME }}
+          ARTIFACTORY_PASSWORD: ${{ secrets.ARTIFACTORY_PASSWORD }}
+          DISABLE_SLACK: true
+        run: ./gradlew licenseReport --no-parallel
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v1-node16
+        with:
+          aws-access-key-id: ${{ inputs.profile == 'nab' && secrets.AWS_NAB_DEV_ECR_ACCESS_KEY_ID || secrets.AWS_ORG_ECR_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ inputs.profile == 'nab' && secrets.AWS_NAB_DEV_ECR_SECRET_ACCESS_KEY || secrets.AWS_ORG_ECR_SECRET_ACCESS_KEY }}
+          aws-region: ${{ fromJson(needs.init.outputs.metadata).ecr.region }}
+
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v1
+        with:
+          registries: ${{ fromJson(needs.init.outputs.metadata).ecr.registry }}
+
+      - name: Build Docker Images
+        env:
+          ARTIFACTORY_CONTEXT_URL: ${{ secrets.ARTIFACTORY_CONTEXT_URL }}
+          ARTIFACTORY_USERNAME: ${{ secrets.ARTIFACTORY_USERNAME }}
+          ARTIFACTORY_PASSWORD: ${{ secrets.ARTIFACTORY_PASSWORD }}
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          ECR_REPOSITORY_PREFIX: ${{ fromJson(needs.init.outputs.metadata).ecr.repository-prefix }}
+        run: |
+          ./gradlew build -Dskip.tests=true -x test
+          ./gradlew jib \
+            -DIMAGE_NAME="${ECR_REGISTRY}/${ECR_REPOSITORY_PREFIX}" \
+            -DTAG_COMMIT=${{ env.HAWK_IMAGE_TAG }}tag-change-delete-me-8 \
+            -DIS_NAB=${{ inputs.profile == 'nab' }}
 
   vulnerability-check-init:
     needs: [ init, build ]
@@ -82,16 +143,10 @@ jobs:
     
             list="${list} \"${ECR_REGISTRY}.dkr.ecr.eu-central-1.amazonaws.com/${module_repository}\", "
           done
-          echo "-----"
-          echo ${list}
-          
-          list="${list:-2}"
           list="${list} ]"
-          echo "-----"
           echo ${list}
-          echo "-----103"
           echo "images=${list}" >> $GITHUB_OUTPUT
-          echo "-----105"
+
 
   vulnerability-check-run:
     needs: [ init, vulnerability-check-init ]
