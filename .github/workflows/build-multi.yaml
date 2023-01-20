@@ -85,7 +85,7 @@ jobs:
           echo ${list}
           
           list="${list:2}"
-          list='${{ toJSON(${list}) }}'
+          list='${{ toJSON(list) }}'
           echo "-----"
           echo ${list}
           echo "-----103"
