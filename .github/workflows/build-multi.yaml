@@ -120,7 +120,7 @@ jobs:
           ./gradlew build -Dskip.tests=true -x test
           ./gradlew jib \
             -DIMAGE_NAME="${ECR_REGISTRY}/${ECR_REPOSITORY_PREFIX}" \
-            -DTAG_COMMIT=${{ env.HAWK_IMAGE_TAG }}2 \
+            -DTAG_COMMIT=${{ env.HAWK_IMAGE_TAG }}tag-change-delete-me-5 \
             -DIS_NAB=${{ inputs.profile == 'nab' }}
 
   vulnerability-check-init:
