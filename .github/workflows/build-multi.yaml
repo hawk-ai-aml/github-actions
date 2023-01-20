@@ -96,6 +96,60 @@ jobs:
           DISABLE_SLACK: true
         run: ./gradlew licenseReport --no-parallel
 
+      - name: Check Quality
+        env:
+          ARTIFACTORY_CONTEXT_URL: ${{ secrets.ARTIFACTORY_CONTEXT_URL }}
+          ARTIFACTORY_USERNAME: ${{ secrets.ARTIFACTORY_USERNAME }}
+          ARTIFACTORY_PASSWORD: ${{ secrets.ARTIFACTORY_PASSWORD }}
+          DISABLE_SLACK: true
+        run: ./gradlew checkQualityMain
+
+      - name: Run Tests
+        if: ${{ needs.init.outputs.skip-tests != 'true' }}
+        env:
+          ARTIFACTORY_CONTEXT_URL: ${{ secrets.ARTIFACTORY_CONTEXT_URL }}
+          ARTIFACTORY_USERNAME: ${{ secrets.ARTIFACTORY_USERNAME }}
+          ARTIFACTORY_PASSWORD: ${{ secrets.ARTIFACTORY_PASSWORD }}
+          DISABLE_SLACK: true
+        run: |
+          ./gradlew check -isS
+          ./gradlew aggregateJacocoExecutions
+
+      - name: Aggregate reports for upload
+        if: needs.init.outputs.skip-tests != 'true' && (success() || failure())
+        env:
+          METADATA: ${{ needs.init.outputs.metadata }}
+        run: |
+          for module in $(echo ${METADATA} | jq -r '.modules | keys | join(" ")'); do
+            mkdir -p reports/${module}/build
+            if [[ -d ${module}/build/reports ]]; then
+              cp -r ${module}/build/reports reports/${module}/build/reports
+            fi
+          done
+
+      - name: Upload Reports to S3
+        id: reports
+        if: needs.init.outputs.skip-tests != 'true' && (success() || failure())
+        uses: hawk-ai-aml/upload-s3-action@master
+        with:
+          aws_key_id: ${{ secrets.AWS_DEV_ACCESS_KEY_ID }}
+          aws_secret_access_key: ${{ secrets.AWS_DEV_SECRET_ACCESS_KEY }}
+          aws_bucket: github-actions-static-html-2
+          source_dir: reports
+          destination_dir: ${{ github.event.repository.name }}-${{ github.run_id }}
+
+      - name: Provide Links to Reports
+        if: needs.init.outputs.skip-tests != 'true' && (success() || failure())
+        run: |
+          echo "### Test Reports" | tee -a ${GITHUB_STEP_SUMMARY}
+          report_url=https://github-actions-static-html-2.s3.amazonaws.com/${{ github.event.repository.name }}-${{ github.run_id }}/
+          for report_file_loc in ${{ join(fromJSON(steps.reports.outputs.object_locations), ' ') }}; do
+            report_basename=${report_file_loc##${report_url}}
+            if [[ ${report_file_loc} == */main.html || ${report_file_loc} == */index.html || ${report_file_loc} == */licenseReport.html ]]; then
+              echo "* [${report_basename}](${report_file_loc})" | tee -a ${GITHUB_STEP_SUMMARY}
+            fi
+          done
+
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v1-node16
         with:
@@ -120,7 +174,7 @@ jobs:
           ./gradlew build -Dskip.tests=true -x test
           ./gradlew jib \
             -DIMAGE_NAME="${ECR_REGISTRY}/${ECR_REPOSITORY_PREFIX}" \
-            -DTAG_COMMIT=${{ env.HAWK_IMAGE_TAG }}tag-change-delete-me-11 \
+            -DTAG_COMMIT=${{ env.HAWK_IMAGE_TAG }} \
             -DIS_NAB=${{ inputs.profile == 'nab' }}
 
   vulnerability-check-init:
@@ -135,6 +189,8 @@ jobs:
           METADATA: ${{ needs.init.outputs.metadata }}
           ECR_REGISTRY: ${{ fromJson(needs.init.outputs.metadata).ecr.registry }}
         run: |
+          # In order to scan all images within the multi module gradle project we need a list of all repositories.
+          # We convert this list into a JSON array and save it to $GITHUB_OUTPUT so we can use it in the next job as input for the matrix
           list="[ "
           for module in $(echo ${METADATA} | jq -cr '.modules | keys | join(" ")'); do
             module_repository=$(echo ${METADATA} | jq -cr --arg MODULE ${module} '.modules[$MODULE].ecr.repository')
