@@ -69,11 +69,12 @@ jobs:
       imageList: ${{ steps.composeImageList.outputs.images }}
     steps:
       - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v1-node16
+        uses: aws-actions/configure-aws-credentials@v1
         with:
           aws-access-key-id: ${{ inputs.profile == 'nab' && secrets.AWS_NAB_DEV_ECR_ACCESS_KEY_ID || secrets.AWS_ORG_ECR_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ inputs.profile == 'nab' && secrets.AWS_NAB_DEV_ECR_SECRET_ACCESS_KEY || secrets.AWS_ORG_ECR_SECRET_ACCESS_KEY }}
           aws-region: ${{ fromJson(needs.init.outputs.metadata).ecr.region }}
+          mask-aws-account-id: 'no'
 
       - name: Login to Amazon ECR
         id: login-ecr
@@ -92,7 +93,7 @@ jobs:
             [[ "${module_repository}" == "null" ]] && continue
             echo "Module ${module} is configured to push image to ECR repository ${module_repository}"
     
-            list="${list}, ${ECR_REGISTRY}/${module_repository}"
+            list="${list}, 860641649575.dkr.ecr.eu-central-1.amazonaws.com/${module_repository}"
           done
           echo "-----"
           echo ${list}
@@ -103,7 +104,6 @@ jobs:
           echo "-----103"
           echo "images=${list}" >> $GITHUB_OUTPUT
           echo "-----105"
-          echo ${{ vars.GITHUB_OUTPUT }}
 
   vulnerability-check-run:
     needs: [ vulnerability-check-init ]
