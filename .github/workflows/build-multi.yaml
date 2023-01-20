@@ -79,7 +79,7 @@ jobs:
             [[ "${module_repository}" == "null" ]] && continue
             echo "Module ${module} is configured to push image to ECR repository ${module_repository}"
     
-            list="${list}, ${ECR_REGISTRY}/${module_repository}"
+            list="${list}, ${ECR_REGISTRY}.dkr.ecr.eu-central-1.amazonaws.com/${module_repository}"
           done
           echo "-----"
           echo ${list}
@@ -92,13 +92,13 @@ jobs:
           echo "-----105"
 
   vulnerability-check-run:
-    needs: [ vulnerability-check-init ]
+    needs: [ init, vulnerability-check-init ]
     runs-on: ubuntu-latest
-#    strategy:
-#      fail-fast: false
-#      max-parallel: 10
-#      matrix:
-#        test: ${{ needs.vulnerability-check-init.outputs.imageList }}
+    strategy:
+      fail-fast: false
+      max-parallel: 10
+      matrix:
+        test: ${{ needs.vulnerability-check-init.outputs.imageList }}
     steps:
       - name: test-echo
         run: echo ${{ needs.vulnerability-check-init.outputs.imageList }}
