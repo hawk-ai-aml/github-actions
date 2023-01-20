@@ -155,15 +155,15 @@ jobs:
     
             list="${list}, ${ECR_REGISTRY}/${module_repository}"
           done
-          
+          echo "-----"
           echo ${list}
           
           list="${list:2}"
-          
-          ${list}
-          
+          echo "-----"
+          echo ${list}
+          echo "-----"
           echo "images=${list}" >> $GITHUB_OUTPUT
-          
+          echo "-----"
           echo ${images}
 
   vulnerability-check-run:
