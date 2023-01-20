@@ -108,12 +108,15 @@ jobs:
   vulnerability-check-run:
     needs: [ vulnerability-check-init ]
     runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      max-parallel: 10
-      matrix:
-        test: ${{ needs.vulnerability-check-init.outputs.imageList }}
+#    strategy:
+#      fail-fast: false
+#      max-parallel: 10
+#      matrix:
+#        test: ${{ needs.vulnerability-check-init.outputs.imageList }}
     steps:
+      - name: test-echo
+        run: echo ${{ needs.vulnerability-check-init.outputs.imageList }}
+
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v1-node16
         with:
