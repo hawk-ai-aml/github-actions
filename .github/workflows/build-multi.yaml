@@ -235,7 +235,7 @@ jobs:
         id: ecrLoginPassword
         run: echo "loginPassword=$(aws ecr get-login-password --region eu-central-1)" >> $GITHUB_OUTPUT
 
-      - uses: lacework/lw-scanner-action@v1.3.0
+      - uses: lacework/lw-scanner-action@v1.3.1
         name: Scan container image for vulnerabilities using Lacework
         env:
           JAVA_OFFLINE_MODE: ${{ env.LACEWORK_JAVA_OFFLINE_MODE }}
