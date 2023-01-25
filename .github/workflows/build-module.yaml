@@ -209,7 +209,7 @@ jobs:
 
   vulnerability-check-run:
     if: ${{ inputs.profile == 'hawk' }}
-    needs: [ vulnerability-check-init ]
+    needs: [ init, vulnerability-check-init ]
     runs-on: ubuntu-latest
     steps:
       - id: init
