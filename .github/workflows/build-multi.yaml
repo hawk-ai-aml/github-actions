@@ -177,6 +177,7 @@ jobs:
             -DIS_NAB=${{ inputs.profile == 'nab' }}
 
   vulnerability-check-init:
+    if: ${{ inputs.profile == 'hawk' }}
     needs: [ init, build ]
     runs-on: ubuntu-latest
     outputs:
@@ -204,6 +205,7 @@ jobs:
 
 
   vulnerability-check-run:
+    if: ${{ inputs.profile == 'hawk' }}
     needs: [ init, vulnerability-check-init ]
     runs-on: ubuntu-latest
     strategy:
