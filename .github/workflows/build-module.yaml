@@ -180,9 +180,36 @@ jobs:
             -DTAG_COMMIT=${{ env.HAWK_IMAGE_TAG }} \
             -DIS_NAB=${{ inputs.profile == 'nab' }}
 
-  vulnerability-check-run:
+  vulnerability-check-init:
     if: ${{ inputs.profile == 'hawk' }}
     needs: [ init, build ]
+    runs-on: ubuntu-latest
+    outputs:
+      imageList: ${{ steps.composeImageList.outputs.images }}
+    steps:
+      - name: Compose Image List
+        id: composeImageList
+        env:
+          METADATA: ${{ needs.init.outputs.metadata }}
+          ECR_REGISTRY: ${{ fromJson(needs.init.outputs.metadata).ecr.registry }}
+        run: |
+          # In order to scan all images within the multi module gradle project we need a list of all repositories.
+          # We convert this list into a JSON array and save it to $GITHUB_OUTPUT so we can use it in the next job as input for the matrix
+          list="[ "
+          for module in $(echo ${METADATA} | jq -cr '.modules | keys | join(" ")'); do
+            module_repository=$(echo ${METADATA} | jq -cr --arg MODULE ${module} '.modules[$MODULE].ecr.repository')
+            [[ "${module_repository}" == "null" ]] && continue
+            echo "Module ${module} is configured to push image to ECR repository ${module_repository}"
+          
+            list="${list} \"${ECR_REGISTRY}.dkr.ecr.eu-central-1.amazonaws.com/${module_repository}\""
+          done
+          list="${list} ]"
+          echo ${list}
+          echo "images=${list}" >> $GITHUB_OUTPUT
+
+  vulnerability-check-run:
+    if: ${{ inputs.profile == 'hawk' }}
+    needs: [ vulnerability-check-init ]
     runs-on: ubuntu-latest
     steps:
       - id: init
@@ -215,7 +242,7 @@ jobs:
         with:
           LW_ACCOUNT_NAME: ${{ secrets.LACEWORK_ACCOUNT_NAME }}
           LW_ACCESS_TOKEN: ${{ secrets.LACEWORK_ACCESS_TOKEN }}
-          IMAGE_NAME: ${{ steps.login-ecr.outputs.registry }}/${{ fromJson(needs.init.outputs.metadata).ecr.repository-prefix }}-${{ inputs.module }}
+          IMAGE_NAME: ${{ fromJSON(needs.vulnerability-check-init.outputs.imageList) }}
           IMAGE_TAG: ${{ env.HAWK_IMAGE_TAG }}
           SAVE_RESULTS_IN_LACEWORK: true
           ADDITIONAL_PARAMETERS: --docker-username AWS --docker-server https://860641649575.dkr.ecr.eu-central-1.amazonaws.com --docker-password ${{ steps.ecrLoginPassword.outputs.loginPassword }}
