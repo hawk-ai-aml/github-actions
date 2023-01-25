@@ -239,7 +239,7 @@ jobs:
         with:
           LW_ACCOUNT_NAME: ${{ secrets.LACEWORK_ACCOUNT_NAME }}
           LW_ACCESS_TOKEN: ${{ secrets.LACEWORK_ACCESS_TOKEN }}
-          IMAGE_NAME: ${{ fromJSON(needs.vulnerability-check-init.outputs.imageList) }}
+          IMAGE_NAME: ${{ needs.vulnerability-check-init.outputs.imageList }}
           IMAGE_TAG: ${{ env.HAWK_IMAGE_TAG }}
           SAVE_RESULTS_IN_LACEWORK: true
           ADDITIONAL_PARAMETERS: --docker-username AWS --docker-server https://860641649575.dkr.ecr.eu-central-1.amazonaws.com --docker-password ${{ steps.ecrLoginPassword.outputs.loginPassword }}
