@@ -246,7 +246,7 @@ jobs:
 
   update-overlays:
     needs: [ init, build ]
-    if: ${{ needs.init.outputs.update-kustomize == 'true' && contains(needs.init.outputs.kustomizable-modules, inputs.module) }}
+    if: ${{ needs.init.outputs.update-kustomize == 'true' }}
     runs-on: [ "self-hosted", "builder" ]
     steps:
       - id: init
