@@ -175,30 +175,78 @@ jobs:
           ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
           ECR_REPOSITORY_PREFIX: ${{ fromJson(needs.init.outputs.metadata).ecr.repository-prefix }}
         run: |
-          ./gradlew :${{ inputs.module }}:build -Dskip.tests=true -x test
-          ./gradlew :${{ inputs.module }}:jibDockerBuild \
+          ./gradlew :${{ inputs.module }}:jib \
             -DIMAGE_NAME="${ECR_REGISTRY}/${ECR_REPOSITORY_PREFIX}" \
             -DTAG_COMMIT=${{ env.HAWK_IMAGE_TAG }} \
             -DIS_NAB=${{ inputs.profile == 'nab' }}
 
-      - name: Push Docker Images
-        id: push-image
-        if: ${{ contains(needs.init.outputs.kustomizable-modules, inputs.module) && needs.init.outputs.update-kustomize == 'true' }}
+  vulnerability-check-init:
+    if: ${{ inputs.profile == 'hawk' }}
+    needs: [ init, build ]
+    runs-on: ubuntu-latest
+    outputs:
+      imageList: ${{ steps.composeImageList.outputs.images }}
+    steps:
+      - name: Compose Image List
+        id: composeImageList
         env:
           METADATA: ${{ needs.init.outputs.metadata }}
-          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
-        run: |
+          ECR_REGISTRY: ${{ fromJson(needs.init.outputs.metadata).ecr.registry }}
+        run: |        
           for module in ${{ inputs.module }}; do
             module_repository=$(echo ${METADATA} | jq -cr --arg MODULE ${module} '.modules[$MODULE].ecr.repository')
             [[ "${module_repository}" == "null" ]] && continue
             echo "Module ${module} is configured to push image to ECR repository ${module_repository}"
 
-            hawk.push-docker-image ${ECR_REGISTRY}/${module_repository}:${{ env.HAWK_IMAGE_TAG }}
+            list="${ECR_REGISTRY}.dkr.ecr.eu-central-1.amazonaws.com/${module_repository}"
           done
+          
+          echo ${list}
+          echo "images=${list}" >> $GITHUB_OUTPUT
+
+  vulnerability-check-run:
+    if: ${{ inputs.profile == 'hawk' }}
+    needs: [ init, vulnerability-check-init ]
+    runs-on: ubuntu-latest
+    steps:
+      - id: init
+        name: Init Job
+        uses: hawk-ai-aml/github-actions/job-init@master
+        with:
+          slack-notification-webhook: ${{ secrets.CICD_MIGRATION_SLACK_WEBHOOK_URL }}
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v1-node16
+        with:
+          aws-access-key-id: ${{ inputs.profile == 'nab' && secrets.AWS_NAB_DEV_ECR_ACCESS_KEY_ID || secrets.AWS_ORG_ECR_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ inputs.profile == 'nab' && secrets.AWS_NAB_DEV_ECR_SECRET_ACCESS_KEY || secrets.AWS_ORG_ECR_SECRET_ACCESS_KEY }}
+          aws-region: ${{ fromJson(needs.init.outputs.metadata).ecr.region }}
+
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v1
+        with:
+          registries: ${{ fromJson(needs.init.outputs.metadata).ecr.registry }}
+
+      - name: Retrieve AWS ECR login password for Lacework
+        id: ecrLoginPassword
+        run: echo "loginPassword=$(aws ecr get-login-password --region eu-central-1)" >> $GITHUB_OUTPUT
+
+      - uses: lacework/lw-scanner-action@v1.3.1
+        name: Scan container image for vulnerabilities using Lacework
+        env:
+          JAVA_OFFLINE_MODE: ${{ env.LACEWORK_JAVA_OFFLINE_MODE }}
+        with:
+          LW_ACCOUNT_NAME: ${{ secrets.LACEWORK_ACCOUNT_NAME }}
+          LW_ACCESS_TOKEN: ${{ secrets.LACEWORK_ACCESS_TOKEN }}
+          IMAGE_NAME: ${{ needs.vulnerability-check-init.outputs.imageList }}
+          IMAGE_TAG: ${{ env.HAWK_IMAGE_TAG }}
+          SAVE_RESULTS_IN_LACEWORK: true
+          ADDITIONAL_PARAMETERS: --docker-username AWS --docker-server https://860641649575.dkr.ecr.eu-central-1.amazonaws.com --docker-password ${{ steps.ecrLoginPassword.outputs.loginPassword }}
 
   update-overlays:
     needs: [ init, build ]
-    if: ${{ needs.init.outputs.update-kustomize == 'true' && contains(needs.init.outputs.kustomizable-modules, inputs.module) }}
+    if: ${{ needs.init.outputs.update-kustomize == 'true' }}
     runs-on: [ "self-hosted", "builder" ]
     steps:
       - id: init
