@@ -184,6 +184,7 @@ component:
     parameters:
       <<: *defaultParameters
       kustomize: bitbucket
+      java-version: 17
     ecr:
       <<: *defaultECR
       repository-prefix: hawk-
@@ -194,10 +195,12 @@ component:
         parameters:
           <<: *defaultParameters
           kustomize: bitbucket
+          java-version: 17
       app:
         parameters:
           <<: *defaultParameters
           kustomize: bitbucket
+          java-version: 17
         ecr:
           <<: *defaultECR
           repository: hawk-customer-risk-rating
@@ -209,6 +212,7 @@ component:
         parameters:
           <<: *defaultParameters
           kustomize: bitbucket
+          java-version: 17
         ecr:
           <<: *defaultECR
           repository: hawk-crr-risk-factor-sar
@@ -220,6 +224,7 @@ component:
         parameters:
           <<: *defaultParameters
           kustomize: bitbucket
+          java-version: 17
         ecr:
           <<: *defaultECR
           repository: hawk-crr-risk-factor-expected-volume
@@ -231,6 +236,7 @@ component:
         parameters:
           <<: *defaultParameters
           kustomize: bitbucket
+          java-version: 17
         ecr:
           <<: *defaultECR
           repository: hawk-crr-risk-factor-payment-means
