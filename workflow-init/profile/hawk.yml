@@ -235,6 +235,7 @@ component:
     parameters:
       <<: *defaultParameters
       kustomize: bitbucket
+      java-version: 17
     ecr:
       <<: *defaultECR
     kustomize:
@@ -244,10 +245,12 @@ component:
         parameters:
           <<: *defaultParameters
           kustomize: bitbucket
+          java-version: 17
       app:
         parameters:
           <<: *defaultParameters
           kustomize: bitbucket
+          java-version: 17
         ecr:
           <<: *defaultECR
           repository: customer-risk-rating
@@ -258,6 +261,7 @@ component:
         parameters:
           <<: *defaultParameters
           kustomize: bitbucket
+          java-version: 17
         ecr:
           <<: *defaultECR
           repository: crr-risk-factor-sar
@@ -268,6 +272,7 @@ component:
         parameters:
           <<: *defaultParameters
           kustomize: bitbucket
+          java-version: 17
         ecr:
           <<: *defaultECR
           repository: crr-risk-factor-expected-volume
@@ -278,6 +283,7 @@ component:
         parameters:
           <<: *defaultParameters
           kustomize: bitbucket
+          java-version: 17
         ecr:
           <<: *defaultECR
           repository: crr-risk-factor-payment-means
@@ -288,6 +294,7 @@ component:
         parameters:
           <<: *defaultParameters
           kustomize: bitbucket
+          java-version: 17
         ecr:
           <<: *defaultECR
           repository: crr-risk-factor-anomaly-detection
