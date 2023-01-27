@@ -181,7 +181,7 @@ jobs:
             -DIS_NAB=${{ inputs.profile == 'nab' }}
 
   vulnerability-check-init:
-    if: ${{ inputs.profile == 'hawk' }}
+    if: ${{ inputs.profile == 'hawk' && inputs.vulnerabilityCheck == 'true' }}
     needs: [ init, build ]
     runs-on: ubuntu-latest
     outputs:
@@ -205,7 +205,7 @@ jobs:
           echo "images=${list}" >> $GITHUB_OUTPUT
 
   vulnerability-check-run:
-    if: ${{ inputs.profile == 'hawk' }}
+    if: ${{ inputs.profile == 'hawk' && inputs.vulnerabilityCheck == 'true' }}
     needs: [ init, vulnerability-check-init ]
     runs-on: ubuntu-latest
     steps:
