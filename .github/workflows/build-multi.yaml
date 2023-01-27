@@ -46,7 +46,7 @@ jobs:
     steps:
       - id: init
         name: Init Workflow
-        uses: hawk-ai-aml/github-actions/workflow-init@master
+        uses: hawk-ai-aml/github-actions/workflow-init@feature/sre-1309-7
         with:
           slack-notification-webhook: ${{ secrets.CICD_MIGRATION_SLACK_WEBHOOK_URL }}
           profile: ${{ inputs.profile }}
@@ -54,6 +54,7 @@ jobs:
           update-kustomize: ${{ inputs.updateKustomize }}
           overlays: ${{ inputs.kustomizeOverlays }}
           skip-tests: ${{ inputs.skipTests }}
+          vulnerabilityCheck: ${{ inputs.vulnerabilityCheck }}
 
   build:
     needs: [ init ]
