@@ -317,6 +317,7 @@ component:
     parameters:
       <<: *defaultParameters
       kustomize: bitbucket
+      java-version: 17
     ecr:
       <<: *defaultECR
       repository: customer-risk-rating-decision-engine
