@@ -198,7 +198,9 @@ jobs:
           done
 
   vulnerability-check-init:
-    if: and(inputs.profile == 'hawk', inputs.vulnerabilityCheck == 'true')
+    if: |
+      inputs.profile == 'hawk' &&
+      inputs.vulnerabilityCheck == 'true'
     needs: [ init, build ]
     runs-on: ubuntu-latest
     outputs:
@@ -226,7 +228,9 @@ jobs:
 
 
   vulnerability-check-run:
-    if: and(inputs.profile == 'hawk', inputs.vulnerabilityCheck == 'true')
+    if: |
+      inputs.profile == 'hawk' &&
+      inputs.vulnerabilityCheck == 'true'
     needs: [ init, vulnerability-check-init ]
     runs-on: ubuntu-latest
     strategy:
