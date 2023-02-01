@@ -340,7 +340,7 @@ component:
     kustomize:
       path: plattform/ai/entity-resolution
       overlays: *defaultOverlays
-      
+
   risky-words-score:
     parameters:
       <<: *defaultParameters
@@ -701,6 +701,18 @@ component:
         kustomize:
           overlays: *defaultOverlays
           path: plattform/processing/features/reference-account-mismatch
+      expectedcustomervalue:
+        parameters:
+          <<: *defaultParameters
+          kustomize: bitbucket
+          java-version: 17
+        ecr:
+          <<: *defaultECR
+          repository: hawk-features-expected-customer-value
+          repository-prefix: features
+        kustomize:
+          overlays: *defaultOverlays
+          path: plattform/processing/features/expected-customer-value
 
   features2:
     parameters:
