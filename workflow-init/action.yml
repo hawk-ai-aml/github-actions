@@ -26,6 +26,11 @@ inputs:
     description: "Overlays to update"
     required: false
     default: dev
+  vulnerabilityCheck:
+    description: "Conduct a vulnerability check using Lacework"
+    type: boolean
+    required: false
+    default: false
 
 outputs:
   metadata:
