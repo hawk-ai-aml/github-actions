@@ -1002,6 +1002,18 @@ component:
       path: plattform/processing/feature-enrichment
       overlays: *defaultOverlays
 
+  external-enrichment:
+    parameters:
+      <<: *defaultParameters
+      kustomize: bitbucket
+      java-version: 17
+    ecr:
+      <<: *defaultECR
+      repository: external-enrichment
+    kustomize:
+      path: plattform/processing/external-enrichment
+      overlays: *defaultOverlays
+
   frontend:
     parameters:
       <<: *defaultParameters
