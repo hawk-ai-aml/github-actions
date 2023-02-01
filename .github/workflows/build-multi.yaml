@@ -203,7 +203,7 @@ jobs:
 #          done
 
   vulnerability-check-init:
-    if: (inputs.profile == 'hawk') && ${{ (inputs.vulnerabilityCheck == 'true') }}
+    if: ${{ (inputs.profile == 'hawk') }} && ${{ (inputs.vulnerabilityCheck == 'true') }}
     needs: [ init, build ]
     runs-on: ubuntu-latest
     outputs:
