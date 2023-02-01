@@ -211,6 +211,11 @@ jobs:
     outputs:
       imageList: ${{ steps.composeImageList.outputs.images }}
     steps:
+      - name: debug-output
+        run: |
+          echo "${{ inputs.profile }}"
+          echo "${{ inputs.updateKustomize }}"        
+
       - name: Compose Image List
         id: composeImageList
         env:
