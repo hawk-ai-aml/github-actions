@@ -202,8 +202,8 @@ jobs:
 #            hawk.push-docker-image ${ECR_REGISTRY}/${module_repository}:${{ env.HAWK_IMAGE_TAG }}
 #          done
 
-  vulnerability-check-init:
-    if: ${{ inputs.profile == 'hawk' && inputs.vulnerabilityCheck == 'true' }}
+  vulnerability-check-init-hawk:
+    if: ${{ inputs.profile == 'hawk'}}
     needs: [ init, build ]
     runs-on: ubuntu-latest
     outputs:
@@ -228,6 +228,38 @@ jobs:
             [[ "${module_repository}" == "null" ]] && continue
             echo "Module ${module} is configured to push image to ECR repository ${module_repository}"
     
+            list="${list} \"${ECR_REGISTRY}.dkr.ecr.eu-central-1.amazonaws.com/${module_repository}\", "
+          done
+          list="${list} ]"
+          echo ${list}
+          echo "images=${list}" >> $GITHUB_OUTPUT
+
+  vulnerability-check-init-nab:
+    if: ${{ inputs.profile == 'nab'}}
+    needs: [ init, build ]
+    runs-on: ubuntu-latest
+    outputs:
+      imageList: ${{ steps.composeImageList.outputs.images }}
+    steps:
+      - name: debug-output
+        run: |
+          echo "${{ inputs.profile }}"
+          echo "${{ inputs.updateKustomize }}"        
+
+      - name: Compose Image List
+        id: composeImageList
+        env:
+          METADATA: ${{ needs.init.outputs.metadata }}
+          ECR_REGISTRY: ${{ fromJson(needs.init.outputs.metadata).ecr.registry }}
+        run: |
+          # In order to scan all images within the multi module gradle project we need a list of all repositories.
+          # We convert this list into a JSON array and save it to $GITHUB_OUTPUT so we can use it in the next job as input for the matrix
+          list="[ "
+          for module in $(echo ${METADATA} | jq -cr '.modules | keys | join(" ")'); do
+            module_repository=$(echo ${METADATA} | jq -cr --arg MODULE ${module} '.modules[$MODULE].ecr.repository')
+            [[ "${module_repository}" == "null" ]] && continue
+            echo "Module ${module} is configured to push image to ECR repository ${module_repository}"
+          
             list="${list} \"${ECR_REGISTRY}.dkr.ecr.eu-central-1.amazonaws.com/${module_repository}\", "
           done
           list="${list} ]"
