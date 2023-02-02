@@ -1026,6 +1026,18 @@ component:
         kustomize:
           overlays: *defaultOverlays
           path: plattform/processing/features/reference-account-mismatch
+      expected-customer-value:
+        parameters:
+          <<: *defaultParameters
+          kustomize: bitbucket
+          java-version: 17
+        ecr:
+          <<: *defaultECR
+          repository: features-expected-customer-value
+          repository-prefix: features
+        kustomize:
+          overlays: *defaultOverlays
+          path: plattform/processing/features/expected-customer-value
 
   feature-enrichment:
     parameters:
