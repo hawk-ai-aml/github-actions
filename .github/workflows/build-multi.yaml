@@ -283,7 +283,7 @@ jobs:
 
   update-overlays:
     needs: [ init, build ]
-    if: ${{ needs.init.outputs.update-kustomize == 'true' }}
+    if: ${{ (inputs.profile == 'hawk') && (inputs.vulnerabilityCheck == true) }}
     runs-on: [ "self-hosted", "builder" ]
     steps:
       - id: init
