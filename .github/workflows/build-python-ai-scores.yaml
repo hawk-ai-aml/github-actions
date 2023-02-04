@@ -157,12 +157,11 @@ jobs:
           REPOSITORY_FOLDER=$(echo ${{ matrix.module }} | sed 's/\_/\-/g')
           REPOSITORY_FULL_NAME="${{ inputs.ecr-repository-code }}/ai-scores-${REPOSITORY_FOLDER}"
           # kustomize edit set image $REPOSITORY_FULL_NAME:${{ env.HAWK_IMAGE_TAG }}
-          GITHUB_REF=$(echo ${GITHUB_REF_NAME} | sed 's,\/,-,g; s,\#,,g')
            # add github commit sha if it's develop
-           if [[ $GITHUB_REF == 'develop' ]]; then
-             TAG=${GITHUB_REF}-${{ github.sha }}
+           if [[ ${{ github.ref_name }} == 'develop' ]]; then
+             TAG=${{ github.ref_name }}-${{ github.sha }}
            else
-             TAG=$GITHUB_REF
+             TAG=${{ github.ref_name }}
            fi
           kustomize edit set image $REPOSITORY_FULL_NAME:$TAG
           git config --global user.name "GitHub Actions"
