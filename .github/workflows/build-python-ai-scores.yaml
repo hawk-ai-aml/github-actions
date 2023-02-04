@@ -155,8 +155,7 @@ jobs:
         run: |
           cd ${{ github.workspace }}/plattform/processing/features/${{ matrix.module }}/overlays/${{ matrix.overlay }}
           REPOSITORY_FOLDER=$(echo ${{ matrix.module }} | sed 's/\_/\-/g')
-          REPOSITORY_FULL_NAME="${{ inputs.ecr-repository-code }}/ai-scores-${REPOSITORY_FOLDER}"
-          # kustomize edit set image $REPOSITORY_FULL_NAME:${{ env.HAWK_IMAGE_TAG }}
+          REPOSITORY_FULL_NAME="${{ inputs.ecr-repository-code }}.dkr.ecr.${{ inputs.ecr-repository-region }}.amazonaws.com//ai-scores-${REPOSITORY_FOLDER}"
            # add github commit sha if it's develop
            if [[ ${{ github.ref_name }} == 'develop' ]]; then
              TAG=${{ github.ref_name }}-${{ github.sha }}
