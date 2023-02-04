@@ -147,8 +147,8 @@ jobs:
       - name: Checkout Kustomize (GitHub)
         uses: actions/checkout@v3
         with:
-          repository: hawk-ai-aml/kustomize2.git
-          token: ${{ secrets.TEST_TOKEN }}
+          repository: hawk-ai-aml/kustomize.git
+          token: ${{ secrets.REPO_ACCESS_PAT }}
           ref: master
 
       - name: Update Kustomize (GitHub)
@@ -169,7 +169,7 @@ jobs:
           git config --global user.name "GitHub Actions"
           git config --global user.email "github-actions@hawk.ai"
           git add .
-          git commit -m "Change Tag"
+          git commit -m "AUTOMATIC COMMIT: Update ${KUSTOMIZE_PATH}/overlays/${OVERLAY} for ${{ matrix.module }} to $TAG }}"
           git push
 
 #      - name: Update Kustomize (Bitbucket)
