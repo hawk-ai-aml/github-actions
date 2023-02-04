@@ -35,7 +35,7 @@ component:
   audit-trail:
     parameters:
       <<: *defaultParameters
-      kustomize: bitbucket
+      kustomize: github
     ecr:
       <<: *defaultECR
       repository: audit-trail
@@ -46,7 +46,7 @@ component:
   customer-risk-rating-events-sink:
     parameters:
       <<: *defaultParameters
-      kustomize: bitbucket
+      kustomize: github
     ecr:
       <<: *defaultECR
       repository: customer-risk-rating-events-sink
@@ -57,7 +57,7 @@ component:
   customer-risk-rating-decision-engine:
     parameters:
       <<: *defaultParameters
-      kustomize: bitbucket
+      kustomize: github
     ecr:
       <<: *defaultECR
       repository: customer-risk-rating-decision-engine
@@ -68,7 +68,7 @@ component:
   feature-enrichment:
     parameters:
       <<: *defaultParameters
-      kustomize: bitbucket
+      kustomize: github
     ecr:
       <<: *defaultECR
       repository: feature-enrichment
@@ -79,7 +79,7 @@ component:
   label-engine:
     parameters:
       <<: *defaultParameters
-      kustomize: bitbucket
+      kustomize: github
     ecr:
       <<: *defaultECR
       repository: label-engine
@@ -90,7 +90,7 @@ component:
   reprocessing:
     parameters:
       <<: *defaultParameters
-      kustomize: bitbucket
+      kustomize: github
     ecr:
       <<: *defaultECR
       repository: reprocessing
@@ -101,7 +101,7 @@ component:
   secure-storage:
     parameters:
       <<: *defaultParameters
-      kustomize: bitbucket
+      kustomize: github
     ecr:
       <<: *defaultECR
       repository: current-secure-storage
@@ -112,7 +112,7 @@ component:
   tenant-management:
     parameters:
       <<: *defaultParameters
-      kustomize: bitbucket
+      kustomize: github
     ecr:
       <<: *defaultECR
       repository: tenant-management
@@ -123,7 +123,7 @@ component:
   transaction-announced-event-reducer:
     parameters:
       <<: *defaultParameters
-      kustomize: bitbucket
+      kustomize: github
     ecr:
       <<: *defaultECR
       repository: transaction-announced-event-reducer
@@ -134,7 +134,7 @@ component:
   blacklist:
     parameters:
       <<: *defaultParameters
-      kustomize: bitbucket
+      kustomize: github
     ecr:
       <<: *defaultECR
       repository: hawkai-blacklist-msg
@@ -145,7 +145,7 @@ component:
   regulatory-check:
     parameters:
       <<: *defaultParameters
-      kustomize: bitbucket
+      kustomize: github
       java-version: 17
     ecr:
       <<: *defaultECR
@@ -157,7 +157,7 @@ component:
   watchtower:
     parameters:
       <<: *defaultParameters
-      kustomize: bitbucket
+      kustomize: github
     ecr:
       <<: *defaultECR
       repository: watchtower
@@ -168,7 +168,7 @@ component:
   case-sink:
     parameters:
       <<: *defaultParameters
-      kustomize: bitbucket
+      kustomize: github
     ecr:
       <<: *defaultECR
       repository: case-sink
