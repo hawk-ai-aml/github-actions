@@ -147,8 +147,8 @@ jobs:
       - name: Checkout Kustomize (GitHub)
         uses: actions/checkout@v3
         with:
-          repository: hawk-ai-aml/kustomize2.git
-          token: ${{ secrets.TEST_TOKEN }}
+          repository: hawk-ai-aml/kustomize.git
+          token: ${{ secrets.REPO_ACCESS_PAT }}
           ref: master
 
       - name: Update Kustomize (GitHub)
