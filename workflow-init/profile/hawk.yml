@@ -18,14 +18,14 @@ ecr: &defaultECR
 parameters: &defaultParameters
   java-version: 11
   # bitbucket, bitbucket-fake, github, github-fake
-  kustomize: bitbucket-fake
+  kustomize: github
 
 component:
   # This is an example single-module template, that you need to copy and modify according to specific project
   template-java-gradle-spring:
     parameters:
       <<: *defaultParameters
-      kustomize: bitbucket-fake
+      kustomize: github
       java-version: 17
     ecr:
       <<: *defaultECR
@@ -37,7 +37,7 @@ component:
   ai-data-sink:
     parameters:
       <<: *defaultParameters
-      kustomize: bitbucket
+      kustomize: github
     ecr:
       <<: *defaultECR
       repository: ai-data-sink
@@ -103,7 +103,7 @@ component:
   audit-trail:
     parameters:
       <<: *defaultParameters
-      kustomize: bitbucket
+      kustomize: github
     ecr:
       <<: *defaultECR
       repository: audit-trail
@@ -111,30 +111,10 @@ component:
       path: plattform/utility/audit-trail
       overlays: *defaultOverlays
 
-  audit-trail2:
-    parameters:
-      <<: *defaultParameters
-      kustomize: github-fake
-    ecr:
-      <<: *defaultECR
-      repository-prefix: audit-trail
-    kustomize:
-      overlays: *defaultOverlays
-    modules:
-      app:
-        parameters: *defaultParameters
-        ecr:
-          <<: *defaultECR
-          repository: audit-trail
-          repository-prefix: audit-trail
-        kustomize:
-          path: plattform/utility/audit-trail
-          overlays: *defaultOverlays
-
   backend:
     parameters:
       <<: *defaultParameters
-      kustomize: bitbucket
+      kustomize: github
     ecr:
       <<: *defaultECR
     kustomize:
@@ -143,11 +123,11 @@ component:
       core:
         parameters:
           <<: *defaultParameters
-          kustomize: bitbucket
+          kustomize: github
       msg:
         parameters:
           <<: *defaultParameters
-          kustomize: bitbucket
+          kustomize: github
         ecr:
           <<: *defaultECR
           repository: hawkai-case-manager-backend-msg
@@ -157,7 +137,7 @@ component:
       rest:
         parameters:
           <<: *defaultParameters
-          kustomize: bitbucket
+          kustomize: github
         ecr:
           <<: *defaultECR
           repository: hawkai-case-manager-backend-rest
@@ -167,7 +147,7 @@ component:
       grouping:
         parameters:
           <<: *defaultParameters
-          kustomize: bitbucket
+          kustomize: github
         ecr:
           <<: *defaultECR
           repository: backend-grouping
@@ -177,7 +157,7 @@ component:
       search:
         parameters:
           <<: *defaultParameters
-          kustomize: bitbucket
+          kustomize: github
         ecr:
           <<: *defaultECR
           repository: backend-search
@@ -188,7 +168,7 @@ component:
   blacklist:
     parameters:
       <<: *defaultParameters
-      kustomize: bitbucket
+      kustomize: github
     ecr:
       <<: *defaultECR
       repository: hawkai-blacklist-msg
@@ -199,7 +179,7 @@ component:
   case-note:
     parameters:
       <<: *defaultParameters
-      kustomize: bitbucket
+      kustomize: github
       java-version: 17
     ecr:
       <<: *defaultECR
@@ -211,7 +191,7 @@ component:
   case-sink:
     parameters:
       <<: *defaultParameters
-      kustomize: bitbucket
+      kustomize: github
     ecr:
       <<: *defaultECR
       repository: case-sink
@@ -222,7 +202,7 @@ component:
   configuration:
     parameters:
       <<: *defaultParameters
-      kustomize: bitbucket
+      kustomize: github
       java-version: 17
     ecr:
       <<: *defaultECR
@@ -234,7 +214,7 @@ component:
   customer-risk-rating:
     parameters:
       <<: *defaultParameters
-      kustomize: bitbucket
+      kustomize: github
       java-version: 17
     ecr:
       <<: *defaultECR
@@ -244,12 +224,12 @@ component:
       core:
         parameters:
           <<: *defaultParameters
-          kustomize: bitbucket
+          kustomize: github
           java-version: 17
       app:
         parameters:
           <<: *defaultParameters
-          kustomize: bitbucket
+          kustomize: github
           java-version: 17
         ecr:
           <<: *defaultECR
@@ -260,7 +240,7 @@ component:
       crr-risk-factor-sar:
         parameters:
           <<: *defaultParameters
-          kustomize: bitbucket
+          kustomize: github
           java-version: 17
         ecr:
           <<: *defaultECR
@@ -271,7 +251,7 @@ component:
       crr-risk-factor-expected-volume:
         parameters:
           <<: *defaultParameters
-          kustomize: bitbucket
+          kustomize: github
           java-version: 17
         ecr:
           <<: *defaultECR
@@ -282,7 +262,7 @@ component:
       crr-risk-factor-payment-means:
         parameters:
           <<: *defaultParameters
-          kustomize: bitbucket
+          kustomize: github
           java-version: 17
         ecr:
           <<: *defaultECR
@@ -293,7 +273,7 @@ component:
       crr-risk-factor-anomaly-detection:
         parameters:
           <<: *defaultParameters
-          kustomize: bitbucket
+          kustomize: github
           java-version: 17
         ecr:
           <<: *defaultECR
@@ -305,7 +285,7 @@ component:
   customer-risk-rating-events-sink:
     parameters:
       <<: *defaultParameters
-      kustomize: bitbucket
+      kustomize: github
       java-version: 17
     ecr:
       <<: *defaultECR
@@ -317,7 +297,7 @@ component:
   customer-risk-rating-decision-engine:
     parameters:
       <<: *defaultParameters
-      kustomize: bitbucket
+      kustomize: github
       java-version: 17
     ecr:
       <<: *defaultECR
@@ -329,7 +309,7 @@ component:
   decision-engine:
     parameters:
       <<: *defaultParameters
-      kustomize: bitbucket
+      kustomize: github
       java-version: 17
     ecr:
       <<: *defaultECR
@@ -343,7 +323,7 @@ component:
       opening:
         parameters:
           <<: *defaultParameters
-          kustomize: bitbucket
+          kustomize: github
           java-version: 17
         ecr:
           <<: *defaultECR
@@ -354,7 +334,7 @@ component:
       autoclosing:
         parameters:
           <<: *defaultParameters
-          kustomize: bitbucket
+          kustomize: github
           java-version: 17
         ecr:
           <<: *defaultECR
@@ -366,7 +346,7 @@ component:
   document-storage:
     parameters:
       <<: *defaultParameters
-      kustomize: bitbucket
+      kustomize: github
     ecr:
       <<: *defaultECR
       repository: document-storage-api
@@ -377,7 +357,7 @@ component:
   entity-resolution:
     parameters:
       <<: *defaultParameters
-      kustomize: bitbucket
+      kustomize: github
     ecr:
       <<: *defaultECR
       repository: entity-resolution
@@ -388,7 +368,7 @@ component:
   risky-words-score:
     parameters:
       <<: *defaultParameters
-      kustomize: bitbucket
+      kustomize: github
     ecr:
       <<: *defaultECR
       repository: features-risky-words
@@ -399,7 +379,7 @@ component:
   rule-builder:
     parameters:
       <<: *defaultParameters
-      kustomize: bitbucket
+      kustomize: github
     ecr:
       <<: *defaultECR
       repository: rule-builder
@@ -410,7 +390,7 @@ component:
   gateway:
     parameters:
       <<: *defaultParameters
-      kustomize: bitbucket
+      kustomize: github
     ecr:
       <<: *defaultECR
     kustomize:
@@ -419,15 +399,15 @@ component:
       core:
         parameters:
           <<: *defaultParameters
-          kustomize: bitbucket
+          kustomize: github
       engine:
         parameters:
           <<: *defaultParameters
-          kustomize: bitbucket
+          kustomize: github
       msg:
         parameters:
           <<: *defaultParameters
-          kustomize: bitbucket
+          kustomize: github
         ecr:
           <<: *defaultECR
           repository: hawkai-gateway-msg
@@ -437,7 +417,7 @@ component:
       batch:
         parameters:
           <<: *defaultParameters
-          kustomize: bitbucket
+          kustomize: github
         ecr:
           <<: *defaultECR
           repository: hawkai-gateway-batch
@@ -447,7 +427,7 @@ component:
       rest:
         parameters:
           <<: *defaultParameters
-          kustomize: bitbucket
+          kustomize: github
         ecr:
           <<: *defaultECR
           repository: hawkai-gateway
@@ -457,7 +437,7 @@ component:
       activemq:
         parameters:
           <<: *defaultParameters
-          kustomize: bitbucket
+          kustomize: github
         ecr:
           <<: *defaultECR
           repository: hawkai-gateway-activemq
@@ -468,7 +448,7 @@ component:
   features:
     parameters:
       <<: *defaultParameters
-      kustomize: bitbucket
+      kustomize: github
       java-version: 17
     ecr:
       <<: *defaultECR
@@ -479,12 +459,12 @@ component:
       core:
         parameters:
           <<: *defaultParameters
-          kustomize: bitbucket
+          kustomize: github
           java-version: 17
       countryrisk:
         parameters:
           <<: *defaultParameters
-          kustomize: bitbucket
+          kustomize: github
           java-version: 17
         ecr:
           <<: *defaultECR
@@ -496,7 +476,7 @@ component:
       volumerisk:
         parameters:
           <<: *defaultParameters
-          kustomize: bitbucket
+          kustomize: github
           java-version: 17
         ecr:
           <<: *defaultECR
@@ -508,7 +488,7 @@ component:
       pepsanction-lookup-match-analyzer:
         parameters:
           <<: *defaultParameters
-          kustomize: bitbucket
+          kustomize: github
           java-version: 17
         ecr:
           <<: *defaultECR
@@ -520,7 +500,7 @@ component:
       simple:
         parameters:
           <<: *defaultParameters
-          kustomize: bitbucket
+          kustomize: github
           java-version: 17
         ecr:
           <<: *defaultECR
@@ -532,7 +512,7 @@ component:
       assessment-engine:
         parameters:
           <<: *defaultParameters
-          kustomize: bitbucket
+          kustomize: github
           java-version: 17
         ecr:
           <<: *defaultECR
@@ -544,7 +524,7 @@ component:
       passthrough:
         parameters:
           <<: *defaultParameters
-          kustomize: bitbucket
+          kustomize: github
           java-version: 17
         ecr:
           <<: *defaultECR
@@ -556,7 +536,7 @@ component:
       smurfing:
         parameters:
           <<: *defaultParameters
-          kustomize: bitbucket
+          kustomize: github
           java-version: 17
         ecr:
           <<: *defaultECR
@@ -568,7 +548,7 @@ component:
       roundamount:
         parameters:
           <<: *defaultParameters
-          kustomize: bitbucket
+          kustomize: github
           java-version: 17
         ecr:
           <<: *defaultECR
@@ -580,7 +560,7 @@ component:
       round-amount-ratio-increase-decrease:
         parameters:
           <<: *defaultParameters
-          kustomize: bitbucket
+          kustomize: github
           java-version: 17
         ecr:
           <<: *defaultECR
@@ -592,7 +572,7 @@ component:
       unusualfrequency:
         parameters:
           <<: *defaultParameters
-          kustomize: bitbucket
+          kustomize: github
           java-version: 17
         ecr:
           <<: *defaultECR
@@ -604,7 +584,7 @@ component:
       dormantaccount:
         parameters:
           <<: *defaultParameters
-          kustomize: bitbucket
+          kustomize: github
           java-version: 17
         ecr:
           <<: *defaultECR
@@ -616,7 +596,7 @@ component:
       crossbordervolume:
         parameters:
           <<: *defaultParameters
-          kustomize: bitbucket
+          kustomize: github
           java-version: 17
         ecr:
           <<: *defaultECR
@@ -628,7 +608,7 @@ component:
       volumeincreasedecrease:
         parameters:
           <<: *defaultParameters
-          kustomize: bitbucket
+          kustomize: github
           java-version: 17
         ecr:
           <<: *defaultECR
@@ -640,7 +620,7 @@ component:
       suspiciousavgticketsize:
         parameters:
           <<: *defaultParameters
-          kustomize: bitbucket
+          kustomize: github
           java-version: 17
         ecr:
           <<: *defaultECR
@@ -652,7 +632,7 @@ component:
       account-based-frequency-increase-decrease:
         parameters:
           <<: *defaultParameters
-          kustomize: bitbucket
+          kustomize: github
           java-version: 17
         ecr:
           <<: *defaultECR
@@ -664,7 +644,7 @@ component:
       volumeriskv2:
         parameters:
           <<: *defaultParameters
-          kustomize: bitbucket
+          kustomize: github
           java-version: 17
         ecr:
           <<: *defaultECR
@@ -676,7 +656,7 @@ component:
       countryriskv2:
         parameters:
           <<: *defaultParameters
-          kustomize: bitbucket
+          kustomize: github
           java-version: 17
         ecr:
           <<: *defaultECR
@@ -688,7 +668,7 @@ component:
       passthroughv2:
         parameters:
           <<: *defaultParameters
-          kustomize: bitbucket
+          kustomize: github
           java-version: 17
         ecr:
           <<: *defaultECR
@@ -700,7 +680,7 @@ component:
       passthroughv3:
         parameters:
           <<: *defaultParameters
-          kustomize: bitbucket
+          kustomize: github
           java-version: 17
         ecr:
           <<: *defaultECR
@@ -712,7 +692,7 @@ component:
       counterparty-volume:
         parameters:
           <<: *defaultParameters
-          kustomize: bitbucket
+          kustomize: github
           java-version: 17
         ecr:
           <<: *defaultECR
@@ -724,7 +704,7 @@ component:
       plausibility:
         parameters:
           <<: *defaultParameters
-          kustomize: bitbucket
+          kustomize: github
           java-version: 17
         ecr:
           <<: *defaultECR
@@ -736,7 +716,7 @@ component:
       reference-account-mismatch:
         parameters:
           <<: *defaultParameters
-          kustomize: bitbucket
+          kustomize: github
           java-version: 17
         ecr:
           <<: *defaultECR
@@ -748,7 +728,7 @@ component:
       expected-customer-value:
         parameters:
           <<: *defaultParameters
-          kustomize: bitbucket
+          kustomize: github
           java-version: 17
         ecr:
           <<: *defaultECR
@@ -761,7 +741,7 @@ component:
   feature-enrichment:
     parameters:
       <<: *defaultParameters
-      kustomize: bitbucket
+      kustomize: github
     ecr:
       <<: *defaultECR
       repository: feature-enrichment
@@ -772,7 +752,7 @@ component:
   frontend:
     parameters:
       <<: *defaultParameters
-      kustomize: bitbucket
+      kustomize: github
     ecr:
       <<: *defaultECR
       repository: hawkai-case-manager-frontend
@@ -783,7 +763,7 @@ component:
   label-engine:
     parameters:
       <<: *defaultParameters
-      kustomize: bitbucket
+      kustomize: github
     ecr:
       <<: *defaultECR
       repository: label-engine
@@ -794,7 +774,7 @@ component:
   pep-sanction:
     parameters:
       <<: *defaultParameters
-      kustomize: bitbucket
+      kustomize: github
     ecr:
       <<: *defaultECR
     kustomize:
@@ -803,7 +783,7 @@ component:
       core:
         parameters:
           <<: *defaultParameters
-          kustomize: bitbucket
+          kustomize: github
       rest:
         parameters:
           <<: *defaultParameters
@@ -816,7 +796,7 @@ component:
       msg:
         parameters:
           <<: *defaultParameters
-          kustomize: bitbucket
+          kustomize: github
         ecr:
           <<: *defaultECR
           repository: hawkai-pepsanction-msg
@@ -826,7 +806,7 @@ component:
       import-dowjones:
         parameters:
           <<: *defaultParameters
-          kustomize: bitbucket
+          kustomize: github
         ecr:
           <<: *defaultECR
           repository: hawkai-pepsanction-import-dowjones
@@ -836,7 +816,7 @@ component:
       import-info4c:
         parameters:
           <<: *defaultParameters
-          kustomize: bitbucket
+          kustomize: github
         ecr:
           <<: *defaultECR
           repository: hawkai-pepsanction-import-info4c
@@ -846,7 +826,7 @@ component:
       import-lexis-nexis:
         parameters:
           <<: *defaultParameters
-          kustomize: bitbucket
+          kustomize: github
         ecr:
           <<: *defaultECR
           repository: hawkai-pepsanction-import-lexis-nexis
@@ -857,7 +837,7 @@ component:
   regulatory-check:
     parameters:
       <<: *defaultParameters
-      kustomize: bitbucket
+      kustomize: github
       java-version: 17
     ecr:
       <<: *defaultECR
@@ -869,7 +849,7 @@ component:
   reprocessing:
     parameters:
       <<: *defaultParameters
-      kustomize: bitbucket
+      kustomize: github
     ecr:
       <<: *defaultECR
       repository: reprocessing
@@ -880,7 +860,7 @@ component:
   secure-storage:
     parameters:
       <<: *defaultParameters
-      kustomize: bitbucket
+      kustomize: github
     ecr:
       <<: *defaultECR
       repository: current-secure-storage
@@ -891,7 +871,7 @@ component:
   tenant-management:
     parameters:
       <<: *defaultParameters
-      kustomize: bitbucket
+      kustomize: github
     ecr:
       <<: *defaultECR
       repository: tenant-management
@@ -902,7 +882,7 @@ component:
   transaction-announced-event-reducer:
     parameters:
       <<: *defaultParameters
-      kustomize: bitbucket
+      kustomize: github
     ecr:
       <<: *defaultECR
       repository: transaction-announced-event-reducer
@@ -913,17 +893,17 @@ component:
   processing-model:
     parameters:
       <<: *defaultParameters
-      kustomize: bitbucket
+      kustomize: github
 
   utils:
     parameters:
       <<: *defaultParameters
-      kustomize: bitbucket
+      kustomize: github
 
   watchtower:
     parameters:
       <<: *defaultParameters
-      kustomize: bitbucket
+      kustomize: github
     ecr:
       <<: *defaultECR
       repository: watchtower
@@ -934,7 +914,7 @@ component:
   docker-images:
     parameters:
       <<: *defaultParameters
-      kustomize: bitbucket-fake
+      kustomize: github
     ecr:
       <<: *defaultECR
 
