@@ -155,13 +155,17 @@ jobs:
         run: |
           cd ${{ github.workspace }}/plattform/processing/features/${{ matrix.module }}/overlays/${{ matrix.overlay }}
           REPOSITORY_FOLDER=$(echo ${{ matrix.module }} | sed 's/\_/\-/g')
-          REPOSITORY_FULL_NAME="${{ inputs.ecr-repository-code }}.dkr.ecr.${{ inputs.ecr-repository-region }}.amazonaws.com/ai-scores-${REPOSITORY_FOLDER}"
-           # add github commit sha if it's develop
-           if [[ ${{ github.ref_name }} == 'develop' ]]; then
-             TAG=${{ github.ref_name }}-${{ github.sha }}
-           else
-             TAG=${{ github.ref_name }}
-           fi
+          if [[ ${{ inputs.profile }} == 'nab' ]]; then
+            REPOSITORY_FULL_NAME="${{ inputs.ecr-repository-code }}.dkr.ecr.${{ inputs.ecr-repository-region }}.amazonaws.com/hawk-ai-scores-${REPOSITORY_FOLDER}"
+          else
+            REPOSITORY_FULL_NAME="${{ inputs.ecr-repository-code }}.dkr.ecr.${{ inputs.ecr-repository-region }}.amazonaws.com/ai-scores-${REPOSITORY_FOLDER}"
+          fi
+          # add github commit sha if it's develop
+          if [[ ${{ github.ref_name }} == 'develop' ]]; then
+            TAG=${{ github.ref_name }}-${{ github.sha }}
+          else
+            TAG=${{ github.ref_name }}
+          fi
           kustomize edit set image $REPOSITORY_FULL_NAME:$TAG
           git config --global user.name "GitHub Actions"
           git config --global user.email "github-actions@hawk.ai"
