@@ -160,12 +160,12 @@ jobs:
           else
             REPOSITORY_FULL_NAME="${{ inputs.ecr-repository-code }}.dkr.ecr.${{ inputs.ecr-repository-region }}.amazonaws.com/ai-scores-${REPOSITORY_FOLDER}"
           fi
-           # add github commit sha if it's develop
-           if [[ ${{ github.ref_name }} == 'develop' ]]; then
-             TAG=${{ github.ref_name }}-${{ github.sha }}
-           else
-             TAG=${{ github.ref_name }}
-           fi
+          # add github commit sha if it's develop
+          if [[ ${{ github.ref_name }} == 'develop' ]]; then
+            TAG=${{ github.ref_name }}-${{ github.sha }}
+          else
+            TAG=${{ github.ref_name }}
+          fi
           kustomize edit set image $REPOSITORY_FULL_NAME:$TAG
           git config --global user.name "GitHub Actions"
           git config --global user.email "github-actions@hawk.ai"
