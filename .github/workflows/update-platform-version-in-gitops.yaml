@@ -7,10 +7,6 @@ on:
         type: string
         description: Tag name
         required: true
-      description:
-        type: string
-        description: Description for the release
-        required: false
       overlay:
         type: string
         description: Gitops overlay will be updated
@@ -45,6 +41,6 @@ jobs:
           else
             git diff
             git add .
-            git commit -am "${{ inputs.description }}"
+            git commit -am "GITHUB ACTION automatic commit, update overlay {{ inputs.overlay }} to version {{ inputs.tag }}"
             git push --set-upstream origin master
           fi
