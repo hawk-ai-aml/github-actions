@@ -46,7 +46,7 @@ jobs:
     steps:
       - id: init
         name: Init Workflow
-        uses: hawk-ai-aml/github-actions/workflow-init@feature/sre-1309-7
+        uses: hawk-ai-aml/github-actions/workflow-init@master
         with:
           slack-notification-webhook: ${{ secrets.CICD_MIGRATION_SLACK_WEBHOOK_URL }}
           profile: ${{ inputs.profile }}
@@ -66,141 +66,136 @@ jobs:
         with:
           slack-notification-webhook: ${{ secrets.CICD_MIGRATION_SLACK_WEBHOOK_URL }}
 
-      - name: debug-output
+      - name: Login to Docker Hub
+        uses: docker/login-action@v2
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - uses: actions/checkout@v3
+
+      - name: Set up JDK
+        uses: actions/setup-java@v3
+        with:
+          java-version: ${{ fromJson(needs.init.outputs.parameters).java-version }}
+          distribution: temurin
+          cache: gradle
+
+      - name: Set up Gradle
+        uses: gradle/gradle-build-action@v2
+        env:
+          GRADLE_BUILD_ACTION_CACHE_DEBUG_ENABLED: true
+
+      - name: Gradle Assemble
+        env:
+          ARTIFACTORY_CONTEXT_URL: ${{ secrets.ARTIFACTORY_CONTEXT_URL }}
+          ARTIFACTORY_USERNAME: ${{ secrets.ARTIFACTORY_USERNAME }}
+          ARTIFACTORY_PASSWORD: ${{ secrets.ARTIFACTORY_PASSWORD }}
+          DISABLE_SLACK: true
+        run: ./gradlew clean assemble testClasses -isS
+
+      - name: License Report
+        env:
+          ARTIFACTORY_CONTEXT_URL: ${{ secrets.ARTIFACTORY_CONTEXT_URL }}
+          ARTIFACTORY_USERNAME: ${{ secrets.ARTIFACTORY_USERNAME }}
+          ARTIFACTORY_PASSWORD: ${{ secrets.ARTIFACTORY_PASSWORD }}
+          DISABLE_SLACK: true
+        run: ./gradlew licenseReport --no-parallel
+
+      - name: Check Quality
+        env:
+          ARTIFACTORY_CONTEXT_URL: ${{ secrets.ARTIFACTORY_CONTEXT_URL }}
+          ARTIFACTORY_USERNAME: ${{ secrets.ARTIFACTORY_USERNAME }}
+          ARTIFACTORY_PASSWORD: ${{ secrets.ARTIFACTORY_PASSWORD }}
+          DISABLE_SLACK: true
+        run: ./gradlew checkQualityMain
+
+      - name: Run Tests
+        if: ${{ needs.init.outputs.skip-tests != 'true' }}
+        env:
+          ARTIFACTORY_CONTEXT_URL: ${{ secrets.ARTIFACTORY_CONTEXT_URL }}
+          ARTIFACTORY_USERNAME: ${{ secrets.ARTIFACTORY_USERNAME }}
+          ARTIFACTORY_PASSWORD: ${{ secrets.ARTIFACTORY_PASSWORD }}
+          DISABLE_SLACK: true
         run: |
-          echo "${{ inputs.profile }}"
-          echo "${{ inputs.vulnerabilityCheck }}"
+          ./gradlew check -isS
+          ./gradlew aggregateJacocoExecutions
 
-#      - name: Login to Docker Hub
-#        uses: docker/login-action@v2
-#        with:
-#          username: ${{ secrets.DOCKERHUB_USERNAME }}
-#          password: ${{ secrets.DOCKERHUB_TOKEN }}
+      - name: Aggregate reports for upload
+        if: needs.init.outputs.skip-tests != 'true' && (success() || failure())
+        env:
+          METADATA: ${{ needs.init.outputs.metadata }}
+        run: |
+          for module in $(echo ${METADATA} | jq -r '.modules | keys | join(" ")'); do
+            mkdir -p reports/${module}/build
+            if [[ -d ${module}/build/reports ]]; then
+              cp -r ${module}/build/reports reports/${module}/build/reports
+            fi
+          done
 
-#      - uses: actions/checkout@v3
+      - name: Upload Reports to S3
+        id: reports
+        if: needs.init.outputs.skip-tests != 'true' && (success() || failure())
+        uses: hawk-ai-aml/upload-s3-action@master
+        with:
+          aws_key_id: ${{ secrets.AWS_DEV_ACCESS_KEY_ID }}
+          aws_secret_access_key: ${{ secrets.AWS_DEV_SECRET_ACCESS_KEY }}
+          aws_bucket: github-actions-static-html-2
+          source_dir: reports
+          destination_dir: ${{ github.event.repository.name }}-${{ github.run_id }}
 
-#      - name: Set up JDK
-#        uses: actions/setup-java@v3
-#        with:
-#          java-version: ${{ fromJson(needs.init.outputs.parameters).java-version }}
-#          distribution: temurin
-#          cache: gradle
+      - name: Provide Links to Reports
+        if: needs.init.outputs.skip-tests != 'true' && (success() || failure())
+        run: |
+          echo "### Test Reports" | tee -a ${GITHUB_STEP_SUMMARY}
+          report_url=https://github-actions-static-html-2.s3.amazonaws.com/${{ github.event.repository.name }}-${{ github.run_id }}/
+          for report_file_loc in ${{ join(fromJSON(steps.reports.outputs.object_locations), ' ') }}; do
+            report_basename=${report_file_loc##${report_url}}
+            if [[ ${report_file_loc} == */main.html || ${report_file_loc} == */index.html || ${report_file_loc} == */licenseReport.html ]]; then
+              echo "* [${report_basename}](${report_file_loc})" | tee -a ${GITHUB_STEP_SUMMARY}
+            fi
+          done
 
-#      - name: Set up Gradle
-#        uses: gradle/gradle-build-action@v2
-#        env:
-#          GRADLE_BUILD_ACTION_CACHE_DEBUG_ENABLED: true
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v1-node16
+        with:
+          aws-access-key-id: ${{ inputs.profile == 'nab' && secrets.AWS_NAB_DEV_ECR_ACCESS_KEY_ID || secrets.AWS_ORG_ECR_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ inputs.profile == 'nab' && secrets.AWS_NAB_DEV_ECR_SECRET_ACCESS_KEY || secrets.AWS_ORG_ECR_SECRET_ACCESS_KEY }}
+          aws-region: ${{ fromJson(needs.init.outputs.metadata).ecr.region }}
 
-#      - name: Gradle Assemble
-#        env:
-#          ARTIFACTORY_CONTEXT_URL: ${{ secrets.ARTIFACTORY_CONTEXT_URL }}
-#          ARTIFACTORY_USERNAME: ${{ secrets.ARTIFACTORY_USERNAME }}
-#          ARTIFACTORY_PASSWORD: ${{ secrets.ARTIFACTORY_PASSWORD }}
-#          DISABLE_SLACK: true
-#        run: ./gradlew clean assemble testClasses -isS
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v1
+        with:
+          registries: ${{ fromJson(needs.init.outputs.metadata).ecr.registry }}
 
-#      - name: License Report
-#        env:
-#          ARTIFACTORY_CONTEXT_URL: ${{ secrets.ARTIFACTORY_CONTEXT_URL }}
-#          ARTIFACTORY_USERNAME: ${{ secrets.ARTIFACTORY_USERNAME }}
-#          ARTIFACTORY_PASSWORD: ${{ secrets.ARTIFACTORY_PASSWORD }}
-#          DISABLE_SLACK: true
-#        run: ./gradlew licenseReport --no-parallel
+      - name: Build Docker Images
+        env:
+          ARTIFACTORY_CONTEXT_URL: ${{ secrets.ARTIFACTORY_CONTEXT_URL }}
+          ARTIFACTORY_USERNAME: ${{ secrets.ARTIFACTORY_USERNAME }}
+          ARTIFACTORY_PASSWORD: ${{ secrets.ARTIFACTORY_PASSWORD }}
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          ECR_REPOSITORY_PREFIX: ${{ fromJson(needs.init.outputs.metadata).ecr.repository-prefix }}
+        run: |
+          ./gradlew build -Dskip.tests=true -x test
+          ./gradlew jibDockerBuild \
+            -DIMAGE_NAME="${ECR_REGISTRY}/${ECR_REPOSITORY_PREFIX}" \
+            -DTAG_COMMIT=${{ env.HAWK_IMAGE_TAG }} \
+            -DIS_NAB=${{ inputs.profile == 'nab' }}
 
-#      - name: Check Quality
-#        env:
-#          ARTIFACTORY_CONTEXT_URL: ${{ secrets.ARTIFACTORY_CONTEXT_URL }}
-#          ARTIFACTORY_USERNAME: ${{ secrets.ARTIFACTORY_USERNAME }}
-#          ARTIFACTORY_PASSWORD: ${{ secrets.ARTIFACTORY_PASSWORD }}
-#          DISABLE_SLACK: true
-#        run: ./gradlew checkQualityMain
+      - name: Push Docker Images
+        id: push-image
+        env:
+          METADATA: ${{ needs.init.outputs.metadata }}
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+        run: |
+          for module in $(echo ${METADATA} | jq -cr '.modules | keys | join(" ")'); do
+            module_repository=$(echo ${METADATA} | jq -cr --arg MODULE ${module} '.modules[$MODULE].ecr.repository')
+            [[ "${module_repository}" == "null" ]] && continue
+            echo "Module ${module} is configured to push image to ECR repository ${module_repository}"
 
-#      - name: Run Tests
-#        if: ${{ needs.init.outputs.skip-tests != 'true' }}
-#        env:
-#          ARTIFACTORY_CONTEXT_URL: ${{ secrets.ARTIFACTORY_CONTEXT_URL }}
-#          ARTIFACTORY_USERNAME: ${{ secrets.ARTIFACTORY_USERNAME }}
-#          ARTIFACTORY_PASSWORD: ${{ secrets.ARTIFACTORY_PASSWORD }}
-#          DISABLE_SLACK: true
-#        run: |
-#          ./gradlew check -isS
-#          ./gradlew aggregateJacocoExecutions
-
-#      - name: Aggregate reports for upload
-#        if: needs.init.outputs.skip-tests != 'true' && (success() || failure())
-#        env:
-#          METADATA: ${{ needs.init.outputs.metadata }}
-#        run: |
-#          for module in $(echo ${METADATA} | jq -r '.modules | keys | join(" ")'); do
-#            mkdir -p reports/${module}/build
-#            if [[ -d ${module}/build/reports ]]; then
-#              cp -r ${module}/build/reports reports/${module}/build/reports
-#            fi
-#          done
-
-#      - name: Upload Reports to S3
-#        id: reports
-#        if: needs.init.outputs.skip-tests != 'true' && (success() || failure())
-#        uses: hawk-ai-aml/upload-s3-action@master
-#        with:
-#          aws_key_id: ${{ secrets.AWS_DEV_ACCESS_KEY_ID }}
-#          aws_secret_access_key: ${{ secrets.AWS_DEV_SECRET_ACCESS_KEY }}
-#          aws_bucket: github-actions-static-html-2
-#          source_dir: reports
-#          destination_dir: ${{ github.event.repository.name }}-${{ github.run_id }}
-
-#      - name: Provide Links to Reports
-#        if: needs.init.outputs.skip-tests != 'true' && (success() || failure())
-#        run: |
-#          echo "### Test Reports" | tee -a ${GITHUB_STEP_SUMMARY}
-#          report_url=https://github-actions-static-html-2.s3.amazonaws.com/${{ github.event.repository.name }}-${{ github.run_id }}/
-#          for report_file_loc in ${{ join(fromJSON(steps.reports.outputs.object_locations), ' ') }}; do
-#            report_basename=${report_file_loc##${report_url}}
-#            if [[ ${report_file_loc} == */main.html || ${report_file_loc} == */index.html || ${report_file_loc} == */licenseReport.html ]]; then
-#              echo "* [${report_basename}](${report_file_loc})" | tee -a ${GITHUB_STEP_SUMMARY}
-#            fi
-#          done
-
-#      - name: Configure AWS credentials
-#        uses: aws-actions/configure-aws-credentials@v1-node16
-#        with:
-#          aws-access-key-id: ${{ inputs.profile == 'nab' && secrets.AWS_NAB_DEV_ECR_ACCESS_KEY_ID || secrets.AWS_ORG_ECR_ACCESS_KEY_ID }}
-#          aws-secret-access-key: ${{ inputs.profile == 'nab' && secrets.AWS_NAB_DEV_ECR_SECRET_ACCESS_KEY || secrets.AWS_ORG_ECR_SECRET_ACCESS_KEY }}
-#          aws-region: ${{ fromJson(needs.init.outputs.metadata).ecr.region }}
-
-#      - name: Login to Amazon ECR
-#        id: login-ecr
-#        uses: aws-actions/amazon-ecr-login@v1
-#        with:
-#          registries: ${{ fromJson(needs.init.outputs.metadata).ecr.registry }}
-
-#      - name: Build Docker Images
-#        env:
-#          ARTIFACTORY_CONTEXT_URL: ${{ secrets.ARTIFACTORY_CONTEXT_URL }}
-#          ARTIFACTORY_USERNAME: ${{ secrets.ARTIFACTORY_USERNAME }}
-#          ARTIFACTORY_PASSWORD: ${{ secrets.ARTIFACTORY_PASSWORD }}
-#          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
-#          ECR_REPOSITORY_PREFIX: ${{ fromJson(needs.init.outputs.metadata).ecr.repository-prefix }}
-#        run: |
-#          ./gradlew build -Dskip.tests=true -x test
-#          ./gradlew jibDockerBuild \
-#            -DIMAGE_NAME="${ECR_REGISTRY}/${ECR_REPOSITORY_PREFIX}" \
-#            -DTAG_COMMIT=${{ env.HAWK_IMAGE_TAG }} \
-#            -DIS_NAB=${{ inputs.profile == 'nab' }}
-
-#      - name: Push Docker Images
-#        id: push-image
-#        env:
-#          METADATA: ${{ needs.init.outputs.metadata }}
-#          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
-#        run: |
-#          for module in $(echo ${METADATA} | jq -cr '.modules | keys | join(" ")'); do
-#            module_repository=$(echo ${METADATA} | jq -cr --arg MODULE ${module} '.modules[$MODULE].ecr.repository')
-#            [[ "${module_repository}" == "null" ]] && continue
-#            echo "Module ${module} is configured to push image to ECR repository ${module_repository}"
-
-#            hawk.push-docker-image ${ECR_REGISTRY}/${module_repository}:${{ env.HAWK_IMAGE_TAG }}
-#          done
+            hawk.push-docker-image ${ECR_REGISTRY}/${module_repository}:${{ env.HAWK_IMAGE_TAG }}
+          done
 
   vulnerability-check-init:
     if: ${{ (inputs.profile == 'hawk') && (inputs.vulnerabilityCheck == true) }}
@@ -209,11 +204,6 @@ jobs:
     outputs:
       imageList: ${{ steps.composeImageList.outputs.images }}
     steps:
-      - name: debug-output
-        run: |
-          echo "${{ inputs.profile }}"
-          echo "${{ inputs.vulnerabilityCheck }}"        
-
       - name: Compose Image List
         id: composeImageList
         env:
@@ -234,52 +224,50 @@ jobs:
           echo ${list}
           echo "images=${list}" >> $GITHUB_OUTPUT
 
-#  vulnerability-check-run:
-#    if: |
-#      ${{ github.event.inputs.profile == 'hawk' &&
-#      github.event.inputs.vulnerabilityCheck == 'true' }}
-#    needs: [ init, vulnerability-check-init ]
-#    runs-on: ubuntu-latest
-#    strategy:
-#      fail-fast: false
-#      max-parallel: 10
-#      matrix:
-#        test: ${{ fromJSON(needs.vulnerability-check-init.outputs.imageList) }}
-#    steps:
-#      - id: init
-#        name: Init Job
-#        uses: hawk-ai-aml/github-actions/job-init@master
-#        with:
-#          slack-notification-webhook: ${{ secrets.CICD_MIGRATION_SLACK_WEBHOOK_URL }}
+  vulnerability-check-run:
+    if: ${{ (inputs.profile == 'hawk') && (inputs.vulnerabilityCheck == true) }}
+    needs: [ init, vulnerability-check-init ]
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      max-parallel: 10
+      matrix:
+        test: ${{ fromJSON(needs.vulnerability-check-init.outputs.imageList) }}
+    steps:
+      - id: init
+        name: Init Job
+        uses: hawk-ai-aml/github-actions/job-init@master
+        with:
+          slack-notification-webhook: ${{ secrets.CICD_MIGRATION_SLACK_WEBHOOK_URL }}
 
-#      - name: Configure AWS credentials
-#        uses: aws-actions/configure-aws-credentials@v1-node16
-#        with:
-#          aws-access-key-id: ${{ inputs.profile == 'nab' && secrets.AWS_NAB_DEV_ECR_ACCESS_KEY_ID || secrets.AWS_ORG_ECR_ACCESS_KEY_ID }}
-#          aws-secret-access-key: ${{ inputs.profile == 'nab' && secrets.AWS_NAB_DEV_ECR_SECRET_ACCESS_KEY || secrets.AWS_ORG_ECR_SECRET_ACCESS_KEY }}
-#          aws-region: ${{ fromJson(needs.init.outputs.metadata).ecr.region }}
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v1-node16
+        with:
+          aws-access-key-id: ${{ inputs.profile == 'nab' && secrets.AWS_NAB_DEV_ECR_ACCESS_KEY_ID || secrets.AWS_ORG_ECR_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ inputs.profile == 'nab' && secrets.AWS_NAB_DEV_ECR_SECRET_ACCESS_KEY || secrets.AWS_ORG_ECR_SECRET_ACCESS_KEY }}
+          aws-region: ${{ fromJson(needs.init.outputs.metadata).ecr.region }}
 
-#      - name: Login to Amazon ECR
-#        id: login-ecr
-#        uses: aws-actions/amazon-ecr-login@v1
-#        with:
-#          registries: ${{ fromJson(needs.init.outputs.metadata).ecr.registry }}
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v1
+        with:
+          registries: ${{ fromJson(needs.init.outputs.metadata).ecr.registry }}
 
-#      - name: Retrieve AWS ECR login password for Lacework
-#        id: ecrLoginPassword
-#        run: echo "loginPassword=$(aws ecr get-login-password --region eu-central-1)" >> $GITHUB_OUTPUT
+      - name: Retrieve AWS ECR login password for Lacework
+        id: ecrLoginPassword
+        run: echo "loginPassword=$(aws ecr get-login-password --region eu-central-1)" >> $GITHUB_OUTPUT
 
-#      - uses: lacework/lw-scanner-action@v1.3.1
-#        name: Scan container image for vulnerabilities using Lacework
-#        env:
-#          JAVA_OFFLINE_MODE: ${{ env.LACEWORK_JAVA_OFFLINE_MODE }}
-#        with:
-#          LW_ACCOUNT_NAME: ${{ secrets.LACEWORK_ACCOUNT_NAME }}
-#          LW_ACCESS_TOKEN: ${{ secrets.LACEWORK_ACCESS_TOKEN }}
-#          IMAGE_NAME: ${{ matrix.test }}
-#          IMAGE_TAG: ${{ env.HAWK_IMAGE_TAG }}
-#          SAVE_RESULTS_IN_LACEWORK: true
-#          ADDITIONAL_PARAMETERS: --docker-username AWS --docker-server https://860641649575.dkr.ecr.eu-central-1.amazonaws.com --docker-password ${{ steps.ecrLoginPassword.outputs.loginPassword }}
+      - uses: lacework/lw-scanner-action@v1.3.1
+        name: Scan container image for vulnerabilities using Lacework
+        env:
+          JAVA_OFFLINE_MODE: ${{ env.LACEWORK_JAVA_OFFLINE_MODE }}
+        with:
+          LW_ACCOUNT_NAME: ${{ secrets.LACEWORK_ACCOUNT_NAME }}
+          LW_ACCESS_TOKEN: ${{ secrets.LACEWORK_ACCESS_TOKEN }}
+          IMAGE_NAME: ${{ matrix.test }}
+          IMAGE_TAG: ${{ env.HAWK_IMAGE_TAG }}
+          SAVE_RESULTS_IN_LACEWORK: true
+          ADDITIONAL_PARAMETERS: --docker-username AWS --docker-server https://860641649575.dkr.ecr.eu-central-1.amazonaws.com --docker-password ${{ steps.ecrLoginPassword.outputs.loginPassword }}
 
   update-overlays:
     needs: [ init, build ]
