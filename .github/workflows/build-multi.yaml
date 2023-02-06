@@ -62,7 +62,7 @@ jobs:
     steps:
       - id: init
         name: Init Job
-        uses: hawk-ai-aml/github-actions/job-init@master
+        uses: hawk-ai-aml/github-actions/job-init@feature/sre-1309-7
         with:
           slack-notification-webhook: ${{ secrets.CICD_MIGRATION_SLACK_WEBHOOK_URL }}
 
