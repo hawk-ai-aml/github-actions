@@ -26,6 +26,11 @@ inputs:
     description: "Overlays to update"
     required: false
     default: dev
+  vulnerabilityCheck:
+    description: "Conduct a vulnerability check using Lacework"
+    type: boolean
+    required: false
+    default: false
 
 outputs:
   metadata:
@@ -76,6 +81,9 @@ runs:
 
         SKIP_TESTS=${{ inputs.skip-tests }}
         SKIP_TESTS=${SKIP_TESTS:-false}
+        
+        VULNERABILITY_CHECK=${{ inputs.vulnerabilityCheck }}
+        VULNERABILITY_CHECK=${VULNERABILITY_CHECK:-false}
 
         METADATA_JSON=$(yj -y < ${GITHUB_ACTION_PATH}/profile/${{ inputs.profile }}.yml \
           | jq -cr --arg COMPONENT ${{ inputs.component }} '.component[$COMPONENT]')
@@ -116,6 +124,7 @@ runs:
         parameters=${PARAMETERS_JSON}
         update-kustomize=${UPDATE_KUSTOMIZE}
         skip-tests=${SKIP_TESTS}
+        vulnerability-check=${VULNERABILITY_CHECK}
         EOF
 
         cat <<EOF | tee -a ${GITHUB_STEP_SUMMARY}
