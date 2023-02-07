@@ -26,6 +26,11 @@ on:
       profile:
         type: string
         required: false
+      vulnerabilityCheck:
+        description: "Conduct a vulnerability check using Lacework"
+        type: boolean
+        required: false
+        default: false
 
 defaults:
   run:
@@ -53,6 +58,7 @@ jobs:
           update-kustomize: ${{ inputs.updateKustomize }}
           overlays: ${{ inputs.kustomizeOverlays }}
           skip-tests: ${{ inputs.skipTests }}
+          vulnerabilityCheck: ${{ inputs.vulnerabilityCheck }}
 
   build:
     needs: [ init ]
@@ -181,7 +187,7 @@ jobs:
             -DIS_NAB=${{ inputs.profile == 'nab' }}
 
   vulnerability-check-init:
-    if: ${{ inputs.profile == 'hawk' }}
+    if: ${{ (inputs.profile == 'hawk') && (inputs.vulnerabilityCheck == true) }}
     needs: [ init, build ]
     runs-on: ubuntu-latest
     outputs:
@@ -205,7 +211,7 @@ jobs:
           echo "images=${list}" >> $GITHUB_OUTPUT
 
   vulnerability-check-run:
-    if: ${{ inputs.profile == 'hawk' }}
+    if: ${{ (inputs.profile == 'hawk') && (inputs.vulnerabilityCheck == true) }}
     needs: [ init, vulnerability-check-init ]
     runs-on: ubuntu-latest
     steps:
