@@ -163,7 +163,6 @@ jobs:
         run: |
           ./gradlew jib -DIMAGE_NAME="${ECR_REGISTRY}/${ECR_REPOSITORY}" -DTAG_COMMIT=${{ env.HAWK_IMAGE_TAG }}
 
-
   vulnerability-check-run:
     if: ${{ (inputs.profile == 'hawk') && (inputs.vulnerabilityCheck == true) }}
     needs: [ init, build ]
