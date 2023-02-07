@@ -19,10 +19,6 @@ on:
       component:
         type: string
         required: false
-      module:
-        type: string
-        required: true
-        default: ""
       profile:
         type: string
         required: false
@@ -36,8 +32,6 @@ jobs:
     runs-on: [ "self-hosted", "builder" ]
     outputs:
       overlays: ${{ steps.init.outputs.overlays }}
-      modules: ${{ steps.init.outputs.modules }}
-      kustomizable-modules: ${{ steps.init.outputs.kustomizable-modules }}
       metadata: ${{ steps.init.outputs.metadata }}
       update-kustomize: ${{ steps.init.outputs.update-kustomize }}
       skip-tests: ${{ steps.init.outputs.skip-tests }}
@@ -90,7 +84,7 @@ jobs:
           ARTIFACTORY_USERNAME: ${{ secrets.ARTIFACTORY_USERNAME }}
           ARTIFACTORY_PASSWORD: ${{ secrets.ARTIFACTORY_PASSWORD }}
           DISABLE_SLACK: true
-        run: ./gradlew clean :${{ inputs.module }}:assemble :${{ inputs.module }}:testClasses -isS
+        run: ./gradlew clean assemble testClasses -isS
 
       - name: License Report
         env:
@@ -98,7 +92,7 @@ jobs:
           ARTIFACTORY_USERNAME: ${{ secrets.ARTIFACTORY_USERNAME }}
           ARTIFACTORY_PASSWORD: ${{ secrets.ARTIFACTORY_PASSWORD }}
           DISABLE_SLACK: true
-        run: ./gradlew :${{ inputs.module }}:licenseReport --no-parallel
+        run: ./gradlew licenseReport
 
       - name: Check Quality
         env:
@@ -106,7 +100,7 @@ jobs:
           ARTIFACTORY_USERNAME: ${{ secrets.ARTIFACTORY_USERNAME }}
           ARTIFACTORY_PASSWORD: ${{ secrets.ARTIFACTORY_PASSWORD }}
           DISABLE_SLACK: true
-        run: ./gradlew :${{ inputs.module }}:checkQualityMain
+        run: ./gradlew checkQualityMain
 
       - name: Run Tests
         if: ${{ needs.init.outputs.skip-tests != 'true' }}
@@ -115,18 +109,7 @@ jobs:
           ARTIFACTORY_USERNAME: ${{ secrets.ARTIFACTORY_USERNAME }}
           ARTIFACTORY_PASSWORD: ${{ secrets.ARTIFACTORY_PASSWORD }}
           DISABLE_SLACK: true
-        run: |
-          ./gradlew :${{ inputs.module }}:check :${{ inputs.module }}:jacocoTestReport :jacocoTestCoverageVerification -isS
-
-      - name: Aggregate reports for upload
-        if: needs.init.outputs.skip-tests != 'true' && (success() || failure())
-        run: |
-          for module in ${{ inputs.module }}; do
-            mkdir -p reports/${module}/build
-            if [[ -d ${module}/build/reports ]]; then
-              cp -r ${module}/build/reports reports/${module}/build/reports
-            fi
-          done
+        run: ./gradlew test -isS
 
       - name: Upload Reports to S3
         id: reports
@@ -136,7 +119,7 @@ jobs:
           aws_key_id: ${{ secrets.AWS_DEV_ACCESS_KEY_ID }}
           aws_secret_access_key: ${{ secrets.AWS_DEV_SECRET_ACCESS_KEY }}
           aws_bucket: github-actions-static-html-2
-          source_dir: reports
+          source_dir: app/build/reports
           destination_dir: ${{ github.event.repository.name }}-${{ github.run_id }}
 
       - name: Provide Links to Reports
@@ -152,7 +135,6 @@ jobs:
           done
 
       - name: Configure AWS credentials
-        if: ${{ contains(needs.init.outputs.kustomizable-modules, inputs.module) }}
         uses: aws-actions/configure-aws-credentials@v1
         with:
           aws-access-key-id: ${{ inputs.profile == 'nab' && secrets.AWS_NAB_DEV_ECR_ACCESS_KEY_ID || secrets.AWS_ORG_ECR_ACCESS_KEY_ID }}
@@ -161,52 +143,25 @@ jobs:
 
       - name: Login to Amazon ECR
         id: login-ecr
-        if: ${{ contains(needs.init.outputs.kustomizable-modules, inputs.module) }}
         uses: aws-actions/amazon-ecr-login@v1
         with:
           registries: ${{ fromJson(needs.init.outputs.metadata).ecr.registry }}
 
-      - name: Build Docker Images
-        if: ${{ contains(needs.init.outputs.kustomizable-modules, inputs.module) }}
+      - name: Build image
         env:
           ARTIFACTORY_CONTEXT_URL: ${{ secrets.ARTIFACTORY_CONTEXT_URL }}
           ARTIFACTORY_USERNAME: ${{ secrets.ARTIFACTORY_USERNAME }}
           ARTIFACTORY_PASSWORD: ${{ secrets.ARTIFACTORY_PASSWORD }}
           ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
-          ECR_REPOSITORY_PREFIX: ${{ fromJson(needs.init.outputs.metadata).ecr.repository-prefix }}
+          ECR_REPOSITORY: ${{ fromJson(needs.init.outputs.metadata).ecr.repository }}
         run: |
-          ./gradlew :${{ inputs.module }}:jib \
-            -DIMAGE_NAME="${ECR_REGISTRY}/${ECR_REPOSITORY_PREFIX}" \
-            -DTAG_COMMIT=${{ env.HAWK_IMAGE_TAG }} \
-            -DIS_NAB=${{ inputs.profile == 'nab' }}
+          ./gradlew build -Dskip.tests=true -x test
+          ./gradlew jibDockerBuild -DIMAGE_NAME="${ECR_REGISTRY}/${ECR_REPOSITORY}" -DTAG_COMMIT=${{ env.HAWK_IMAGE_TAG }}
 
-  vulnerability-check-init:
-    if: ${{ inputs.profile == 'hawk' }}
-    needs: [ init, build ]
-    runs-on: ubuntu-latest
-    outputs:
-      imageList: ${{ steps.composeImageList.outputs.images }}
-    steps:
-      - name: Compose Image List
-        id: composeImageList
-        env:
-          METADATA: ${{ needs.init.outputs.metadata }}
-          ECR_REGISTRY: ${{ fromJson(needs.init.outputs.metadata).ecr.registry }}
-        run: |        
-          for module in ${{ inputs.module }}; do
-            module_repository=$(echo ${METADATA} | jq -cr --arg MODULE ${module} '.modules[$MODULE].ecr.repository')
-            [[ "${module_repository}" == "null" ]] && continue
-            echo "Module ${module} is configured to push image to ECR repository ${module_repository}"
-
-            list="${ECR_REGISTRY}.dkr.ecr.eu-central-1.amazonaws.com/${module_repository}"
-          done
-          
-          echo ${list}
-          echo "images=${list}" >> $GITHUB_OUTPUT
 
   vulnerability-check-run:
     if: ${{ inputs.profile == 'hawk' }}
-    needs: [ init, vulnerability-check-init ]
+    needs: [ init, build ]
     runs-on: ubuntu-latest
     steps:
       - id: init
@@ -239,7 +194,7 @@ jobs:
         with:
           LW_ACCOUNT_NAME: ${{ secrets.LACEWORK_ACCOUNT_NAME }}
           LW_ACCESS_TOKEN: ${{ secrets.LACEWORK_ACCESS_TOKEN }}
-          IMAGE_NAME: ${{ needs.vulnerability-check-init.outputs.imageList }}
+          IMAGE_NAME: ${{ steps.login-ecr.outputs.registry }}/${{ fromJson(needs.init.outputs.metadata).ecr.repository }}
           IMAGE_TAG: ${{ env.HAWK_IMAGE_TAG }}
           SAVE_RESULTS_IN_LACEWORK: true
           ADDITIONAL_PARAMETERS: --docker-username AWS --docker-server https://860641649575.dkr.ecr.eu-central-1.amazonaws.com --docker-password ${{ steps.ecrLoginPassword.outputs.loginPassword }}
@@ -248,6 +203,12 @@ jobs:
     needs: [ init, build ]
     if: ${{ needs.init.outputs.update-kustomize == 'true' }}
     runs-on: [ "self-hosted", "builder" ]
+    strategy:
+      # Avoid race condition issues with github
+      max-parallel: 1
+      matrix:
+        overlay: ${{fromJson(needs.init.outputs.overlays)}}
+
     steps:
       - id: init
         name: Init Job
@@ -258,11 +219,11 @@ jobs:
       - id: udpate-overlay-github
         name: Update kustomize overlay
         if: fromJson(needs.init.outputs.parameters).kustomize == 'github' || fromJson(needs.init.outputs.parameters).kustomize == 'github-fake'
-        uses: hawk-ai-aml/github-actions/kustomize-overlay-multi@master
+        uses: hawk-ai-aml/github-actions/kustomize-overlay@master
         with:
           component-name: ${{ inputs.component }}
-          component-modules: '["${{ inputs.module }}"]'
-          component-overlays: ${{ needs.init.outputs.overlays }}
+          component-metadata: ${{ needs.init.outputs.metadata }}
+          component-overlay: ${{ matrix.overlay }}
           component-tag: ${{ env.HAWK_IMAGE_TAG }}
           kustomize-repo: ${{ fromJson(needs.init.outputs.parameters).kustomize == 'github-fake' && 'hawk-ai-aml/kustomize2.git' || 'hawk-ai-aml/kustomize.git' }}
           kustomize-access-token: ${{ secrets.REPO_ACCESS_PAT }}
@@ -270,13 +231,11 @@ jobs:
       - id: udpate-overlay-bitbucket
         name: Update kustomize overlay
         if: fromJson(needs.init.outputs.parameters).kustomize == 'bitbucket' || fromJson(needs.init.outputs.parameters).kustomize == 'bitbucket-fake'
-        uses: hawk-ai-aml/github-actions/kustomize-overlay-ssh-multi@master
+        uses: hawk-ai-aml/github-actions/kustomize-overlay-ssh@master
         with:
           component-name: ${{ inputs.component }}
-          component-modules: '["${{ inputs.module }}"]'
-          component-overlays: ${{ needs.init.outputs.overlays }}
+          component-metadata: ${{ needs.init.outputs.metadata }}
+          component-overlay: ${{ matrix.overlay }}
           component-tag: ${{ env.HAWK_IMAGE_TAG }}
           kustomize-repo: ${{ fromJson(needs.init.outputs.parameters).kustomize == 'bitbucket-fake' && 'git@bitbucket.org:hawkai/kustomize2.git' || 'git@bitbucket.org:hawkai/kustomize.git' }}
           kustomize-ssh-key: ${{ secrets.KUSTOMIZE_DEPLOY_PRIVATE_KEY }}
-
-# End of file
