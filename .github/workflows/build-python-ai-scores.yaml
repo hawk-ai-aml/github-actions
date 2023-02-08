@@ -120,7 +120,7 @@ jobs:
           TAG=${{ github.ref_name }}
           # add github commit sha if the job is not called by the TAG pipeline
           if [[ ! ${{ inputs.caller-workflow-type }} == 'tag' ]]; then
-            TAG+="-${{ github.sha }}"
+            TAG+="-${GITHUB_SHA:0:7}"
           fi
           echo "tag=${TAG}" >> $GITHUB_OUTPUT
           for module in $MODULES
