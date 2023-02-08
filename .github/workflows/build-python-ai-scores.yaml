@@ -114,7 +114,7 @@ jobs:
           echo ${{ inputs.caller-workflow-type }}
           echo $MODULES
           REGISTRY=${{ inputs.ecr-repository-code }}.dkr.ecr.${{ inputs.ecr-repository-region }}.amazonaws.com
-          TAG=${{ github.ref_name }}
+          TAG=$(echo ${GITHUB_REF_NAME} | sed 's,\/,-,g; s,\#,,g')
           # add github commit sha if the job is not called by the TAG pipeline
           if [[ ! ${{ inputs.caller-workflow-type }} == 'tag' ]]; then
             TAG+="-${GITHUB_SHA:0:7}"
