@@ -162,7 +162,7 @@ jobs:
           do
             REPOSITORY_FOLDER=$(echo ${module} | sed 's/\_/\-/g')
             REPOSITORY_FULL_NAME="${REGISTRY}/ai-scores-${REPOSITORY_FOLDER}"
-            list="${list} \"{REPOSITORY_FULL_NAME}:${TAG}\", "
+            list="${list} \"${REPOSITORY_FULL_NAME}:${TAG}\", "
           done
 
           list="${list} ]"
@@ -190,17 +190,17 @@ jobs:
         with:
           aws-access-key-id: ${{ secrets.AWS_ORG_ECR_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_ORG_ECR_SECRET_ACCESS_KEY }}
-          aws-region: ${{ fromJson(needs.init.outputs.metadata).ecr.region }}
+          aws-region: ${{ inputs.ecr-repository-region }}
 
       - name: Login to Amazon ECR
         id: login-ecr
         uses: aws-actions/amazon-ecr-login@v1
         with:
-          registries: ${{ fromJson(needs.init.outputs.metadata).ecr.registry }}
+          registries: ${{ inputs.ecr-repository-code }}
 
       - name: Retrieve AWS ECR login password for Lacework
         id: ecrLoginPassword
-        run: echo "loginPassword=$(aws ecr get-login-password --region eu-central-1)" >> $GITHUB_OUTPUT
+        run: echo "loginPassword=$(aws ecr get-login-password --region ${{ inputs.ecr-repository-region }})" >> $GITHUB_OUTPUT
 
       - uses: lacework/lw-scanner-action@v1.3.1
         name: Scan container image for vulnerabilities using Lacework
