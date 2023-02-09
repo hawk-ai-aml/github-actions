@@ -936,4 +936,15 @@ component:
       <<: *defaultParameters
       java-version: 17
 
+  case-statistics:
+    parameters:
+      <<: *defaultParameters
+      kustomize: github
+      java-version: 17
+    ecr:
+      <<: *defaultECR
+      repository: case-statistics
+    kustomize:
+      path: plattform/utility/case-statistics
+      overlays: *defaultOverlays
 # End of file
