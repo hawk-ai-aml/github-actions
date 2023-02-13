@@ -157,6 +157,6 @@ jobs:
           git config --global user.name "GitHub Actions"
           git config --global user.email "github-actions@hawk.ai"
           git add .
-          git commit -m "AUTOMATIC COMMIT: Update ${KUSTOMIZE_PATH}/overlays/${OVERLAY} for ${{ matrix.module }} to $TAG "
+          git commit -m "AUTOMATIC COMMIT: Update ${{ matrix.module }} on ${{ matrix.overlay }} to $TAG "
           git push
 
