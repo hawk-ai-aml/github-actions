@@ -137,7 +137,6 @@ jobs:
     needs: build
     runs-on: [ "self-hosted", "builder" ]
     strategy:
-      # Avoid race condition issues with github
       max-parallel: 1
       matrix:
         overlay: ${{fromJson(inputs.environments)}}
@@ -147,9 +146,7 @@ jobs:
       - name: Checkout Kustomize (GitHub)
         uses: actions/checkout@v3
         with:
-          repository: hawk-ai-aml/kustomize.git
           token: ${{ secrets.REPO_ACCESS_PAT }}
-          ref: master
 
       - name: Update Kustomize (GitHub)
         run: |
@@ -160,12 +157,7 @@ jobs:
           else
             REPOSITORY_FULL_NAME="${{ inputs.ecr-repository-code }}.dkr.ecr.${{ inputs.ecr-repository-region }}.amazonaws.com/ai-scores-${REPOSITORY_FOLDER}"
           fi
-          # add github commit sha if it's develop
-          if [[ ${{ github.ref_name }} == 'develop' ]]; then
-            TAG=${{ github.ref_name }}-${{ github.sha }}
-          else
-            TAG=${{ github.ref_name }}
-          fi
+          TAG=${{ steps.build-and-tag.outputs.tag }}
           kustomize edit set image $REPOSITORY_FULL_NAME:$TAG
           git config --global user.name "GitHub Actions"
           git config --global user.email "github-actions@hawk.ai"
