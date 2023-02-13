@@ -149,77 +149,32 @@ jobs:
         module: ${{fromJson(inputs.modules)}}
 
     steps:
+      - name: Checkout Kustomize (GitHub)
+        uses: actions/checkout@v3
+        with:
+          repository: hawk-ai-aml/kustomize.git
+          token: ${{ secrets.REPO_ACCESS_PAT }}
+          ref: master
 
-#    steps:
-#      - name: Checkout Kustomize (GitHub)
-#        if: contains(inputs.kustomize-repository, 'github')
-#        uses: actions/checkout@v3
-#        with:
-#          repository: hawk-ai-aml/kustomize2.git
-#          token: ${{ secrets.TEST_TOKEN }}
-#          ref: master
-#
-#      - name: Update Kustomize (GitHub)
-#        if: contains(inputs.kustomize-repository, 'github')
-#        run: |
-#          cd ${{ github.workspace }}/plattform/processing/features/${{ matrix.module }}/overlays/${{ matrix.overlay }}
-#          REPOSITORY_FOLDER=$(echo ${{ matrix.service }} | sed 's/\_/\-/g')
-#          REPOSITORY_FULL_NAME="${ECR_REGISTRY}/ai-scores-${REPOSITORY_FOLDER}"
-#          # kustomize edit set image $REPOSITORY_FULL_NAME:${{ env.HAWK_IMAGE_TAG }}
-#          GITHUB_REF=$(echo ${GITHUB_REF_NAME} | sed 's,\/,-,g; s,\#,,g')
-#           # add github commit sha if it's develop
-#           if [[ $GITHUB_REF == 'develop' ]]
-#             TAG=${GITHUB_REF}-${{ github.sha }}
-#           else
-#             TAG=$GITHUB_REF
-#           fi
-#          kustomize edit set image $REPOSITORY_FULL_NAME:$TAG
-#          git config --global user.name "GitHub Actions"
-#          git config --global user.email "github-actions@hawk.ai"
-#          git add .
-#          git commit -m "Change Tag"
-#          git push
-
-      - name: Update Kustomize (Bitbucket)
-        if: contains(inputs.kustomize-repository, 'bitbucket')
-        shell: bash -l -ET -eo pipefail {0}
-        env:
-          HAWK_IMAGE_NAME: ${{ inputs.ecr-repository-code }}.dkr.ecr.eu-central-1.amazonaws.com/ai-scores-${{ matrix.module }}
-          NAB_IMAGE_NAME: ${{ inputs.ecr-repository-code }}.dkr.ecr.eu-central-1.amazonaws.com/hawk-ai-scores-${{ matrix.module }}
-          KUSTOMIZE_SSH_KEY_FILE: /home/builder/.ssh/id_kustomize_private_key
-          KUSTOMIZE_SSH_KEY: ${{ secrets.KUSTOMIZE_DEPLOY_PRIVATE_KEY }}
-          KUSTOMIZE_PATH: plattform/processing/features/
-          OVERLAY: ${{ matrix.overlay }}
-          TAG: ${{ needs.build.outputs.tag }}
+      - name: Update Kustomize (GitHub)
         run: |
-          # Prepare SSH
-          mkdir -p $(dirname ${KUSTOMIZE_SSH_KEY_FILE})
-          echo ${KUSTOMIZE_SSH_KEY} | base64 -d > ${KUSTOMIZE_SSH_KEY_FILE}
-          chmod 600 ${KUSTOMIZE_SSH_KEY_FILE}
-          export GIT_SSH_COMMAND="ssh -i ${KUSTOMIZE_SSH_KEY_FILE}"
-          cat <<EOF >> ~/.ssh/known_hosts
-          bitbucket.org ssh-rsa ${{ secrets.BITBUCKET_SSH_RSA }}
-          EOF
-          # End prepare SSH
-
-          git clone ${{ inputs.kustomize-repository }}
-          #either kustomize or kustomize2
-          REPO_SLUG=$(echo ${{ inputs.kustomize-repository }} | cut -d "/" -f 2 | cut -d "." -f 1)
-
-
-          cd ${REPO_SLUG}/${KUSTOMIZE_PATH}${{ matrix.module }}/overlays/${OVERLAY}
-          echo ${HAWK_IMAGE_NAME}
-          echo ${NAB_IMAGE_NAME}
-          echo ${GITHUB_REF_NAME}
+          cd ${{ github.workspace }}/plattform/processing/features/${{ matrix.module }}/overlays/${{ matrix.overlay }}
+          REPOSITORY_FOLDER=$(echo ${{ matrix.module }} | sed 's/\_/\-/g')
           if [[ ${{ inputs.profile }} == 'nab' ]]; then
-            IMAGE_NAME=${NAB_IMAGE_NAME}
+            REPOSITORY_FULL_NAME="${{ inputs.ecr-repository-code }}.dkr.ecr.${{ inputs.ecr-repository-region }}.amazonaws.com/hawk-ai-scores-${REPOSITORY_FOLDER}"
           else
-            IMAGE_NAME=${HAWK_IMAGE_NAME}
+            REPOSITORY_FULL_NAME="${{ inputs.ecr-repository-code }}.dkr.ecr.${{ inputs.ecr-repository-region }}.amazonaws.com/ai-scores-${REPOSITORY_FOLDER}"
           fi
-          echo "Image Name = ${IMAGE_NAME}"
-          kustomize edit set image ${IMAGE_NAME}:${TAG}
+          # add github commit sha if it's develop
+          if [[ ${{ github.ref_name }} == 'develop' ]]; then
+            TAG=${{ github.ref_name }}-${{ github.sha }}
+          else
+            TAG=${{ github.ref_name }}
+          fi
+          kustomize edit set image $REPOSITORY_FULL_NAME:$TAG
           git config --global user.name "GitHub Actions"
           git config --global user.email "github-actions@hawk.ai"
           git add .
-          git commit -m "AUTOMATIC COMMIT: Update ${KUSTOMIZE_PATH}/overlays/${OVERLAY} for ${{ matrix.module }} to $TAG }}"
+          git commit -m "AUTOMATIC COMMIT: Update ${KUSTOMIZE_PATH}/overlays/${OVERLAY} for ${{ matrix.module }} to $TAG "
           git push
+
