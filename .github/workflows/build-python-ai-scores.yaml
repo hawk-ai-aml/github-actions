@@ -160,7 +160,11 @@ jobs:
           kustomize edit set image $REPOSITORY_FULL_NAME:$TAG
           git config --global user.name "GitHub Actions"
           git config --global user.email "github-actions@hawk.ai"
-          git add .
-          git commit -m "AUTOMATIC COMMIT: Update ${{ matrix.module }} on ${{ matrix.overlay }} to $TAG "
-          git push
+          if [[ -z $(git status -s) ]]; then
+            echo "no changes in overlays ${overlays} (TAG: $TAG)"
+          else
+            git add .
+            git commit -m "AUTOMATIC COMMIT: Update ${{ matrix.module }} on ${{ matrix.overlay }} to $TAG "
+            git push
+          fi
 
