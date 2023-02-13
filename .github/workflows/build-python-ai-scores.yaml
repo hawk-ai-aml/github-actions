@@ -146,12 +146,12 @@ jobs:
       - name: Checkout Kustomize (GitHub)
         uses: actions/checkout@v3
         with:
+          repository: hawk-ai-aml/kustomize.git
           token: ${{ secrets.REPO_ACCESS_PAT }}
+          ref: master
 
       - name: Update Kustomize (GitHub)
         run: |
-          ls .
-          ls ${{ github.workspace }}
           cd ${{ github.workspace }}/plattform/processing/features/${{ matrix.module }}/overlays/${{ matrix.overlay }}
           REPOSITORY_FOLDER=$(echo ${{ matrix.module }} | sed 's/\_/\-/g')
           if [[ ${{ inputs.profile }} == 'nab' ]]; then
