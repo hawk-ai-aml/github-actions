@@ -80,7 +80,7 @@ jobs:
           cat manual-requirements.txt pipenv-requirements.txt > requirements.txt
           pipenv run pip install pip-licenses
           pipenv run pip install -r manual-requirements.txt
-          pipenv run pytest tests/core/test_model_caching --junitxml=report.xml
+          pipenv run pytest tests --junitxml=report.xml
           pipenv run junit2html report.xml report.html
           mkdir report-dir && mv report.html ./report-dir/report.html
 
