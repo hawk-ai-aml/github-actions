@@ -80,7 +80,7 @@ jobs:
           else
              cat pipenv-requirements.txt > requirements.txt
           fi
-          
+
           pipenv run pip install pip-licenses
           pipenv run pytest tests --junitxml=report.xml
           pipenv run junit2html report.xml report.html
@@ -114,6 +114,7 @@ jobs:
         id: build-and-tag
         env:
           MODULES: ${{ inputs.modules-string }}
+          PY_UTILS_PAT: ${{ secrets.PY_UTILS_PAT}}
 
         run: |
           echo "WORKFLOW TYPE:"
