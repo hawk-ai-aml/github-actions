@@ -104,6 +104,7 @@ component:
     parameters:
       <<: *defaultParameters
       kustomize: github
+      java-version: 17
     ecr:
       <<: *defaultECR
       repository: audit-trail
@@ -192,6 +193,7 @@ component:
     parameters:
       <<: *defaultParameters
       kustomize: github
+      java-version: 17
     ecr:
       <<: *defaultECR
       repository: case-sink
@@ -391,6 +393,7 @@ component:
     parameters:
       <<: *defaultParameters
       kustomize: github
+      java-version: 17
     ecr:
       <<: *defaultECR
     kustomize:
@@ -400,14 +403,17 @@ component:
         parameters:
           <<: *defaultParameters
           kustomize: github
+          java-version: 17
       engine:
         parameters:
           <<: *defaultParameters
           kustomize: github
+          java-version: 17
       msg:
         parameters:
           <<: *defaultParameters
           kustomize: github
+          java-version: 17
         ecr:
           <<: *defaultECR
           repository: hawkai-gateway-msg
@@ -418,6 +424,7 @@ component:
         parameters:
           <<: *defaultParameters
           kustomize: github
+          java-version: 17
         ecr:
           <<: *defaultECR
           repository: hawkai-gateway-batch
@@ -428,6 +435,7 @@ component:
         parameters:
           <<: *defaultParameters
           kustomize: github
+          java-version: 17
         ecr:
           <<: *defaultECR
           repository: hawkai-gateway
@@ -438,6 +446,7 @@ component:
         parameters:
           <<: *defaultParameters
           kustomize: github
+          java-version: 17
         ecr:
           <<: *defaultECR
           repository: hawkai-gateway-activemq
@@ -742,11 +751,24 @@ component:
     parameters:
       <<: *defaultParameters
       kustomize: github
+      java-version: 17
     ecr:
       <<: *defaultECR
       repository: feature-enrichment
     kustomize:
       path: plattform/processing/feature-enrichment
+      overlays: *defaultOverlays
+
+  external-enrichment:
+    parameters:
+      <<: *defaultParameters
+      kustomize: bitbucket
+      java-version: 17
+    ecr:
+      <<: *defaultECR
+      repository: external-enrichment
+    kustomize:
+      path: plattform/processing/external-enrichment
       overlays: *defaultOverlays
 
   frontend:
@@ -850,6 +872,7 @@ component:
     parameters:
       <<: *defaultParameters
       kustomize: github
+      java-version: 17
     ecr:
       <<: *defaultECR
       repository: reprocessing
@@ -861,6 +884,7 @@ component:
     parameters:
       <<: *defaultParameters
       kustomize: github
+      java-version: 17
     ecr:
       <<: *defaultECR
       repository: current-secure-storage
@@ -923,4 +947,15 @@ component:
       <<: *defaultParameters
       java-version: 17
 
+  case-statistics:
+    parameters:
+      <<: *defaultParameters
+      kustomize: github
+      java-version: 17
+    ecr:
+      <<: *defaultECR
+      repository: case-statistics
+    kustomize:
+      path: plattform/utility/case-statistics
+      overlays: *defaultOverlays
 # End of file

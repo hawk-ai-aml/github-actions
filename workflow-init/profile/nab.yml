@@ -45,6 +45,7 @@ component:
     parameters:
       <<: *defaultParameters
       kustomize: github
+      java-version: 17
     ecr:
       <<: *defaultECR
       repository: hawk-audit-trail
@@ -141,6 +142,7 @@ component:
     parameters:
       <<: *defaultParameters
       kustomize: github
+      java-version: 17
     ecr:
       <<: *defaultECR
       repository: hawk-case-sink
@@ -352,6 +354,7 @@ component:
     parameters:
       <<: *defaultParameters
       kustomize: github
+      java-version: 17
     ecr:
       <<: *defaultECR
       repository-prefix: hawk-
@@ -362,14 +365,17 @@ component:
         parameters:
           <<: *defaultParameters
           kustomize: github
+          java-version: 17
       engine:
         parameters:
           <<: *defaultParameters
           kustomize: github
+          java-version: 17
       msg:
         parameters:
           <<: *defaultParameters
           kustomize: github
+          java-version: 17
         ecr:
           <<: *defaultECR
           repository: hawk-hawkai-gateway-msg
@@ -381,6 +387,7 @@ component:
         parameters:
           <<: *defaultParameters
           kustomize: github
+          java-version: 17
         ecr:
           <<: *defaultECR
           repository: hawk-hawkai-gateway-batch
@@ -392,6 +399,7 @@ component:
         parameters:
           <<: *defaultParameters
           kustomize: github
+          java-version: 17
         ecr:
           <<: *defaultECR
           repository: hawk-hawkai-gateway
@@ -403,6 +411,7 @@ component:
         parameters:
           <<: *defaultParameters
           kustomize: github
+          java-version: 17
 
   features:
     parameters:
@@ -701,11 +710,24 @@ component:
     parameters:
       <<: *defaultParameters
       kustomize: github
+      java-version: 17
     ecr:
       <<: *defaultECR
       repository: hawk-feature-enrichment
     kustomize:
       path: plattform/processing/feature-enrichment
+      overlays: *defaultOverlays
+
+  external-enrichment:
+    parameters:
+      <<: *defaultParameters
+      kustomize: bitbucket
+      java-version: 17
+    ecr:
+      <<: *defaultECR
+      repository: hawk-external-enrichment
+    kustomize:
+      path: plattform/processing/external-enrichment
       overlays: *defaultOverlays
 
   frontend:
@@ -821,6 +843,7 @@ component:
     parameters:
       <<: *defaultParameters
       kustomize: github
+      java-version: 17
     ecr:
       <<: *defaultECR
       repository: hawk-reprocessing
@@ -832,6 +855,7 @@ component:
     parameters:
       <<: *defaultParameters
       kustomize: github
+      java-version: 17
     ecr:
       <<: *defaultECR
       repository: hawk-current-secure-storage
