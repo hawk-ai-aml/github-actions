@@ -30,6 +30,9 @@ on:
       ecr-repository-region:
         type: string
         required: true
+      ecr-prefix:
+        type: string
+        required: false
       caller-workflow-type:
         type: string
         required: true
@@ -121,9 +124,9 @@ jobs:
           do
             REPOSITORY_FOLDER=$(echo ${module} | sed 's/\_/\-/g')
             if [[ ${{ inputs.profile }} == 'nab' ]]; then
-              REPOSITORY_FULL_NAME="${REGISTRY}/hawk-${ECR_PREFIX}-${REPOSITORY_FOLDER}"
+              REPOSITORY_FULL_NAME="${REGISTRY}/hawk-${ECR_PREFIX}${REPOSITORY_FOLDER}"
             else
-              REPOSITORY_FULL_NAME="${REGISTRY}/${ECR_PREFIX}-${REPOSITORY_FOLDER}"
+              REPOSITORY_FULL_NAME="${REGISTRY}/${ECR_PREFIX}${REPOSITORY_FOLDER}"
             fi
             echo "$REPOSITORY_FULL_NAME is building..."
             DOCKER_BUILDKIT=1 docker build --build-arg SERVICE=${module} -t ${REPOSITORY_FULL_NAME}:${TAG} .
