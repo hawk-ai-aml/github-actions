@@ -65,6 +65,7 @@ jobs:
 
       - name: Install Requirements and Run Pytest
         env:
+          PY_UTILS_PAT: ${{ secrets.PY_UTILS_PAT}}
           JENKINS: true
           IS_JENKINS: true
           AWS_ACCESS_KEY_ID: ${{ secrets.BACKEND_FILE_AWS_ACCESS_ID }}
