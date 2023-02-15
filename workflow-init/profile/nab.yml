@@ -354,7 +354,6 @@ component:
     parameters:
       <<: *defaultParameters
       kustomize: github
-      java-version: 17
     ecr:
       <<: *defaultECR
       repository-prefix: hawk-
@@ -365,17 +364,14 @@ component:
         parameters:
           <<: *defaultParameters
           kustomize: github
-          java-version: 17
       engine:
         parameters:
           <<: *defaultParameters
           kustomize: github
-          java-version: 17
       msg:
         parameters:
           <<: *defaultParameters
           kustomize: github
-          java-version: 17
         ecr:
           <<: *defaultECR
           repository: hawk-hawkai-gateway-msg
@@ -387,7 +383,6 @@ component:
         parameters:
           <<: *defaultParameters
           kustomize: github
-          java-version: 17
         ecr:
           <<: *defaultECR
           repository: hawk-hawkai-gateway-batch
@@ -399,7 +394,6 @@ component:
         parameters:
           <<: *defaultParameters
           kustomize: github
-          java-version: 17
         ecr:
           <<: *defaultECR
           repository: hawk-hawkai-gateway
@@ -411,7 +405,6 @@ component:
         parameters:
           <<: *defaultParameters
           kustomize: github
-          java-version: 17
 
   features:
     parameters:
