@@ -114,7 +114,7 @@ jobs:
         id: build-and-tag
         env:
           MODULES: ${{ inputs.modules-string }}
-          PY_UTILS_PAT: ${{ secrets.PY_UTILS_PAT}}
+          PY_UTILS_PAT: ${{ secrets.PY_UTILS_PAT }}
 
         run: |
           echo "WORKFLOW TYPE:"
