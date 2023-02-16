@@ -65,7 +65,7 @@ jobs:
 
       - name: Install Requirements and Run Pytest
         env:
-          PY_UTILS_PAT: ${{ secrets.PY_UTILS_PAT}}
+          PY_UTILS_PAT: ${{ secrets.PY_UTILS_PAT }}
           JENKINS: true
           IS_JENKINS: true
           AWS_ACCESS_KEY_ID: ${{ secrets.BACKEND_FILE_AWS_ACCESS_ID }}
@@ -120,6 +120,7 @@ jobs:
           echo "WORKFLOW TYPE:"
           echo ${{ inputs.caller-workflow-type }}
           echo $MODULES
+          echo $PY_UTILS_PAT
           REGISTRY=${{ inputs.ecr-repository-code }}.dkr.ecr.${{ inputs.ecr-repository-region }}.amazonaws.com
           TAG=${{ github.ref_name }}
           ECR_PREFIX=${{ inputs.ecr-prefix }}
