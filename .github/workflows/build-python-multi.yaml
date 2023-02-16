@@ -120,7 +120,6 @@ jobs:
           echo "WORKFLOW TYPE:"
           echo ${{ inputs.caller-workflow-type }}
           echo $MODULES
-          echo $PY_UTILS_PAT
           REGISTRY=${{ inputs.ecr-repository-code }}.dkr.ecr.${{ inputs.ecr-repository-region }}.amazonaws.com
           TAG=${{ github.ref_name }}
           ECR_PREFIX=${{ inputs.ecr-prefix }}
@@ -138,7 +137,7 @@ jobs:
               REPOSITORY_FULL_NAME="${REGISTRY}/${ECR_PREFIX}${REPOSITORY_FOLDER}"
             fi
             echo "$REPOSITORY_FULL_NAME is building..."
-            DOCKER_BUILDKIT=1 docker build --build-arg SERVICE=${module} --build-arg PY_UTILS_PAT=$PY_UTILS_PAT -t ${REPOSITORY_FULL_NAME}:${TAG} .
+            DOCKER_BUILDKIT=1 docker build --build-arg SERVICE=${module} --build-arg PY_UTILS_PAT=${PY_UTILS_PAT} -t ${REPOSITORY_FULL_NAME}:${TAG} .
             docker push ${REPOSITORY_FULL_NAME}:${TAG}
           done
 
