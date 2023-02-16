@@ -228,18 +228,18 @@ component:
         kustomize:
           overlays: *defaultOverlays
           path: plattform/processing/crr-risk-factors/crr-risk-factor-payment-means
-     # NOT YET READY, THERE IS AN ISSUE WITH PREFIX - DOES NOT WORK IF DIFFERENT THAN IN MODULES ABOVE
-     #crr-risk-factor-anomaly-detection:
-     #  parameters:
-     #    <<: *defaultParameters
-     #    kustomize: github
-     #  ecr:
-     #    <<: *defaultECR
-     #    repository: hawkai-crr-risk-factor-anomaly-detection
-     #    repository-prefix: hawkai-
-     #  kustomize:
-     #    overlays: *defaultOverlays
-     #    path: plattform/processing/crr-risk-factors/crr-risk-factor-anomaly-detection
+      crr-risk-factor-anomaly-detection:
+       parameters:
+         <<: *defaultParameters
+         kustomize: github
+         java-version: 17
+       ecr:
+         <<: *defaultECR
+         repository: hawk-crr-risk-factor-anomaly-detection
+         repository-prefix: hawk-
+       kustomize:
+         overlays: *defaultOverlays
+         path: plattform/processing/crr-risk-factors/crr-risk-factor-anomaly-detection
 
   customer-risk-rating-events-sink:
     parameters:
@@ -354,7 +354,6 @@ component:
     parameters:
       <<: *defaultParameters
       kustomize: github
-      java-version: 17
     ecr:
       <<: *defaultECR
       repository-prefix: hawk-
@@ -365,17 +364,14 @@ component:
         parameters:
           <<: *defaultParameters
           kustomize: github
-          java-version: 17
       engine:
         parameters:
           <<: *defaultParameters
           kustomize: github
-          java-version: 17
       msg:
         parameters:
           <<: *defaultParameters
           kustomize: github
-          java-version: 17
         ecr:
           <<: *defaultECR
           repository: hawk-hawkai-gateway-msg
@@ -387,7 +383,6 @@ component:
         parameters:
           <<: *defaultParameters
           kustomize: github
-          java-version: 17
         ecr:
           <<: *defaultECR
           repository: hawk-hawkai-gateway-batch
@@ -399,7 +394,6 @@ component:
         parameters:
           <<: *defaultParameters
           kustomize: github
-          java-version: 17
         ecr:
           <<: *defaultECR
           repository: hawk-hawkai-gateway
@@ -411,7 +405,6 @@ component:
         parameters:
           <<: *defaultParameters
           kustomize: github
-          java-version: 17
 
   features:
     parameters:
@@ -867,6 +860,7 @@ component:
     parameters:
       <<: *defaultParameters
       kustomize: github
+      java-version: 17
     ecr:
       <<: *defaultECR
       repository: hawk-hawkai-tenant-management

@@ -393,7 +393,6 @@ component:
     parameters:
       <<: *defaultParameters
       kustomize: github
-      java-version: 17
     ecr:
       <<: *defaultECR
     kustomize:
@@ -403,17 +402,14 @@ component:
         parameters:
           <<: *defaultParameters
           kustomize: github
-          java-version: 17
       engine:
         parameters:
           <<: *defaultParameters
           kustomize: github
-          java-version: 17
       msg:
         parameters:
           <<: *defaultParameters
           kustomize: github
-          java-version: 17
         ecr:
           <<: *defaultECR
           repository: hawkai-gateway-msg
@@ -424,7 +420,6 @@ component:
         parameters:
           <<: *defaultParameters
           kustomize: github
-          java-version: 17
         ecr:
           <<: *defaultECR
           repository: hawkai-gateway-batch
@@ -435,7 +430,6 @@ component:
         parameters:
           <<: *defaultParameters
           kustomize: github
-          java-version: 17
         ecr:
           <<: *defaultECR
           repository: hawkai-gateway
@@ -446,7 +440,6 @@ component:
         parameters:
           <<: *defaultParameters
           kustomize: github
-          java-version: 17
         ecr:
           <<: *defaultECR
           repository: hawkai-gateway-activemq
@@ -896,6 +889,7 @@ component:
     parameters:
       <<: *defaultParameters
       kustomize: github
+      java-version: 17
     ecr:
       <<: *defaultECR
       repository: tenant-management
