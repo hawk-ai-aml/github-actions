@@ -65,6 +65,7 @@ jobs:
 
       - name: Install Requirements and Run Pytest
         env:
+          PY_UTILS_PAT: ${{ secrets.PY_UTILS_PAT }}
           JENKINS: true
           IS_JENKINS: true
           AWS_ACCESS_KEY_ID: ${{ secrets.BACKEND_FILE_AWS_ACCESS_ID }}
@@ -72,9 +73,15 @@ jobs:
         run: |
           pipenv install --dev
           pipenv requirements > pipenv-requirements.txt
-          cat manual-requirements.txt pipenv-requirements.txt > requirements.txt
+
+          if [ -f manual-requirements.txt ]; then
+            cat manual-requirements.txt pipenv-requirements.txt > requirements.txt
+            pipenv run pip install -r manual-requirements.txt
+          else
+             cat pipenv-requirements.txt > requirements.txt
+          fi
+
           pipenv run pip install pip-licenses
-          pipenv run pip install -r manual-requirements.txt
           pipenv run pytest tests --junitxml=report.xml
           pipenv run junit2html report.xml report.html
           mkdir report-dir && mv report.html ./report-dir/report.html
@@ -107,6 +114,7 @@ jobs:
         id: build-and-tag
         env:
           MODULES: ${{ inputs.modules-string }}
+          PY_UTILS_PAT: ${{ secrets.PY_UTILS_PAT }}
 
         run: |
           echo "WORKFLOW TYPE:"
@@ -129,7 +137,7 @@ jobs:
               REPOSITORY_FULL_NAME="${REGISTRY}/${ECR_PREFIX}${REPOSITORY_FOLDER}"
             fi
             echo "$REPOSITORY_FULL_NAME is building..."
-            DOCKER_BUILDKIT=1 docker build --build-arg SERVICE=${module} -t ${REPOSITORY_FULL_NAME}:${TAG} .
+            DOCKER_BUILDKIT=1 docker build --build-arg SERVICE=${module} --build-arg PY_UTILS_PAT=${PY_UTILS_PAT} -t ${REPOSITORY_FULL_NAME}:${TAG} .
             docker push ${REPOSITORY_FULL_NAME}:${TAG}
           done
 
@@ -157,9 +165,9 @@ jobs:
           REPOSITORY_FOLDER=$(echo ${{ matrix.module }} | sed 's/\_/\-/g')
           ECR_PREFIX=${{ inputs.ecr-prefix }}
           if [[ ${{ inputs.profile }} == 'nab' ]]; then
-            REPOSITORY_FULL_NAME="${{ inputs.ecr-repository-code }}.dkr.ecr.${{ inputs.ecr-repository-region }}.amazonaws.com/hawk-${ECR_PREFIX}-${REPOSITORY_FOLDER}"
+            REPOSITORY_FULL_NAME="${{ inputs.ecr-repository-code }}.dkr.ecr.${{ inputs.ecr-repository-region }}.amazonaws.com/hawk-${ECR_PREFIX}${REPOSITORY_FOLDER}"
           else
-            REPOSITORY_FULL_NAME="${{ inputs.ecr-repository-code }}.dkr.ecr.${{ inputs.ecr-repository-region }}.amazonaws.com/${ECR_PREFIX}-${REPOSITORY_FOLDER}"
+            REPOSITORY_FULL_NAME="${{ inputs.ecr-repository-code }}.dkr.ecr.${{ inputs.ecr-repository-region }}.amazonaws.com/${ECR_PREFIX}${REPOSITORY_FOLDER}"
           fi
           TAG=${{ needs.build.outputs.tag }}
           kustomize edit set image $REPOSITORY_FULL_NAME:$TAG
