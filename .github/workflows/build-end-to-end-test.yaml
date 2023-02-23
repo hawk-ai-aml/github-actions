@@ -133,6 +133,10 @@ jobs:
           ARTIFACTORY_USERNAME: ${{ secrets.ARTIFACTORY_USERNAME }}
           ARTIFACTORY_PASSWORD: ${{ secrets.ARTIFACTORY_PASSWORD }}
 
+          DEV_REDIS_HOST: ${{ secrets.DEV_REDIS_HOST }}
+          DEV_REDIS_PORT: ${{ secrets.DEV_REDIS_PORT }}
+          DEV_REDIS_AUTH_TOKEN: ${{ secrets.DEV_REDIS_AUTH_TOKEN }}
+
           environment: ${{ inputs.environment }}
         continue-on-error: true
         run: |
