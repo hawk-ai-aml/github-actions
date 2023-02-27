@@ -46,7 +46,7 @@ jobs:
     steps:
       - id: init
         name: Init Workflow
-        uses: hawk-ai-aml/github-actions/workflow-init@master
+        uses: hawk-ai-aml/github-actions/workflow-init@feature/test-activemq-java17
         with:
           slack-notification-webhook: ${{ secrets.CICD_MIGRATION_SLACK_WEBHOOK_URL }}
           profile: ${{ inputs.profile }}
