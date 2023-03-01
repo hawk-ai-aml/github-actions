@@ -721,7 +721,7 @@ component:
   external-enrichment:
     parameters:
       <<: *defaultParameters
-      kustomize: bitbucket
+      kustomize: github
       java-version: 17
     ecr:
       <<: *defaultECR
