@@ -962,11 +962,14 @@ component:
       overlays: *defaultOverlays
 
   aml-screening:
-    parameters: *defaultParameters
+    parameters:
+      <<: *defaultParameters
+      kustomize: github
     ecr:
       <<: *defaultECR
       repository: aml-screening
     kustomize:
       path: plattform/processing/features/aml-screening
       overlays: *defaultOverlays
+
 # End of file
