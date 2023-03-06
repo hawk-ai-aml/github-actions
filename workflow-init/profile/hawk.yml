@@ -379,6 +379,17 @@ component:
       path: plattform/processing/features/risky-words
       overlays: *defaultOverlays
 
+  aml-screening:
+    parameters:
+      <<: *defaultParameters
+      kustomize: github
+    ecr:
+      <<: *defaultECR
+      repository: aml-screening
+    kustomize:
+      path: plattform/processing/features/aml-screening
+      overlays: *defaultOverlays
+
   rule-builder:
     parameters:
       <<: *defaultParameters
@@ -960,17 +971,6 @@ component:
       repository: case-statistics
     kustomize:
       path: plattform/utility/case-statistics
-      overlays: *defaultOverlays
-
-  aml-screening:
-    parameters:
-      <<: *defaultParameters
-      kustomize: github
-    ecr:
-      <<: *defaultECR
-      repository: aml-screening
-    kustomize:
-      path: plattform/processing/features/aml-screening
       overlays: *defaultOverlays
 
 # End of file
