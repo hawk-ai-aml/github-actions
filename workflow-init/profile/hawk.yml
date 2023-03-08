@@ -855,6 +855,16 @@ component:
         kustomize:
           overlays: *defaultOverlays
           path: plattform/processing/features/pepsanction
+      aml-screening:
+        parameters:
+          <<: *defaultParameters
+          kustomize: github
+        ecr:
+          <<: *defaultECR
+          repository: aml-screening
+        kustomize:
+          path: plattform/processing/features/aml-screening
+          overlays: *defaultOverlays
 
   regulatory-check:
     parameters:
@@ -961,15 +971,6 @@ component:
       path: plattform/utility/case-statistics
       overlays: *defaultOverlays
 
-  aml-screening:
-    parameters:
-      <<: *defaultParameters
-      kustomize: github
-    ecr:
-      <<: *defaultECR
-      repository: aml-screening
-    kustomize:
-      path: plattform/processing/features/aml-screening
-      overlays: *defaultOverlays
+
 
 # End of file
