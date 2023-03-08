@@ -757,16 +757,6 @@ component:
         kustomize:
           overlays: *defaultOverlays
           path: plattform/processing/features/expected-customer-value
-      aml-screening:
-        parameters:
-          <<: *defaultParameters
-          kustomize: github
-        ecr:
-          <<: *defaultECR
-          repository: aml-screening
-        kustomize:
-          path: plattform/processing/features/aml-screening
-          overlays: *defaultOverlays
 
 
   feature-enrichment:
