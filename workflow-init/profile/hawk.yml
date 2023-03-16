@@ -783,6 +783,18 @@ component:
       path: plattform/processing/external-enrichment
       overlays: *defaultOverlays
 
+  rule-reset-sink:
+    parameters:
+      <<: *defaultParameters
+      kustomize: github
+      java-version: 17
+    ecr:
+      <<: *defaultECR
+      repository: rule-reset-sink
+    kustomize:
+      path: plattform/processing/rule-reset-sink
+      overlays: *defaultOverlays
+
   frontend:
     parameters:
       <<: *defaultParameters
