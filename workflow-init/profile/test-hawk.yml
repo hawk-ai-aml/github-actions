@@ -11,6 +11,7 @@ overlays: &defaultOverlays
     - qa
     - prod/eu-central-1
     - prod/us-east-1
+    - prod/ap-southeast-1
 
 ecr: &defaultECR
   registry: "860641649575"
