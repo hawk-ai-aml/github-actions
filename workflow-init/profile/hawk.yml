@@ -389,6 +389,17 @@ component:
       path: plattform/processing/features/aml-screening
       overlays: *defaultOverlays
 
+  customer-screening:
+    parameters:
+      <<: *defaultParameters
+      kustomize: github
+    ecr:
+      <<: *defaultECR
+      repository: customer-screening
+    kustomize:
+      path: plattform/processing/features/customer-screening
+      overlays: *defaultOverlays
+
   rule-builder:
     parameters:
       <<: *defaultParameters
