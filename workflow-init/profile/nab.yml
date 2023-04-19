@@ -923,7 +923,17 @@ component:
     ecr:
       <<: *defaultECR
 
-
+  currency-conversion:
+    parameters:
+      <<: *defaultParameters
+      kustomize: github
+      java-version: 17
+    ecr:
+      <<: *defaultECR
+      repository: currency-conversion
+    kustomize:
+      path: plattform/utility/currency-conversion
+      overlays: *defaultOverlays
 
 
 
