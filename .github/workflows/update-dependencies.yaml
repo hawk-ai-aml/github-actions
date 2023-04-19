@@ -111,7 +111,7 @@ jobs:
                 owner,
                 repo,
                 issue_number: result.data.number,
-                labels: ['${{ inputs.label }}', 'patch-version']
+                labels: ['${{ inputs.label }}', 'patch-version', 'impact 1 * likelyhood 1 = risk 1']
               });
             }
           github-token: ${{ secrets.REPO_ACCESS_PAT }}
