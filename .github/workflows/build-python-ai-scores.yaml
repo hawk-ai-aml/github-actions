@@ -94,9 +94,9 @@ jobs:
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v1
         with:
-          aws-access-key-id: ${{ inputs.profile == 'nab' && secrets.AWS_NAB_DEV_ECR_ACCESS_KEY_ID || secrets.AWS_ORG_ECR_ACCESS_KEY_ID }}
-          aws-region: ${{ inputs.profile == 'nab' && 'us-east-1' || secrets.AWS_ORG_ECR_SECRET_ACCESS_KEY && 'eu-central-1' }}
-          aws-secret-access-key: ${{ inputs.profile == 'nab' && secrets.AWS_NAB_DEV_ECR_SECRET_ACCESS_KEY || secrets.AWS_ORG_ECR_SECRET_ACCESS_KEY }}
+          aws-access-key-id: ${{ secrets.AWS_ORG_ECR_ACCESS_KEY_ID }}
+          aws-region: ${{ inputs.profile == 'us-east-1' || secrets.AWS_ORG_ECR_SECRET_ACCESS_KEY && 'eu-central-1' }}
+          aws-secret-access-key: ${{ secrets.AWS_ORG_ECR_SECRET_ACCESS_KEY }}
 
       - name: Login to Amazon ECR
         id: login-ecr
@@ -123,11 +123,7 @@ jobs:
           for module in $MODULES
           do
             REPOSITORY_FOLDER=$(echo ${module} | sed 's/\_/\-/g')
-            if [[ ${{ inputs.profile }} == 'nab' ]]; then
-              REPOSITORY_FULL_NAME="${REGISTRY}/hawk-ai-scores-${REPOSITORY_FOLDER}"
-            else
-              REPOSITORY_FULL_NAME="${REGISTRY}/ai-scores-${REPOSITORY_FOLDER}"
-            fi
+            REPOSITORY_FULL_NAME="${REGISTRY}/ai-scores-${REPOSITORY_FOLDER}"
             echo "$REPOSITORY_FULL_NAME is building..."
             DOCKER_BUILDKIT=1 docker build --build-arg SERVICE=${module} -t ${REPOSITORY_FULL_NAME}:${TAG} .
             docker push ${REPOSITORY_FULL_NAME}:${TAG}
@@ -236,11 +232,7 @@ jobs:
         run: |
           cd ${{ github.workspace }}/plattform/processing/features/${{ matrix.module }}/overlays/${{ matrix.overlay }}
           REPOSITORY_FOLDER=$(echo ${{ matrix.module }} | sed 's/\_/\-/g')
-          if [[ ${{ inputs.profile }} == 'nab' ]]; then
-            REPOSITORY_FULL_NAME="${{ inputs.ecr-repository-code }}.dkr.ecr.${{ inputs.ecr-repository-region }}.amazonaws.com/hawk-ai-scores-${REPOSITORY_FOLDER}"
-          else
-            REPOSITORY_FULL_NAME="${{ inputs.ecr-repository-code }}.dkr.ecr.${{ inputs.ecr-repository-region }}.amazonaws.com/ai-scores-${REPOSITORY_FOLDER}"
-          fi
+          REPOSITORY_FULL_NAME="${{ inputs.ecr-repository-code }}.dkr.ecr.${{ inputs.ecr-repository-region }}.amazonaws.com/ai-scores-${REPOSITORY_FOLDER}"
           TAG=${{ needs.build.outputs.tag }}
           kustomize edit set image $REPOSITORY_FULL_NAME:$TAG
           git config --global user.name "GitHub Actions"

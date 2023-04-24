@@ -40,18 +40,6 @@ runs:
         component: ${{ inputs.component-name }}
         module: ${{ inputs.component-module }}
 
-    # https://hawkai.atlassian.net/browse/SRE-629
-    # this relies that all nab overlays are called nab-dev
-    # nicer way is to pass profile, than evaluating overlay
-    - name: Get NAB Image Name
-      id: get-nab-image-name
-      if: inputs.component-overlay == 'nab-dev'
-      uses: hawk-ai-aml/github-actions/get-component-image@master
-      with:
-        profile: nab
-        component: ${{ inputs.component-name }}
-        module: ${{ inputs.component-module }}
-
     - name: Checkout Kustomize
       uses: actions/checkout@v3
       with:
@@ -63,19 +51,11 @@ runs:
       shell: bash -l -ET -eo pipefail {0}
       env:
         HAWK_IMAGE_NAME: ${{ steps.get-hawk-image-name.outputs.image-name }}
-        NAB_IMAGE_NAME: ${{ steps.get-nab-image-name.outputs.image-name }}
         KUSTOMIZE_PATH: ${{ steps.get-hawk-image-name.outputs.kustomize-path }}
         OVERLAY: ${{ inputs.component-overlay }}
       run: |
         cd ${KUSTOMIZE_PATH}/overlays/${OVERLAY}
-        # https://hawkai.atlassian.net/browse/SRE-629
-        # this relies that all nab overlays are called nab-dev
-        # nicer way is to pass profile, than evaluating overlay
-        if [[ ${OVERLAY} == 'nab-dev' ]]; then
-          kustomize edit set image ${HAWK_IMAGE_NAME}=${NAB_IMAGE_NAME}:${{ inputs.component-tag }}
-        else
-          kustomize edit set image ${HAWK_IMAGE_NAME}:${{ inputs.component-tag }}
-        fi
+        kustomize edit set image ${HAWK_IMAGE_NAME}:${{ inputs.component-tag }}
         if ! git diff --quiet HEAD; then
           git config --global user.name "GitHub Actions"
           git config --global user.email "github-actions@hawk.ai"

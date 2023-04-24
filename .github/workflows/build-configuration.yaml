@@ -151,8 +151,8 @@ jobs:
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v1
         with:
-          aws-access-key-id: ${{ inputs.profile == 'nab' && secrets.AWS_NAB_DEV_ECR_ACCESS_KEY_ID || secrets.AWS_ORG_ECR_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ inputs.profile == 'nab' && secrets.AWS_NAB_DEV_ECR_SECRET_ACCESS_KEY || secrets.AWS_ORG_ECR_SECRET_ACCESS_KEY }}
+          aws-access-key-id: ${{ secrets.AWS_ORG_ECR_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_ORG_ECR_SECRET_ACCESS_KEY }}
           aws-region: ${{ fromJson(needs.init.outputs.metadata).ecr.region }}
 
       - name: Login to Amazon ECR
@@ -185,8 +185,8 @@ jobs:
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v1-node16
         with:
-          aws-access-key-id: ${{ inputs.profile == 'nab' && secrets.AWS_NAB_DEV_ECR_ACCESS_KEY_ID || secrets.AWS_ORG_ECR_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ inputs.profile == 'nab' && secrets.AWS_NAB_DEV_ECR_SECRET_ACCESS_KEY || secrets.AWS_ORG_ECR_SECRET_ACCESS_KEY }}
+          aws-access-key-id: ${{ secrets.AWS_ORG_ECR_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_ORG_ECR_SECRET_ACCESS_KEY }}
           aws-region: ${{ fromJson(needs.init.outputs.metadata).ecr.region }}
 
       - name: Login to Amazon ECR
@@ -228,7 +228,7 @@ jobs:
         with:
           slack-notification-webhook: ${{ secrets.CICD_MIGRATION_SLACK_WEBHOOK_URL }}
 
-      - id: udpate-overlay-github
+      - id: update-overlay-github
         name: Update kustomize overlay
         if: fromJson(needs.init.outputs.parameters).kustomize == 'github' || fromJson(needs.init.outputs.parameters).kustomize == 'github-fake'
         uses: hawk-ai-aml/github-actions/kustomize-overlay@master
@@ -240,7 +240,7 @@ jobs:
           kustomize-repo: ${{ fromJson(needs.init.outputs.parameters).kustomize == 'github-fake' && 'hawk-ai-aml/kustomize2.git' || 'hawk-ai-aml/kustomize.git' }}
           kustomize-access-token: ${{ secrets.REPO_ACCESS_PAT }}
 
-      - id: udpate-overlay-bitbucket
+      - id: update-overlay-bitbucket
         name: Update kustomize overlay
         if: fromJson(needs.init.outputs.parameters).kustomize == 'bitbucket' || fromJson(needs.init.outputs.parameters).kustomize == 'bitbucket-fake'
         uses: hawk-ai-aml/github-actions/kustomize-overlay-ssh@master
