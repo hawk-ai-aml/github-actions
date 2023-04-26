@@ -1009,4 +1009,16 @@ component:
       path: plattform/utility/currency-conversion
       overlays: *defaultOverlays
 
+  notifications:
+    parameters:
+      <<: *defaultParameters
+      kustomize: github
+      java-version: 17
+    ecr:
+      <<: *defaultECR
+      repository: notifications
+    kustomize:
+      path: plattform/utility/notifications
+      overlays: *defaultOverlays
+
 # End of file
