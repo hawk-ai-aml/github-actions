@@ -1,4 +1,4 @@
-name: publishArtifacts
+name: build
 
 on:
   workflow_call:
@@ -8,21 +8,26 @@ on:
         type: boolean
         required: false
         default: false
-      moduleName:
-        description: "The sub project name from utils"
-        type: string
-        required: true
       component:
         type: string
         required: false
+      module:
+        type: string
+        required: true
+        default: ""
       profile:
         type: string
         required: false
+
+defaults:
+  run:
+    shell: bash -l -ET -eo pipefail {0}
 
 jobs:
   init:
     runs-on: [ "self-hosted", "builder" ]
     outputs:
+      overlays: ${{ steps.init.outputs.overlays }}
       metadata: ${{ steps.init.outputs.metadata }}
       skip-tests: ${{ steps.init.outputs.skip-tests }}
       parameters: ${{ steps.init.outputs.parameters }}
@@ -34,8 +39,8 @@ jobs:
           slack-notification-webhook: ${{ secrets.CICD_MIGRATION_SLACK_WEBHOOK_URL }}
           profile: ${{ inputs.profile }}
           component: ${{ inputs.component }}
-          update-kustomize: false
           skip-tests: ${{ inputs.skipTests }}
+          module: ${{ inputs.module }}
 
   build:
     needs: [ init ]
@@ -46,12 +51,6 @@ jobs:
         uses: hawk-ai-aml/github-actions/job-init@master
         with:
           slack-notification-webhook: ${{ secrets.CICD_MIGRATION_SLACK_WEBHOOK_URL }}
-
-      - name: Login to Docker Hub
-        uses: docker/login-action@v2
-        with:
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
 
       - uses: actions/checkout@v3
 
@@ -72,21 +71,24 @@ jobs:
           ARTIFACTORY_CONTEXT_URL: ${{ secrets.ARTIFACTORY_CONTEXT_URL }}
           ARTIFACTORY_USERNAME: ${{ secrets.ARTIFACTORY_USERNAME }}
           ARTIFACTORY_PASSWORD: ${{ secrets.ARTIFACTORY_PASSWORD }}
-        run: ./gradlew clean assemble testClasses -isS
+          DISABLE_SLACK: true
+        run: ./gradlew clean :${{ inputs.module }}:assemble :${{ inputs.module }}:testClasses -isS
 
       - name: License Report
         env:
           ARTIFACTORY_CONTEXT_URL: ${{ secrets.ARTIFACTORY_CONTEXT_URL }}
           ARTIFACTORY_USERNAME: ${{ secrets.ARTIFACTORY_USERNAME }}
           ARTIFACTORY_PASSWORD: ${{ secrets.ARTIFACTORY_PASSWORD }}
-        run: ./gradlew licenseReport
+          DISABLE_SLACK: true
+        run: ./gradlew :${{ inputs.module }}:licenseReport --no-parallel
 
       - name: Check Quality
         env:
           ARTIFACTORY_CONTEXT_URL: ${{ secrets.ARTIFACTORY_CONTEXT_URL }}
           ARTIFACTORY_USERNAME: ${{ secrets.ARTIFACTORY_USERNAME }}
           ARTIFACTORY_PASSWORD: ${{ secrets.ARTIFACTORY_PASSWORD }}
-        run: ./gradlew checkQualityMain
+          DISABLE_SLACK: true
+        run: ./gradlew :${{ inputs.module }}:checkQualityMain
 
       - name: Run Tests
         if: ${{ needs.init.outputs.skip-tests != 'true' }}
@@ -94,7 +96,9 @@ jobs:
           ARTIFACTORY_CONTEXT_URL: ${{ secrets.ARTIFACTORY_CONTEXT_URL }}
           ARTIFACTORY_USERNAME: ${{ secrets.ARTIFACTORY_USERNAME }}
           ARTIFACTORY_PASSWORD: ${{ secrets.ARTIFACTORY_PASSWORD }}
-        run: ./gradlew test -isS
+          DISABLE_SLACK: true
+        run: |
+          ./gradlew :${{ inputs.module }}:check :${{ inputs.module }}:jacocoTestReport :jacocoTestCoverageVerification -isS
 
       - name: Publish artifacts to Artifactory
         env:
@@ -102,9 +106,9 @@ jobs:
           ARTIFACTORY_USERNAME: ${{ secrets.ARTIFACTORY_DEPLOY_USERNAME }}
           ARTIFACTORY_PASSWORD: ${{ secrets.ARTIFACTORY_DEPLOY_PASSWORD }}
         run: |
-          if [ "${{ inputs.moduleName }}" == "" ]; then
+          if [ "${{ inputs.module }}" == "" ]; then
             ./gradlew artifactoryPublish
           else
-            echo "publishing --> ${{ inputs.moduleName }}"
-            ./gradlew :${{ inputs.moduleName }}:artifactoryPublish
+            echo "publishing --> ${{ inputs.module }}"
+            ./gradlew :${{ inputs.module }}:artifactoryPublish
           fi
