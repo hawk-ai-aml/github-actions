@@ -57,6 +57,7 @@ component:
     parameters:
       <<: *defaultParameters
       kustomize: github
+      java-version: 17
     ecr:
       <<: *defaultECR
       repository-prefix: hawk-
@@ -67,10 +68,12 @@ component:
         parameters:
           <<: *defaultParameters
           kustomize: github
+          java-version: 17
       msg:
         parameters:
           <<: *defaultParameters
           kustomize: github
+          java-version: 17
         ecr:
           <<: *defaultECR
           repository: hawk-hawkai-case-manager-backend-msg
@@ -82,6 +85,7 @@ component:
         parameters:
           <<: *defaultParameters
           kustomize: github
+          java-version: 17
         ecr:
           <<: *defaultECR
           repository: hawk-hawkai-case-manager-backend-rest
@@ -93,6 +97,7 @@ component:
         parameters:
           <<: *defaultParameters
           kustomize: github
+          java-version: 17
         ecr:
           <<: *defaultECR
           repository: hawk-backend-grouping
@@ -104,6 +109,7 @@ component:
         parameters:
           <<: *defaultParameters
           kustomize: github
+          java-version: 17
         ecr:
           <<: *defaultECR
           repository: hawk-backend-search
@@ -111,7 +117,6 @@ component:
         kustomize:
           path: plattform/case-manager/backend
           overlays: *defaultOverlays
-
   blacklist:
     parameters:
       <<: *defaultParameters
