@@ -930,7 +930,7 @@ component:
       java-version: 17
     ecr:
       <<: *defaultECR
-      repository: currency-conversion
+      repository: hawk-currency-conversion
     kustomize:
       path: plattform/utility/currency-conversion
       overlays: *defaultOverlays
