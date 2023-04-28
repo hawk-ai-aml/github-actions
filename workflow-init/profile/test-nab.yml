@@ -44,7 +44,7 @@ component:
       kustomize: bitbucket
     ecr:
       <<: *defaultECR
-      repository: case-archive
+      repository: hawk-case-archive
     kustomize:
       path: plattform/utility/case-archive
       overlays: *defaultOverlays
