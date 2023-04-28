@@ -124,6 +124,19 @@ component:
       path: plattform/processing/features/blacklist
       overlays: *defaultOverlays
 
+  case-archive:
+    parameters:
+      <<: *defaultParameters
+      kustomize: github
+      java-version: 17
+    ecr:
+      <<: *defaultECR
+      repository: hawk-case-archive
+      repository-prefix: hawk-
+    kustomize:
+      path: plattform/utility/case-archive
+      overlays: *defaultOverlays
+
   case-note:
     parameters:
       <<: *defaultParameters
