@@ -38,6 +38,17 @@ component:
       path: plattform/utility/audit-trail
       overlays: *defaultOverlays
 
+  case-archive:
+    parameters:
+      <<: *defaultParameters
+      kustomize: bitbucket
+    ecr:
+      <<: *defaultECR
+      repository: case-archive
+    kustomize:
+      path: plattform/utility/case-archive
+      overlays: *defaultOverlays
+
   customer-risk-rating-events-sink:
     parameters:
       <<: *defaultParameters
