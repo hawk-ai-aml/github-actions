@@ -178,6 +178,18 @@ component:
       path: plattform/processing/features/blacklist
       overlays: *defaultOverlays
 
+  case-archive:
+    parameters:
+      <<: *defaultParameters
+      kustomize: github
+      java-version: 17
+    ecr:
+      <<: *defaultECR
+      repository: case-archive
+    kustomize:
+      path: plattform/utility/case-archive
+      overlays: *defaultOverlays
+
   case-note:
     parameters:
       <<: *defaultParameters
@@ -1007,6 +1019,18 @@ component:
       repository: currency-conversion
     kustomize:
       path: plattform/utility/currency-conversion
+      overlays: *defaultOverlays
+
+  notifications:
+    parameters:
+      <<: *defaultParameters
+      kustomize: github
+      java-version: 17
+    ecr:
+      <<: *defaultECR
+      repository: notifications
+    kustomize:
+      path: plattform/utility/notifications
       overlays: *defaultOverlays
 
 # End of file
