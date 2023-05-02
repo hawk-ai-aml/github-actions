@@ -59,16 +59,7 @@ runs:
 
             (
               cd ${KUSTOMIZE_PATH}/overlays/${overlay}
-
-              # https://hawkai.atlassian.net/browse/SRE-629
-              # this relies that all nab overlays are called nab-dev
-              # nicer way is to pass profile, than evaluating overlay
-              if [[ ${overlay} == 'nab-dev' ]]; then
-                NAB_IMAGE_NAME=$(hawk.get-component-image ${{ inputs.component-name }} nab ${module})
-                kustomize edit set image ${HAWK_IMAGE_NAME}=${NAB_IMAGE_NAME}:${{ inputs.component-tag }}
-              else
-                kustomize edit set image ${HAWK_IMAGE_NAME}:${{ inputs.component-tag }}
-              fi
+              kustomize edit set image ${HAWK_IMAGE_NAME}:${{ inputs.component-tag }}
             )
           done
         done
