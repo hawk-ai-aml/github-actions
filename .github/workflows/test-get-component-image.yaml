@@ -28,12 +28,6 @@ jobs:
           - profile: test-hawk
             component: secure-storage
             expected-image-name: 860641649575.dkr.ecr.eu-central-1.amazonaws.com/current-secure-storage
-          - profile: test-nab
-            component: label-engine
-            expected-image-name: 569345997196.dkr.ecr.us-east-1.amazonaws.com/hawk-label-engine
-          - profile: test-nab
-            component: secure-storage
-            expected-image-name: 569345997196.dkr.ecr.us-east-1.amazonaws.com/hawk-current-secure-storage
 
     steps:
       - id: job-init
