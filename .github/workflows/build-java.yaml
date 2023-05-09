@@ -64,12 +64,6 @@ jobs:
         with:
           slack-notification-webhook: ${{ secrets.CICD_MIGRATION_SLACK_WEBHOOK_URL }}
 
-      - name: Login to Docker Hub
-        uses: docker/login-action@v2
-        with:
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
-
       - uses: actions/checkout@v3
 
       - name: Set up JDK
@@ -89,7 +83,6 @@ jobs:
           ARTIFACTORY_CONTEXT_URL: ${{ secrets.ARTIFACTORY_CONTEXT_URL }}
           ARTIFACTORY_USERNAME: ${{ secrets.ARTIFACTORY_USERNAME }}
           ARTIFACTORY_PASSWORD: ${{ secrets.ARTIFACTORY_PASSWORD }}
-          DISABLE_SLACK: true
         run: ./gradlew clean assemble testClasses -isS
 
       - name: License Report
@@ -97,7 +90,6 @@ jobs:
           ARTIFACTORY_CONTEXT_URL: ${{ secrets.ARTIFACTORY_CONTEXT_URL }}
           ARTIFACTORY_USERNAME: ${{ secrets.ARTIFACTORY_USERNAME }}
           ARTIFACTORY_PASSWORD: ${{ secrets.ARTIFACTORY_PASSWORD }}
-          DISABLE_SLACK: true
         run: ./gradlew licenseReport
 
       - name: Check Quality
@@ -105,7 +97,6 @@ jobs:
           ARTIFACTORY_CONTEXT_URL: ${{ secrets.ARTIFACTORY_CONTEXT_URL }}
           ARTIFACTORY_USERNAME: ${{ secrets.ARTIFACTORY_USERNAME }}
           ARTIFACTORY_PASSWORD: ${{ secrets.ARTIFACTORY_PASSWORD }}
-          DISABLE_SLACK: true
         run: ./gradlew checkQualityMain
 
       - name: Run Tests
@@ -114,16 +105,7 @@ jobs:
           ARTIFACTORY_CONTEXT_URL: ${{ secrets.ARTIFACTORY_CONTEXT_URL }}
           ARTIFACTORY_USERNAME: ${{ secrets.ARTIFACTORY_USERNAME }}
           ARTIFACTORY_PASSWORD: ${{ secrets.ARTIFACTORY_PASSWORD }}
-          DISABLE_SLACK: true
-        run: |
-          ./gradlew check -isS
-
-      - name: Aggregate reports for upload
-        if: needs.init.outputs.skip-tests != 'true' && (success() || failure())
-        run: |
-          mkdir -p reports/{core,client}/build
-          cp -r core/build/reports reports/core/build/reports
-          cp -r client/build/reports reports/client/build/reports
+        run: ./gradlew test -isS
 
       - name: Upload Reports to S3
         id: reports
@@ -133,7 +115,7 @@ jobs:
           aws_key_id: ${{ secrets.AWS_DEV_ACCESS_KEY_ID }}
           aws_secret_access_key: ${{ secrets.AWS_DEV_SECRET_ACCESS_KEY }}
           aws_bucket: github-actions-static-html-2
-          source_dir: reports
+          source_dir: app/build/reports
           destination_dir: ${{ github.event.repository.name }}-${{ github.run_id }}
 
       - name: Provide Links to Reports
@@ -161,15 +143,15 @@ jobs:
         with:
           registries: ${{ fromJson(needs.init.outputs.metadata).ecr.registry }}
 
-      - name: Build image
+      - name: Build Docker image
         env:
           ARTIFACTORY_CONTEXT_URL: ${{ secrets.ARTIFACTORY_CONTEXT_URL }}
           ARTIFACTORY_USERNAME: ${{ secrets.ARTIFACTORY_USERNAME }}
           ARTIFACTORY_PASSWORD: ${{ secrets.ARTIFACTORY_PASSWORD }}
           ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
-          ECR_REPOSITORY_PREFIX: ${{ fromJson(needs.init.outputs.metadata).ecr.repository-prefix }}
+          ECR_REPOSITORY: ${{ fromJson(needs.init.outputs.metadata).ecr.repository }}
         run: |
-          ./gradlew jib -DIMAGE_NAME="${ECR_REGISTRY}/${ECR_REPOSITORY_PREFIX}" -DTAG_COMMIT=${{ env.HAWK_IMAGE_TAG }}
+          ./gradlew jib -DIMAGE_NAME="${ECR_REGISTRY}/${ECR_REPOSITORY}" -DTAG_COMMIT=${{ env.HAWK_IMAGE_TAG }}
 
   vulnerability-check-run:
     if: ${{ (inputs.profile == 'hawk') && (inputs.vulnerabilityCheck == true) }}
@@ -239,15 +221,3 @@ jobs:
           component-tag: ${{ env.HAWK_IMAGE_TAG }}
           kustomize-repo: ${{ fromJson(needs.init.outputs.parameters).kustomize == 'github-fake' && 'hawk-ai-aml/kustomize2.git' || 'hawk-ai-aml/kustomize.git' }}
           kustomize-access-token: ${{ secrets.REPO_ACCESS_PAT }}
-
-      - id: update-overlay-bitbucket
-        name: Update kustomize overlay
-        if: fromJson(needs.init.outputs.parameters).kustomize == 'bitbucket' || fromJson(needs.init.outputs.parameters).kustomize == 'bitbucket-fake'
-        uses: hawk-ai-aml/github-actions/kustomize-overlay-ssh@master
-        with:
-          component-name: ${{ inputs.component }}
-          component-metadata: ${{ needs.init.outputs.metadata }}
-          component-overlay: ${{ matrix.overlay }}
-          component-tag: ${{ env.HAWK_IMAGE_TAG }}
-          kustomize-repo: ${{ fromJson(needs.init.outputs.parameters).kustomize == 'bitbucket-fake' && 'git@bitbucket.org:hawkai/kustomize2.git' || 'git@bitbucket.org:hawkai/kustomize.git' }}
-          kustomize-ssh-key: ${{ secrets.KUSTOMIZE_DEPLOY_PRIVATE_KEY }}
