@@ -183,6 +183,15 @@ component:
     kustomize:
       path: plattform/processing/features/blacklist
       overlays: *defaultOverlays
+    modules:
+      core:
+        parameters:
+          <<: *defaultParameters
+          kustomize: github
+      msg:
+        parameters:
+          <<: *defaultParameters
+          kustomize: github
 
   case-archive:
     parameters:
