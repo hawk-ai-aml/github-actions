@@ -231,6 +231,15 @@ component:
     kustomize:
       path: plattform/utility/configuration
       overlays: *defaultOverlays
+    modules:
+      core:
+        parameters:
+          <<: *defaultParameters
+          kustomize: github
+      app:
+        parameters:
+          <<: *defaultParameters
+          kustomize: github
 
   customer-risk-rating:
     parameters:
@@ -957,6 +966,15 @@ component:
     kustomize:
       path: plattform/utility/tenant-management
       overlays: *defaultOverlays
+    modules:
+      core:
+        parameters:
+          <<: *defaultParameters
+          kustomize: github
+      rest:
+        parameters:
+          <<: *defaultParameters
+          kustomize: github
 
   transaction-announced-event-reducer:
     parameters:
@@ -990,6 +1008,15 @@ component:
     kustomize:
       path: plattform/watchtower
       overlays: *defaultOverlays
+    modules:
+      core:
+        parameters:
+          <<: *defaultParameters
+          kustomize: github
+      app:
+        parameters:
+          <<: *defaultParameters
+          kustomize: github
 
   docker-images:
     parameters:

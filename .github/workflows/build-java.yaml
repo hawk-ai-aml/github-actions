@@ -107,6 +107,18 @@ jobs:
           ARTIFACTORY_PASSWORD: ${{ secrets.ARTIFACTORY_PASSWORD }}
         run: ./gradlew test -isS
 
+      - name: Aggregate reports for upload
+        if: needs.init.outputs.skip-tests != 'true' && (success() || failure())
+        env:
+          METADATA: ${{ needs.init.outputs.metadata }}
+        run: |
+          for module in $(echo ${METADATA} | jq -r '.modules | keys | join(" ")'); do
+            mkdir -p reports/${module}/build
+            if [[ -d ${module}/build/reports ]]; then
+              cp -r ${module}/build/reports reports/${module}/build/reports
+            fi
+          done
+
       - name: Upload Reports to S3
         id: reports
         if: needs.init.outputs.skip-tests != 'true' && (success() || failure())
@@ -115,7 +127,7 @@ jobs:
           aws_key_id: ${{ secrets.AWS_DEV_ACCESS_KEY_ID }}
           aws_secret_access_key: ${{ secrets.AWS_DEV_SECRET_ACCESS_KEY }}
           aws_bucket: github-actions-static-html-2
-          source_dir: app/build/reports
+          source_dir: reports
           destination_dir: ${{ github.event.repository.name }}-${{ github.run_id }}
 
       - name: Provide Links to Reports
