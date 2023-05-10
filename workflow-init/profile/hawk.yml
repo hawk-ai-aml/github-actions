@@ -383,6 +383,19 @@ component:
     kustomize:
       path: plattform/utility/document-storage
       overlays: *defaultOverlays
+    modules:
+      api:
+        parameters:
+          <<: *defaultParameters
+          kustomize: github
+      client:
+        parameters:
+          <<: *defaultParameters
+          kustomize: github
+      model:
+        parameters:
+          <<: *defaultParameters
+          kustomize: github
 
   entity-resolution:
     parameters:
