@@ -954,6 +954,15 @@ component:
     kustomize:
       path: plattform/utility/secure-storage
       overlays: *defaultOverlays
+    modules:
+      core:
+        parameters:
+          <<: *defaultParameters
+          kustomize: github
+      rest:
+        parameters:
+          <<: *defaultParameters
+          kustomize: github
 
   tenant-management:
     parameters:
