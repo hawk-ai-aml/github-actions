@@ -113,6 +113,11 @@ component:
     kustomize:
       path: plattform/utility/audit-trail
       overlays: *defaultOverlays
+    modules:
+      app:
+        parameters:
+          <<: *defaultParameters
+          kustomize: github
 
   backend:
     parameters:
@@ -205,6 +210,11 @@ component:
     kustomize:
       path: plattform/utility/case-archive
       overlays: *defaultOverlays
+    modules:
+      app:
+        parameters:
+          <<: *defaultParameters
+          kustomize: github
 
   case-note:
     parameters:
@@ -217,6 +227,11 @@ component:
     kustomize:
       path: plattform/utility/case-note
       overlays: *defaultOverlays
+    modules:
+      app:
+        parameters:
+          <<: *defaultParameters
+          kustomize: github
 
   case-sink:
     parameters:
@@ -333,6 +348,11 @@ component:
     kustomize:
       path: plattform/processing/customer-risk-rating-events-sink
       overlays: *defaultOverlays
+    modules:
+      app:
+        parameters:
+          <<: *defaultParameters
+          kustomize: github
 
   customer-risk-rating-decision-engine:
     parameters:
@@ -345,6 +365,11 @@ component:
     kustomize:
       path: plattform/processing/customer-risk-rating-decision-engine
       overlays: *defaultOverlays
+    modules:
+      app:
+        parameters:
+          <<: *defaultParameters
+          kustomize: github
 
   decision-engine:
     parameters:
@@ -832,6 +857,11 @@ component:
     kustomize:
       path: plattform/processing/feature-enrichment
       overlays: *defaultOverlays
+    modules:
+      app:
+        parameters:
+          <<: *defaultParameters
+          kustomize: github
 
   external-enrichment:
     parameters:
@@ -844,6 +874,11 @@ component:
     kustomize:
       path: plattform/processing/external-enrichment
       overlays: *defaultOverlays
+    modules:
+      app:
+        parameters:
+          <<: *defaultParameters
+          kustomize: github
 
   rule-reset-sink:
     parameters:
@@ -856,6 +891,11 @@ component:
     kustomize:
       path: plattform/processing/rule-reset-sink
       overlays: *defaultOverlays
+    modules:
+      app:
+        parameters:
+          <<: *defaultParameters
+          kustomize: github
 
   frontend:
     parameters:
@@ -953,6 +993,11 @@ component:
     kustomize:
       path: plattform/processing/regulatory-check
       overlays: *defaultOverlays
+    modules:
+      app:
+        parameters:
+          <<: *defaultParameters
+          kustomize: github
 
   reprocessing:
     parameters:
@@ -1024,6 +1069,11 @@ component:
     kustomize:
       path: plattform/processing/transaction-announced-event-reducer
       overlays: *defaultOverlays
+    modules:
+      app:
+        parameters:
+          <<: *defaultParameters
+          kustomize: github
 
   processing-model:
     parameters:
@@ -1078,6 +1128,11 @@ component:
     kustomize:
       path: plattform/utility/case-statistics
       overlays: *defaultOverlays
+    modules:
+      app:
+        parameters:
+          <<: *defaultParameters
+          kustomize: github
 
   currency-conversion:
     parameters:
@@ -1090,6 +1145,11 @@ component:
     kustomize:
       path: plattform/utility/currency-conversion
       overlays: *defaultOverlays
+    modules:
+      app:
+        parameters:
+          <<: *defaultParameters
+          kustomize: github
 
   notifications:
     parameters:
@@ -1102,5 +1162,10 @@ component:
     kustomize:
       path: plattform/utility/notifications
       overlays: *defaultOverlays
+    modules:
+      app:
+        parameters:
+          <<: *defaultParameters
+          kustomize: github
 
 # End of file
