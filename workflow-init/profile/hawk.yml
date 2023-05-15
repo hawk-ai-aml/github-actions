@@ -244,6 +244,15 @@ component:
     kustomize:
       path: plattform/processing/case-sink
       overlays: *defaultOverlays
+    modules:
+      model:
+        parameters:
+          <<: *defaultParameters
+          kustomize: github
+      app:
+        parameters:
+          <<: *defaultParameters
+          kustomize: github
 
   configuration:
     parameters:
