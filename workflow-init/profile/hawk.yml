@@ -35,6 +35,11 @@ component:
     kustomize:
       path: plattform/utility/template-java-gradle-spring
       overlays: *defaultOverlays
+    modules:
+      app:
+        parameters:
+          <<: *defaultParameters
+          kustomize: github
 
   ai-data-sink:
     parameters:
