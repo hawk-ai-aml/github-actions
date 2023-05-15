@@ -1182,4 +1182,20 @@ component:
           <<: *defaultParameters
           kustomize: github
 
+  management-reporting:
+    parameters:
+      <<: *defaultParameters
+      kustomize: github
+      java-version: 17
+    ecr:
+      <<: *defaultECR
+      repository: management-reporting
+    kustomize:
+      path: plattform/utility/management-reporting
+      overlays: *defaultOverlays
+    modules:
+      app:
+        parameters:
+          <<: *defaultParameters
+          kustomize: github
 # End of file
