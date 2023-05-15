@@ -965,6 +965,11 @@ component:
     kustomize:
       path: plattform/processing/reprocessing
       overlays: *defaultOverlays
+    modules:
+      app:
+        parameters:
+          <<: *defaultParameters
+          kustomize: github
 
   secure-storage:
     parameters:
