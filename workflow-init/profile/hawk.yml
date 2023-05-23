@@ -932,6 +932,15 @@ component:
     kustomize:
       path: plattform/processing/features/label-engine
       overlays: *defaultOverlays
+    modules:
+      core:
+        parameters:
+          <<: *defaultParameters
+          kustomize: github
+      app:
+        parameters:
+          <<: *defaultParameters
+          kustomize: github
 
   pep-sanction:
     parameters:
