@@ -1,10 +1,10 @@
-name: publishArtifacts
+name: publish-artifacts
 
 on:
   workflow_call:
     inputs:
       skipTests:
-        description: "Skip extended testing (unit and other tests), only build artifacts"
+        description: "Skip running test"
         type: boolean
         required: false
         default: false
@@ -14,6 +14,11 @@ on:
       profile:
         type: string
         required: false
+      artifacts:
+        description: "A list of artifacts separated by a space"
+        type: string
+        required: true
+        default: ""
 
 defaults:
   run:
@@ -47,12 +52,6 @@ jobs:
         with:
           slack-notification-webhook: ${{ secrets.CICD_MIGRATION_SLACK_WEBHOOK_URL }}
 
-      - name: Login to Docker Hub
-        uses: docker/login-action@v2
-        with:
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
-
       - uses: actions/checkout@v3
 
       - name: Set up JDK
@@ -72,21 +71,48 @@ jobs:
           ARTIFACTORY_CONTEXT_URL: ${{ secrets.ARTIFACTORY_CONTEXT_URL }}
           ARTIFACTORY_USERNAME: ${{ secrets.ARTIFACTORY_USERNAME }}
           ARTIFACTORY_PASSWORD: ${{ secrets.ARTIFACTORY_PASSWORD }}
-        run: ./gradlew clean assemble testClasses -isS
+        run: |
+          if [ "${{ inputs.artifacts }}" == "" ]; then
+            ./gradlew clean assemble testClasses -isS
+          else
+            artifacts=(${{ inputs.artifacts }})
+            for i in "${artifacts[@]}"
+            do
+              ./gradlew clean :$i:assemble :$i:testClasses -isS
+            done
+          fi
 
       - name: License Report
         env:
           ARTIFACTORY_CONTEXT_URL: ${{ secrets.ARTIFACTORY_CONTEXT_URL }}
           ARTIFACTORY_USERNAME: ${{ secrets.ARTIFACTORY_USERNAME }}
           ARTIFACTORY_PASSWORD: ${{ secrets.ARTIFACTORY_PASSWORD }}
-        run: ./gradlew licenseReport
+        run: |
+          if [ "${{ inputs.artifacts }}" == "" ]; then
+            ./gradlew licenseReport --no-parallel
+          else
+            artifacts=(${{ inputs.artifacts }})
+            for i in "${artifacts[@]}"
+            do
+              ./gradlew :$i:licenseReport --no-parallel
+            done
+          fi
 
       - name: Check Quality
         env:
           ARTIFACTORY_CONTEXT_URL: ${{ secrets.ARTIFACTORY_CONTEXT_URL }}
           ARTIFACTORY_USERNAME: ${{ secrets.ARTIFACTORY_USERNAME }}
           ARTIFACTORY_PASSWORD: ${{ secrets.ARTIFACTORY_PASSWORD }}
-        run: ./gradlew checkQualityMain
+        run: |
+          if [ "${{ inputs.artifacts }}" == "" ]; then
+            ./gradlew checkQualityMain
+          else
+            artifacts=(${{ inputs.artifacts }})
+            for i in "${artifacts[@]}"
+            do
+              ./gradlew :$i:checkQualityMain
+            done
+          fi
 
       - name: Run Tests
         if: ${{ needs.init.outputs.skip-tests != 'true' }}
@@ -94,42 +120,31 @@ jobs:
           ARTIFACTORY_CONTEXT_URL: ${{ secrets.ARTIFACTORY_CONTEXT_URL }}
           ARTIFACTORY_USERNAME: ${{ secrets.ARTIFACTORY_USERNAME }}
           ARTIFACTORY_PASSWORD: ${{ secrets.ARTIFACTORY_PASSWORD }}
-        run: ./gradlew test -isS
+        run: |
+          if [ "${{ inputs.artifacts }}" == "" ]; then
+            ./gradlew test -isS
+          else
+            artifacts=(${{ inputs.artifacts }})
+            for i in "${artifacts[@]}"
+            do
+              ./gradlew :$i:check :$i:jacocoTestReport :jacocoTestCoverageVerification -isS
+            done
+          fi
 
       - name: Publish artifacts to Artifactory
         env:
           ARTIFACTORY_CONTEXT_URL: ${{ secrets.ARTIFACTORY_CONTEXT_URL }}
           ARTIFACTORY_USERNAME: ${{ secrets.ARTIFACTORY_DEPLOY_USERNAME }}
           ARTIFACTORY_PASSWORD: ${{ secrets.ARTIFACTORY_DEPLOY_PASSWORD }}
-        run: ./gradlew :model:artifactoryPublish :client:artifactoryPublish
-
-      - name: Aggregate reports for upload
-        if: needs.init.outputs.skip-tests != 'true' && (success() || failure())
         run: |
-          mkdir -p reports/{model,api,client}/build
-          cp -r model/build/reports reports/model/build/reports
-          cp -r api/build/reports reports/api/build/reports
-          cp -r client/build/reports reports/client/build/reports
-
-      - name: Upload Reports to S3
-        id: reports
-        if: needs.init.outputs.skip-tests != 'true' && (success() || failure())
-        uses: hawk-ai-aml/upload-s3-action@master
-        with:
-          aws_key_id: ${{ secrets.AWS_DEV_ACCESS_KEY_ID }}
-          aws_secret_access_key: ${{ secrets.AWS_DEV_SECRET_ACCESS_KEY }}
-          aws_bucket: github-actions-static-html-2
-          source_dir: reports
-          destination_dir: ${{ github.event.repository.name }}-${{ github.run_id }}
-
-      - name: Provide Links to Reports
-        if: needs.init.outputs.skip-tests != 'true' && (success() || failure())
-        run: |
-          echo "### Test Reports" | tee -a ${GITHUB_STEP_SUMMARY}
-          report_url=https://github-actions-static-html-2.s3.amazonaws.com/${{ github.event.repository.name }}-${{ github.run_id }}/
-          for report_file_loc in ${{ join(fromJSON(steps.reports.outputs.object_locations), ' ') }}; do
-            report_basename=${report_file_loc##${report_url}}
-            if [[ ${report_file_loc} == */main.html || ${report_file_loc} == */index.html || ${report_file_loc} == */licenseReport.html ]]; then
-              echo "* [${report_basename}](${report_file_loc})" | tee -a ${GITHUB_STEP_SUMMARY}
-            fi
-          done
+          if [ "${{ inputs.artifacts }}" == "" ]; then
+            ./gradlew artifactoryPublish
+          else
+            artifacts=(${{ inputs.artifacts }})
+            echo "Number of artifacts: ${#artifacts[@]}"
+            for i in "${artifacts[@]}"
+            do
+               echo "Publishing: $i"
+              ./gradlew :$i:artifactoryPublish
+            done
+          fi
