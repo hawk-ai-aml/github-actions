@@ -1191,16 +1191,16 @@ component:
           <<: *defaultParameters
           kustomize: github
 
-  management-reporting:
+  platform-statistics:
     parameters:
       <<: *defaultParameters
       kustomize: github
       java-version: 17
     ecr:
       <<: *defaultECR
-      repository: management-reporting
+      repository: platform-statistics
     kustomize:
-      path: plattform/utility/management-reporting
+      path: plattform/utility/platform-statistics
       overlays: *defaultOverlays
     modules:
       app:
