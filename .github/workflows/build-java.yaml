@@ -22,6 +22,10 @@ on:
       profile:
         type: string
         required: false
+      base-tag:
+        description: "This tag will be used in case we have a specific base image tag (now watchtower and label-engine only)"
+        type: string
+        required: false
       vulnerabilityCheck:
         description: "Conduct a vulnerability check using Lacework"
         type: boolean
@@ -162,6 +166,7 @@ jobs:
           ARTIFACTORY_PASSWORD: ${{ secrets.ARTIFACTORY_PASSWORD }}
           ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
           ECR_REPOSITORY: ${{ fromJson(needs.init.outputs.metadata).ecr.repository }}
+          BASE_TAG: ${{ inputs.base-tag }}
         run: |
           ./gradlew jib -DIMAGE_NAME="${ECR_REGISTRY}/${ECR_REPOSITORY}" -DTAG_COMMIT=${{ env.HAWK_IMAGE_TAG }}
 
