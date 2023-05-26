@@ -1,4 +1,4 @@
-name: build
+name: build-java-module
 
 on:
   workflow_call:
@@ -22,15 +22,9 @@ on:
       module:
         type: string
         required: true
-        default: ""
       profile:
         type: string
         required: false
-      vulnerabilityCheck:
-        description: "Conduct a vulnerability check using Lacework"
-        type: boolean
-        required: false
-        default: false
 
 defaults:
   run:
@@ -42,7 +36,6 @@ jobs:
     outputs:
       overlays: ${{ steps.init.outputs.overlays }}
       modules: ${{ steps.init.outputs.modules }}
-      kustomizable-modules: ${{ steps.init.outputs.kustomizable-modules }}
       metadata: ${{ steps.init.outputs.metadata }}
       update-kustomize: ${{ steps.init.outputs.update-kustomize }}
       skip-tests: ${{ steps.init.outputs.skip-tests }}
@@ -58,23 +51,15 @@ jobs:
           update-kustomize: ${{ inputs.updateKustomize }}
           overlays: ${{ inputs.kustomizeOverlays }}
           skip-tests: ${{ inputs.skipTests }}
-          vulnerabilityCheck: ${{ inputs.vulnerabilityCheck }}
 
   build:
     needs: [ init ]
     runs-on: [ "self-hosted", "builder" ]
     steps:
-      - id: init
-        name: Init Job
+      - name: Init Job
         uses: hawk-ai-aml/github-actions/job-init@master
         with:
           slack-notification-webhook: ${{ secrets.CICD_MIGRATION_SLACK_WEBHOOK_URL }}
-
-      - name: Login to Docker Hub
-        uses: docker/login-action@v2
-        with:
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
 
       - uses: actions/checkout@v3
 
@@ -90,7 +75,7 @@ jobs:
         env:
           GRADLE_BUILD_ACTION_CACHE_DEBUG_ENABLED: true
 
-      - name: Gradle Assemble
+      - name: Gradle Assemble for <${{ inputs.component }}/${{ inputs.module }}>
         env:
           ARTIFACTORY_CONTEXT_URL: ${{ secrets.ARTIFACTORY_CONTEXT_URL }}
           ARTIFACTORY_USERNAME: ${{ secrets.ARTIFACTORY_USERNAME }}
@@ -98,7 +83,7 @@ jobs:
           DISABLE_SLACK: true
         run: ./gradlew clean :${{ inputs.module }}:assemble :${{ inputs.module }}:testClasses -isS
 
-      - name: License Report
+      - name: License Report for <${{ inputs.component }}/${{ inputs.module }}>
         env:
           ARTIFACTORY_CONTEXT_URL: ${{ secrets.ARTIFACTORY_CONTEXT_URL }}
           ARTIFACTORY_USERNAME: ${{ secrets.ARTIFACTORY_USERNAME }}
@@ -106,7 +91,7 @@ jobs:
           DISABLE_SLACK: true
         run: ./gradlew :${{ inputs.module }}:licenseReport --no-parallel
 
-      - name: Check Quality
+      - name: Check Quality for <${{ inputs.component }}/${{ inputs.module }}>
         env:
           ARTIFACTORY_CONTEXT_URL: ${{ secrets.ARTIFACTORY_CONTEXT_URL }}
           ARTIFACTORY_USERNAME: ${{ secrets.ARTIFACTORY_USERNAME }}
@@ -114,7 +99,7 @@ jobs:
           DISABLE_SLACK: true
         run: ./gradlew :${{ inputs.module }}:checkQualityMain
 
-      - name: Run Tests
+      - name: Run Tests for <${{ inputs.component }}/${{ inputs.module }}>
         if: ${{ needs.init.outputs.skip-tests != 'true' }}
         env:
           ARTIFACTORY_CONTEXT_URL: ${{ secrets.ARTIFACTORY_CONTEXT_URL }}
@@ -158,7 +143,6 @@ jobs:
           done
 
       - name: Configure AWS credentials
-        if: ${{ contains(needs.init.outputs.kustomizable-modules, inputs.module) }}
         uses: aws-actions/configure-aws-credentials@v1
         with:
           aws-access-key-id: ${{ secrets.AWS_ORG_ECR_ACCESS_KEY_ID }}
@@ -167,13 +151,11 @@ jobs:
 
       - name: Login to Amazon ECR
         id: login-ecr
-        if: ${{ contains(needs.init.outputs.kustomizable-modules, inputs.module) }}
         uses: aws-actions/amazon-ecr-login@v1
         with:
           registries: ${{ fromJson(needs.init.outputs.metadata).ecr.registry }}
 
-      - name: Build Docker Images
-        if: ${{ contains(needs.init.outputs.kustomizable-modules, inputs.module) }}
+      - name: Build Docker Images for <${{ inputs.component }}/${{ inputs.module }}>
         env:
           ARTIFACTORY_CONTEXT_URL: ${{ secrets.ARTIFACTORY_CONTEXT_URL }}
           ARTIFACTORY_USERNAME: ${{ secrets.ARTIFACTORY_USERNAME }}
@@ -185,103 +167,25 @@ jobs:
             -DIMAGE_NAME="${ECR_REGISTRY}/${ECR_REPOSITORY_PREFIX}" \
             -DTAG_COMMIT=${{ env.HAWK_IMAGE_TAG }}
 
-  vulnerability-check-init:
-    if: ${{ (inputs.profile == 'hawk') && (inputs.vulnerabilityCheck == true) }}
-    needs: [ init, build ]
-    runs-on: ubuntu-latest
-    outputs:
-      imageList: ${{ steps.composeImageList.outputs.images }}
-    steps:
-      - name: Compose Image List
-        id: composeImageList
-        env:
-          METADATA: ${{ needs.init.outputs.metadata }}
-          ECR_REGISTRY: ${{ fromJson(needs.init.outputs.metadata).ecr.registry }}
-        run: |        
-          for module in ${{ inputs.module }}; do
-            module_repository=$(echo ${METADATA} | jq -cr --arg MODULE ${module} '.modules[$MODULE].ecr.repository')
-            [[ "${module_repository}" == "null" ]] && continue
-            echo "Module ${module} is configured to push image to ECR repository ${module_repository}"
-
-            list="${ECR_REGISTRY}.dkr.ecr.eu-central-1.amazonaws.com/${module_repository}"
-          done
-          
-          echo ${list}
-          echo "images=${list}" >> $GITHUB_OUTPUT
-
-  vulnerability-check-run:
-    if: ${{ (inputs.profile == 'hawk') && (inputs.vulnerabilityCheck == true) }}
-    needs: [ init, vulnerability-check-init ]
-    runs-on: ubuntu-latest
-    steps:
-      - id: init
-        name: Init Job
-        uses: hawk-ai-aml/github-actions/job-init@master
-        with:
-          slack-notification-webhook: ${{ secrets.CICD_MIGRATION_SLACK_WEBHOOK_URL }}
-
-      - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v1-node16
-        with:
-          aws-access-key-id: ${{ secrets.AWS_ORG_ECR_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_ORG_ECR_SECRET_ACCESS_KEY }}
-          aws-region: ${{ fromJson(needs.init.outputs.metadata).ecr.region }}
-
-      - name: Login to Amazon ECR
-        id: login-ecr
-        uses: aws-actions/amazon-ecr-login@v1
-        with:
-          registries: ${{ fromJson(needs.init.outputs.metadata).ecr.registry }}
-
-      - name: Retrieve AWS ECR login password for Lacework
-        id: ecrLoginPassword
-        run: echo "loginPassword=$(aws ecr get-login-password --region eu-central-1)" >> $GITHUB_OUTPUT
-
-      - uses: lacework/lw-scanner-action@v1.3.1
-        name: Scan container image for vulnerabilities using Lacework
-        env:
-          JAVA_OFFLINE_MODE: ${{ env.LACEWORK_JAVA_OFFLINE_MODE }}
-        with:
-          LW_ACCOUNT_NAME: ${{ secrets.LACEWORK_ACCOUNT_NAME }}
-          LW_ACCESS_TOKEN: ${{ secrets.LACEWORK_ACCESS_TOKEN }}
-          IMAGE_NAME: ${{ needs.vulnerability-check-init.outputs.imageList }}
-          IMAGE_TAG: ${{ env.HAWK_IMAGE_TAG }}
-          SAVE_RESULTS_IN_LACEWORK: true
-          ADDITIONAL_PARAMETERS: --docker-username AWS --docker-server https://860641649575.dkr.ecr.eu-central-1.amazonaws.com --docker-password ${{ steps.ecrLoginPassword.outputs.loginPassword }}
-
   update-overlays:
     needs: [ init, build ]
     if: ${{ needs.init.outputs.update-kustomize == 'true' }}
     runs-on: [ "self-hosted", "builder" ]
     steps:
-      - id: init
-        name: Init Job
+      - name: Init Job
         uses: hawk-ai-aml/github-actions/job-init@master
         with:
           slack-notification-webhook: ${{ secrets.CICD_MIGRATION_SLACK_WEBHOOK_URL }}
 
-      - id: update-overlay-github
-        name: Update kustomize overlay
-        if: fromJson(needs.init.outputs.parameters).kustomize == 'github' || fromJson(needs.init.outputs.parameters).kustomize == 'github-fake'
+      - name: Update kustomize overlay
+        id: update-overlay-github
         uses: hawk-ai-aml/github-actions/kustomize-overlay-multi@master
         with:
           component-name: ${{ inputs.component }}
           component-modules: '["${{ inputs.module }}"]'
           component-overlays: ${{ needs.init.outputs.overlays }}
           component-tag: ${{ env.HAWK_IMAGE_TAG }}
-          kustomize-repo: ${{ fromJson(needs.init.outputs.parameters).kustomize == 'github-fake' && 'hawk-ai-aml/kustomize2.git' || 'hawk-ai-aml/kustomize.git' }}
+          kustomize-repo: hawk-ai-aml/kustomize.git
           kustomize-access-token: ${{ secrets.REPO_ACCESS_PAT }}
-
-      - id: update-overlay-bitbucket
-        name: Update kustomize overlay
-        if: fromJson(needs.init.outputs.parameters).kustomize == 'bitbucket' || fromJson(needs.init.outputs.parameters).kustomize == 'bitbucket-fake'
-        uses: hawk-ai-aml/github-actions/kustomize-overlay-ssh-multi@master
-        with:
-          component-name: ${{ inputs.component }}
-          component-modules: '["${{ inputs.module }}"]'
-          component-overlays: ${{ needs.init.outputs.overlays }}
-          component-tag: ${{ env.HAWK_IMAGE_TAG }}
-          kustomize-repo: ${{ fromJson(needs.init.outputs.parameters).kustomize == 'bitbucket-fake' && 'git@bitbucket.org:hawkai/kustomize2.git' || 'git@bitbucket.org:hawkai/kustomize.git' }}
-          kustomize-ssh-key: ${{ secrets.KUSTOMIZE_DEPLOY_PRIVATE_KEY }}
 
 # End of file
