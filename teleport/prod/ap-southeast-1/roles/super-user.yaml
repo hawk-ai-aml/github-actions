@@ -1,0 +1,74 @@
+kind: role
+metadata:
+  name: super-user
+spec:
+  allow:
+    app_labels:
+      '*': '*'
+    db_labels:
+      '*': '*'
+    db_names:
+    - '{{internal.db_names}}'
+    - '*'
+    db_users:
+    - '{{internal.db_users}}'
+    - developer
+    kubernetes_groups:
+    - '{{internal.kubernetes_groups}}'
+    - developer
+    kubernetes_labels:
+      '*': '*'
+    kubernetes_resources:
+    - kind: pod
+      name: '*'
+      namespace: '*'
+    kubernetes_users:
+    - '{{internal.kubernetes_users}}'
+    - dev
+    logins:
+    - '{{internal.logins}}'
+    - ubuntu
+    - debian
+    node_labels:
+      '*': '*'
+    rules:
+    - resources:
+      - event
+      verbs:
+      - list
+      - read
+    - resources:
+      - session
+      verbs:
+      - read
+      - list
+      where: contains(session.participants, user.metadata.name)
+    windows_desktop_labels:
+      '*': '*'
+    windows_desktop_logins:
+    - '{{internal.windows_logins}}'
+    - developer
+  deny:
+    logins:
+    - guest
+  options:
+    cert_format: standard
+    create_desktop_user: false
+    create_host_user: false
+    desktop_clipboard: true
+    desktop_directory_sharing: true
+    enhanced_recording:
+    - command
+    - network
+    forward_agent: false
+    idp:
+      saml:
+        enabled: true
+    max_session_ttl: 8h0m0s
+    pin_source_ip: false
+    port_forwarding: true
+    record_session:
+      default: best_effort
+      desktop: true
+    ssh_file_copy: true
+version: v5

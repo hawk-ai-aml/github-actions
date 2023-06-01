@@ -1,0 +1,38 @@
+name: Create teleport user
+on:
+  workflow_call:
+      inputs:
+        cluster-teleport:
+          description: "Name of cluster"
+          type: choice 
+          options:
+          - dev-cluster
+          - sgp-prod-cluster 
+          required: true
+        user_name:
+          description: "Create user namme"
+          type: string
+          required: true
+        user_role:
+          description: "Assign roles to user"
+          type: multi-choice
+          options:
+          - developer
+          - super-user 
+          required: true  
+jobs:
+  Create-user:
+    name: Run create user
+    runs-on: ubuntu-latest
+    container: public.ecr.aws/gravitational/teleport:12.3.1
+    steps:
+      - name: Check teleport version
+        run: tctl version
+      - name: Check teleport version 
+        run: tsh version
+      - name: login teleport cluster
+        run: tsh login --proxy=teleport.example.com --user=email@example.com
+      - name: Verify login (success
+        run: tctl status 
+      - name: Create username
+        run: tctl users add ${{ inputs.user_name }} --roles=${{ inputs.user_role }}
