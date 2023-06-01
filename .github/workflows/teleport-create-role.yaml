@@ -13,17 +13,10 @@ on:
           description: "Input OTP admin"
           type: string
           required: true
-        user_name:
-          description: "Create user namme"
+        role_path:
+          description: "Role path"
           type: string
           required: true
-        user_role:
-          description: "Assign roles to user"
-          type: multi-choice
-          options:
-          - developer
-          - super-user 
-          required: true  
 jobs:
   Create-user:
     name: Run create user
@@ -47,9 +40,11 @@ jobs:
 
       - name: Verify login success
         run: tctl status 
-      - name: Create user name
-        run: tctl users add ${{ inputs.user_name }} --roles=${{ inputs.user_role }}
-        id: user_name_info  
+      - name: Create new roles
+        run: tctl create -f ${{ inputs.role_path }}
+      - name: Verify new roles
+        run: tctl get roles --format text
+        id: role_info  
       - name: Slack Notification
         uses: rtCamp/action-slack-notify@v2
         env:
