@@ -5,14 +5,17 @@ on:
         cluster_teleport:
           description: "Address teleport cluster"
           type: string 
+          default: "teleport.dev.aml-ai.net"
           required: true
         OTP_admin:
           description: "Input OTP admin"
           type: string
+          default: "123456"
           required: true
         role_path:
           description: "Role path"
           type: string
+          default: "teleport/dev/roles/developer.yaml"
           required: true
 jobs:
   Create-user:
@@ -20,6 +23,7 @@ jobs:
     runs-on: ubuntu-latest
     container: public.ecr.aws/gravitational/teleport:12.3.1
     steps:
+      - uses: actions/checkout@v3
       - name: Check teleport version
         run: tctl version
       - name: Check teleport version 
@@ -48,4 +52,3 @@ jobs:
           SLACK_MESSAGE: ${{join(steps.user_name_info.outputs.*, '\n')}}
           SLACK_TITLE: Send username info
           SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
-          
