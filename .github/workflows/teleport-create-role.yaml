@@ -48,3 +48,4 @@ jobs:
           SLACK_MESSAGE: ${{join(steps.user_name_info.outputs.*, '\n')}}
           SLACK_TITLE: Send username info
           SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
+          
