@@ -1,4 +1,4 @@
-name: Create teleport user
+name: Create teleport role
 on:
   workflow_call:
       inputs:
