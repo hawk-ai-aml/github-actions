@@ -2,12 +2,9 @@ name: Create teleport user
 on:
   workflow_call:
       inputs:
-        cluster-teleport:
-          description: "Name of cluster"
-          type: choice 
-          options:
-          - dev-cluster
-          - sgp-prod-cluster 
+        cluster_teleport:
+          description: "Address teleport cluster"
+          type: string
           required: true
         OTP-admin:
           description: "Input OTP admin"
@@ -37,7 +34,7 @@ jobs:
       - name: login teleport cluster
         run: |
           expect << EOF
-          spawn tsh login --proxy=teleport.dev.aml-ai.net  --user=admin
+          spawn tsh login --proxy=${{ inputs.cluster_teleport }}  --user=admin
           expect "Enter password for Teleport user admin:"
           send "${{ secrets.ADMIN_PASSWORD }}\r"
           expect "Enter an OTP code from a device:"
