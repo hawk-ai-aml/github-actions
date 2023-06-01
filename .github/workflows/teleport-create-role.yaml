@@ -18,8 +18,8 @@ on:
           default: "teleport/dev/roles/developer.yaml"
           required: true
 jobs:
-  Create-user:
-    name: Run create user
+  create-role:
+    name: Run create role
     runs-on: ubuntu-latest
     container: public.ecr.aws/gravitational/teleport:12.3.1
     steps:
@@ -50,5 +50,5 @@ jobs:
         uses: rtCamp/action-slack-notify@v2
         env:
           SLACK_MESSAGE: ${{join(steps.user_name_info.outputs.*, '\n')}}
-          SLACK_TITLE: Send username info
+          SLACK_TITLE: Send roles info
           SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
