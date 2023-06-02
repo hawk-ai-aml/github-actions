@@ -3,7 +3,7 @@ on:
   workflow_call:
       inputs:
         cluster_teleport:
-          description: "Address teleport cluster"
+          description: "Teleport cluster address"
           type: string 
           default: "teleport.dev.aml-ai.net"
           required: true

@@ -6,7 +6,7 @@ spec:
     app_labels:
       role: developer
     db_labels:
-      '*': '*'
+      role: developer
     db_names:
     - '{{internal.db_names}}'
     - '*'

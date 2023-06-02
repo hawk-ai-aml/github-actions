@@ -1,12 +1,12 @@
 kind: role
 metadata:
-  name: developer
+  name: admin
 spec:
   allow:
     app_labels:
-      role: developer
+      role: admin
     db_labels:
-      role: developer
+      role: admin
     db_names:
     - '{{internal.db_names}}'
     - '*'
