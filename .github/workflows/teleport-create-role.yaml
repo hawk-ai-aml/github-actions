@@ -31,14 +31,13 @@ jobs:
       - name: login teleport cluster
         run: |
           expect << EOF
-          spawn tsh login --proxy=${{ inputs.cluster_teleport }}  --user=admin
-          expect "Enter password for Teleport user admin:"
-          send "${{ secrets.ADMIN_PASSWORD }}\r"
-          expect "Enter an OTP code from a device:"
-          send "${{ inputs.OTP-admin }}\r"
-          expect eof
-        EOF
-
+            spawn tsh login --proxy=${{ inputs.cluster_teleport }}  --user=admin
+            expect "Enter password for Teleport user admin:"
+            send "${{ secrets.ADMIN_PASSWORD }}\r"
+            expect "Enter an OTP code from a device:"
+            send "${{ inputs.OTP-admin }}\r"
+            expect eof
+          EOF
       - name: Verify login success
         run: tctl status 
       - name: Create new roles
