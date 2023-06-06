@@ -1,6 +1,6 @@
 kind: role
 metadata:
-  name: super-user
+  name: super-admin
 spec:
   allow:
     app_labels:

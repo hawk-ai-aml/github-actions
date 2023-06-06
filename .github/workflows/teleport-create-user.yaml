@@ -21,7 +21,8 @@ on:
           type: multi-choice
           options:
           - developer
-          - super-user 
+          - admin
+          - super-admin 
           required: true  
 jobs:
   Create-user:
