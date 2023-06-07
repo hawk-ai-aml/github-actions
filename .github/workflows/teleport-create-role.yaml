@@ -1,0 +1,53 @@
+name: Create teleport role
+on:
+  workflow_call:
+      inputs:
+        cluster_teleport:
+          description: "Teleport cluster address"
+          type: string 
+          default: "teleport.dev.aml-ai.net"
+          required: true
+        OTP_admin:
+          description: "Input OTP admin"
+          type: string
+          default: "123456"
+          required: true
+        role_path:
+          description: "Role path"
+          type: string
+          default: "teleport/dev/roles/developer.yaml"
+          required: true
+jobs:
+  create-role:
+    name: Run create role
+    runs-on: ubuntu-latest
+    container: public.ecr.aws/gravitational/teleport:12.3.1
+    steps:
+      - uses: actions/checkout@v3
+      - name: Check teleport version
+        run: tctl version
+      - name: Check teleport version 
+        run: tsh version
+      - name: login teleport cluster
+        run: |
+          expect << EOF
+            spawn tsh login --proxy=${{ inputs.cluster_teleport }}  --user=admin
+            expect "Enter password for Teleport user admin:"
+            send "${{ secrets.ADMIN_PASSWORD }}\r"
+            expect "Enter an OTP code from a device:"
+            send "${{ inputs.OTP-admin }}\r"
+            expect eof
+          EOF
+      - name: Verify login success
+        run: tctl status 
+      - name: Create new roles
+        run: tctl create -f ${{ inputs.role_path }}
+      - name: Verify new roles
+        run: tctl get roles --format text
+        id: role_info  
+      - name: Slack Notification
+        uses: rtCamp/action-slack-notify@v2
+        env:
+          SLACK_MESSAGE: ${{join(steps.user_name_info.outputs.*, '\n')}}
+          SLACK_TITLE: Send roles info
+          SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
