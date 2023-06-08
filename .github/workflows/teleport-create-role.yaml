@@ -21,9 +21,17 @@ jobs:
   create-role:
     name: Run create role
     runs-on: ubuntu-latest
-    container: public.ecr.aws/gravitational/teleport:12.3.1
     steps:
       - uses: actions/checkout@v3
+      - name: Install dependency
+        run: |
+          sudo curl https://apt.releases.teleport.dev/gpg -o /usr/share/keyrings/teleport-archive-keyring.asc
+          source /etc/os-release
+          echo "deb [signed-by=/usr/share/keyrings/teleport-archive-keyring.asc] \
+          https://apt.releases.teleport.dev/${ID?} ${VERSION_CODENAME?} stable/v13" \
+          | sudo tee /etc/apt/sources.list.d/teleport.list > /dev/null
+          sudo apt-get update
+          sudo apt-get install teleport expect -y
       - name: Check teleport version
         run: tctl version
       - name: Check teleport version 
@@ -48,6 +56,6 @@ jobs:
       - name: Slack Notification
         uses: rtCamp/action-slack-notify@v2
         env:
-          SLACK_MESSAGE: ${{join(steps.user_name_info.outputs.*, '\n')}}
-          SLACK_TITLE: Send roles info
-          SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
+          SLACK_MESSAGE: ${{ steps.user_info.outputs.USER_INFO }}
+          SLACK_TITLE: User `${{ inputs.user_name }}` has been created access URL to complete user setup
+          SLACK_WEBHOOK: ${{ inputs.slack_webhook }}
