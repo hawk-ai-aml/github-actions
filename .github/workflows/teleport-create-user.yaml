@@ -10,11 +10,12 @@ on:
           type: string
         cluster_teleport:
           description: "Address teleport cluster"
-          type: string
-          default: "teleport.dev.aml-ai.net"
+          type: choice
+          options: 
+          - teleport.dev.aml-ai.net
           required: true
-        OTP_admin:
-          description: "Input OTP admin"
+        OTP_secret:
+          description: "Input OTP secret"
           type: string
           default: "123456"
           required: true
@@ -37,9 +38,18 @@ jobs:
   Create-user:
     name: Run create user
     runs-on: ubuntu-latest
-    container: public.ecr.aws/gravitational/teleport:12.3.1
     steps:
       - uses: actions/checkout@v3
+      - name: Install dependency
+        run: |
+          sudo curl https://apt.releases.teleport.dev/gpg -o /usr/share/keyrings/teleport-archive-keyring.asc
+          source /etc/os-release
+          echo "deb [signed-by=/usr/share/keyrings/teleport-archive-keyring.asc] \
+          https://apt.releases.teleport.dev/${ID?} ${VERSION_CODENAME?} stable/v13" \
+          | sudo tee /etc/apt/sources.list.d/teleport.list > /dev/null
+          sudo apt-get update
+          sudo apt-get install teleport expect -y
+
       - name: Check teleport version
         run: tctl version
       - name: Check teleport version 
@@ -51,17 +61,19 @@ jobs:
             expect "Enter password for Teleport user ${{ inputs.user_manage }}:"
             send "${{ inputs.password_user_manage }}\r"
             expect "Enter an OTP code from a device:"
-            send "${{ inputs.OTP_admin }}\r"
+            send "${{ inputs.OTP_secret }}\r"
             expect eof
           EOF
       - name: Verify login success
         run: tctl status 
       - name: Create user name
-        run: tctl users add ${{ inputs.user_name }} --roles=${{ inputs.user_role }}
-        id: user_name_info  
+        id: user_info
+        run: |
+          tctl users add ${{ inputs.user_name }} --roles=${{ inputs.user_role }} >> tmp.txt
+          echo "::set-output name=USER_INFO::$(cat tmp.txt | grep http)"
       - name: Slack Notification
         uses: rtCamp/action-slack-notify@v2
         env:
-          SLACK_MESSAGE: ${{join(steps.user_name_info.outputs.*, '\n')}}
-          SLACK_TITLE: Send username info
+          SLACK_MESSAGE: ${{ steps.user_info.outputs.USER_INFO }}
+          SLACK_TITLE: User `${{ inputs.user_name }}` has been created access URL to complete user setup
           SLACK_WEBHOOK: ${{ inputs.slack_webhook }}
