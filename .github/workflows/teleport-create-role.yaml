@@ -10,8 +10,9 @@ on:
           type: string
         cluster_teleport:
           description: "Teleport cluster address"
-          type: string 
-          default: "teleport.dev.aml-ai.net"
+          type: choice
+          options:
+            - teleport.dev.aml-ai.net
           required: true
         OTP_admin:
           description: "Input OTP admin"

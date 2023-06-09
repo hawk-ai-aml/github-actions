@@ -13,7 +13,7 @@ on:
           type: string
           default: "teleport.dev.aml-ai.net"
           required: true
-        OTP-admin:
+        OTP_admin:
           description: "Input OTP admin"
           type: string
           default: "123456"
@@ -24,7 +24,7 @@ on:
           required: true
         user_role:
           description: "Assign roles to user"
-          type: multi-choice
+          type: choice
           options:
           - developer
           - admin
@@ -51,7 +51,7 @@ jobs:
             expect "Enter password for Teleport user ${{ inputs.user_manage }}:"
             send "${{ inputs.password_user_manage }}\r"
             expect "Enter an OTP code from a device:"
-            send "${{ inputs.OTP-admin }}\r"
+            send "${{ inputs.OTP_admin }}\r"
             expect eof
           EOF
       - name: Verify login success
