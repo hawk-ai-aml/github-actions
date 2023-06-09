@@ -1,19 +1,7 @@
-# Deprecated, use library functions
-
 name: workflow-init
 description: Workflow Init Action
 
 inputs:
-  slack-notification-webhook:
-    description: "Encoded Slack URL"
-    required: false
-  component:
-    description: "Component to retrieve metadata"
-    required: true
-  profile:
-    description: Metadata profile
-    required: false
-    default: hawk
   skip-tests:
     description: "Hint to skip tests"
     required: false
@@ -21,37 +9,26 @@ inputs:
   update-kustomize:
     description: "Hint to update kustomize"
     required: false
-    default: "true"
+    default: "false"
   overlays:
     description: "Overlays to update"
     required: false
     default: dev
-  vulnerabilityCheck:
-    description: "Conduct a vulnerability check using Lacework"
-    type: boolean
+  repository-name:
+    description: "Repository name"
+    required: true
+  repository-ref:
+    description: "Repository ref"
     required: false
-    default: false
+    default: master
+  repository-access-token:
+    description: "Access token to repository"
+    required: true
 
 outputs:
-  metadata:
-    description: 'repository metadata'
-    value: ${{ steps.vars.outputs.metadata }}
-
   overlays:
     description: 'repository overlays'
     value: ${{ steps.vars.outputs.overlays }}
-
-  modules:
-    description: 'repository modules'
-    value: ${{ steps.vars.outputs.modules }}
-
-  kustomizable-modules:
-    description: 'repository modules with ECR and kustomize settings'
-    value: ${{ steps.vars.outputs.kustomizable-modules }}
-
-  parameters:
-    description: 'repository workflow parameters'
-    value: ${{ steps.vars.outputs.parameters }}
 
   update-kustomize:
     description: 'Hint to update kustomize'
@@ -61,52 +38,65 @@ outputs:
     description: 'Hint to skip tests'
     value: ${{ steps.vars.outputs.skip-tests }}
 
+  image-tag:
+    description: 'Tag number for docker image'
+    value: ${{ steps.vars.outputs.image-tag }}
+
+  ecr-url:
+    description: 'The URL to Hawks ECR'
+    value: ${{ steps.vars.outputs.ecr-url }}
+
+  kustomize-modules:
+    description: 'List of module name'
+    value: ${{ steps.vars.outputs.kustomize-modules }}
+
+  kustomize-modules-string:
+    description: 'List of module name in string'
+    value: ${{ steps.vars.outputs.kustomize-modules-string }}
+
+  ecr-images:
+    description: 'List of ecr image name'
+    value: ${{ steps.vars.outputs.ecr-images }}
+
+  ecr-registry-code:
+    description: 'The ERC registry code'
+    value: ${{ steps.vars.outputs.ecr-registry-code }}
+
+  ecr-region:
+    description: 'The ERC region'
+    value: ${{ steps.vars.outputs.ecr-region }}
+
+  metadata:
+    description: 'The metadata of the current repository'
+    value: ${{ steps.vars.outputs.metadata }}
+
 runs:
   using: composite
   steps:
-    - id: job-init
-      name: Init Job
-      uses: hawk-ai-aml/github-actions/job-init@master
+    - id: init
+      shell: bash -l -ET -eo pipefail {0}
+      run: echo "HAWK_WORKFLOW_ID=${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}" >> ${GITHUB_ENV}
+
+    - name: Checkout current repository
+      uses: actions/checkout@v3
       with:
-        slack-notification-webhook: ${{ inputs.slack-notification-webhook }}
+        repository: ${{ inputs.repository-name }}
+        ref: ${{ inputs.repository-ref }}
+        token: ${{ inputs.repository-access-token }}
+
+    - name: Load profile
+      id: profile
+      shell: bash -l -ET -eo pipefail {0}
+      run: |
+        METADATA_JSON=$(yj -y < .github/workflows/profile.json)
+        echo "metadata=${METADATA_JSON}" >> $GITHUB_OUTPUT
 
     - id: vars
       shell: bash -l -ET -eo pipefail {0}
+      env:
+        METADATA: ${{ steps.profile.outputs.metadata }}
       run: |
-        UPDATE_KUSTOMIZE=${{ inputs.update-kustomize }}
-        UPDATE_KUSTOMIZE=${UPDATE_KUSTOMIZE:-true}
-
-        KUSTOMIZE_OVERLAYS=${{ inputs.overlays }}
-        KUSTOMIZE_OVERLAYS=${KUSTOMIZE_OVERLAYS:-dev}
-
-        SKIP_TESTS=${{ inputs.skip-tests }}
-        SKIP_TESTS=${SKIP_TESTS:-false}
-        
-        VULNERABILITY_CHECK=${{ inputs.vulnerabilityCheck }}
-        VULNERABILITY_CHECK=${VULNERABILITY_CHECK:-false}
-
-        METADATA_JSON=$(yj -y < ${GITHUB_ACTION_PATH}/profile/${{ inputs.profile }}.yml \
-          | jq -cr --arg COMPONENT ${{ inputs.component }} '.component[$COMPONENT]')
-
-        OVERLAYS_JSON=$(yj -y < ${GITHUB_ACTION_PATH}/profile/${{ inputs.profile }}.yml \
-          | jq -cr --arg COMPONENT ${{ inputs.component }} --arg OVERLAYS ${KUSTOMIZE_OVERLAYS} '.component[$COMPONENT].kustomize.overlays[$OVERLAYS]')
-
-        MODULES_JSON=$(yj -y < ${GITHUB_ACTION_PATH}/profile/${{ inputs.profile }}.yml \
-          | jq -cr --arg COMPONENT ${{ inputs.component }} '.component[$COMPONENT].modules')
-
-        if [[ ${MODULES_JSON} != "null" ]]; then
-          echo "${{ inputs.component }} is a multi-module component"
-          MODULES_LIST_JSON=$(echo ${MODULES_JSON} | jq -cr 'keys')
-
-          KUSTOMIZABLE_MODULES_LIST_JSON=$(echo ${MODULES_JSON} \
-            | jq -cr '[to_entries | .[] | select(.value.ecr.repository) | select(.value.kustomize.path) | .key]')
-        fi
-
-        PARAMETERS_JSON=$(yj -y < ${GITHUB_ACTION_PATH}/profile/${{ inputs.profile }}.yml \
-          | jq -cr --arg COMPONENT ${{ inputs.component }} '.component[$COMPONENT].parameters')
-
         cat <<EOF | tee -a ${GITHUB_STEP_SUMMARY}
-
         \`\`\`
         Workflow: ${HAWK_WORKFLOW_ID}
         Attempt: ${GITHUB_RUN_ATTEMPT}
@@ -115,16 +105,68 @@ runs:
         \`\`\`
         \`\`\`
         EOF
+        
+        UPDATE_KUSTOMIZE=${{ inputs.update-kustomize }}
+        UPDATE_KUSTOMIZE=${UPDATE_KUSTOMIZE:-false}
 
+        KUSTOMIZE_OVERLAYS=${{ inputs.overlays }}
+        KUSTOMIZE_OVERLAYS=${KUSTOMIZE_OVERLAYS:-dev}
+
+        SKIP_TESTS=${{ inputs.skip-tests }}
+        SKIP_TESTS=${SKIP_TESTS:-false}
+
+        # Build image tag
+        BUILD_BRANCH=$(echo ${GITHUB_REF_NAME} | sed 's,\/,-,g; s,\#,,g')
+        GIT_SHA_SHORT=${GITHUB_SHA:0:7}
+        if [[ ${GITHUB_REF_TYPE} == "tag" ]]; then
+          IMAGE_TAG=${BUILD_BRANCH}
+        else
+          IMAGE_TAG=${BUILD_BRANCH}-${GIT_SHA_SHORT}
+        fi
+        
+        ECR_REGION=$(echo ${METADATA} | jq -r '.ecr.region')
+        ECR_REGISTRY_CODE=$(echo ${METADATA} | jq -r '.ecr."registry-code"')
+        ECR_URL=https://${ECR_REGISTRY_CODE}.dkr.ecr.${ECR_REGION}.amazonaws.com
+        
+        # Build kustomize modules and ECR images
+        SPACE=" "
+        for module in $(echo ${METADATA} | jq -cr '.modules | keys | join(" ")'); do
+          module_ecr=$(echo ${METADATA} | jq -cr --arg MODULE ${module} '.modules[$MODULE].ecr')
+          [[ "${module_ecr}" == "null" ]] && continue
+            
+          MODULE_LIST="${MODULE_LIST}\"${module}\","
+          MODULE_LIST_STRING=${MODULE_LIST_STRING}${module}${SPACE}
+        
+          MODULE_REPOSITORY=$(echo ${METADATA} | jq -cr --arg MODULE ${module} '.modules[$MODULE].ecr.repository')
+          IMAGE_LIST="${IMAGE_LIST}\"${ECR_URL}/${MODULE_REPOSITORY}\","
+        done
+
+        LENGTH_OF_MODULE_LIST=$(echo ${#MODULE_LIST})
+        MODULE_LIST=${MODULE_LIST:0:${LENGTH_OF_MODULE_LIST}-1}
+        KUSTOMIZE_MODULES="[${MODULE_LIST}]"
+        
+        LENGTH_OF_IMAGE_LIST=$(echo ${#IMAGE_LIST})
+        IMAGE_LIST=${IMAGE_LIST:0:${LENGTH_OF_IMAGE_LIST}-1}
+        IMAGE_LIST="[${IMAGE_LIST}]"
+        ECR_IMAGES="${IMAGE_LIST}"
+        
+        if [[ ${KUSTOMIZE_OVERLAYS} != "null" ]]; then
+          OVERLAYS_JSON=$(echo ${METADATA} | jq -cr --arg OVERLAYS ${KUSTOMIZE_OVERLAYS} '.overlays[$OVERLAYS]')
+        fi
+
+        # Workflow outputs
         cat <<EOF | tee -a ${GITHUB_STEP_SUMMARY} | tee -a ${GITHUB_OUTPUT}
-        metadata=${METADATA_JSON}
         overlays=${OVERLAYS_JSON}
-        modules=${MODULES_LIST_JSON}
-        kustomizable-modules=${KUSTOMIZABLE_MODULES_LIST_JSON}
-        parameters=${PARAMETERS_JSON}
         update-kustomize=${UPDATE_KUSTOMIZE}
         skip-tests=${SKIP_TESTS}
-        vulnerability-check=${VULNERABILITY_CHECK}
+        image-tag=${IMAGE_TAG}
+        ecr-url=${ECR_URL}
+        kustomize-modules=${KUSTOMIZE_MODULES}
+        kustomize-modules-string=${MODULE_LIST_STRING}
+        ecr-images=${ECR_IMAGES}
+        ecr-registry-code=${ECR_REGISTRY_CODE}
+        ecr-region=${ECR_REGION}
+        metadata=${METADATA}
         EOF
 
         cat <<EOF | tee -a ${GITHUB_STEP_SUMMARY}

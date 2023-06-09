@@ -17,14 +17,13 @@ on:
         type: string
         required: false
       component:
+        description: "Name of the repository"
         type: string
         required: false
       module:
+        description: "Name of the module"
         type: string
         required: true
-      profile:
-        type: string
-        required: false
 
 defaults:
   run:
@@ -35,38 +34,45 @@ jobs:
     runs-on: [ "self-hosted", "builder" ]
     outputs:
       overlays: ${{ steps.init.outputs.overlays }}
-      modules: ${{ steps.init.outputs.modules }}
-      metadata: ${{ steps.init.outputs.metadata }}
       update-kustomize: ${{ steps.init.outputs.update-kustomize }}
       skip-tests: ${{ steps.init.outputs.skip-tests }}
-      parameters: ${{ steps.init.outputs.parameters }}
+      image-tag: ${{ steps.init.outputs.image-tag }}
+      ecr-url: ${{ steps.init.outputs.ecr-url }}
+      kustomize-modules: ${{ steps.init.outputs.kustomize-modules }}
+      ecr-images: ${{ steps.init.outputs.ecr-images }}
+      ecr-registry-code: ${{ steps.init.outputs.ecr-registry-code }}
+      ecr-region: ${{ steps.init.outputs.ecr-region }}
+      metadata: ${{ steps.init.outputs.metadata }}
+
     steps:
       - id: init
         name: Init Workflow
         uses: hawk-ai-aml/github-actions/workflow-init@master
         with:
-          slack-notification-webhook: ${{ secrets.CICD_MIGRATION_SLACK_WEBHOOK_URL }}
-          profile: ${{ inputs.profile }}
-          component: ${{ inputs.component }}
+          skip-tests: ${{ inputs.skipTests }}
           update-kustomize: ${{ inputs.updateKustomize }}
           overlays: ${{ inputs.kustomizeOverlays }}
-          skip-tests: ${{ inputs.skipTests }}
+          repository-name: hawk-ai-aml/${{ inputs.component }}
+          repository-ref: master
+          repository-access-token: ${{ secrets.REPO_ACCESS_PAT }}
 
   build:
     needs: [ init ]
     runs-on: [ "self-hosted", "builder" ]
     steps:
-      - name: Init Job
-        uses: hawk-ai-aml/github-actions/job-init@master
-        with:
-          slack-notification-webhook: ${{ secrets.CICD_MIGRATION_SLACK_WEBHOOK_URL }}
 
       - uses: actions/checkout@v3
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@v2
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
 
       - name: Set up JDK
         uses: actions/setup-java@v3
         with:
-          java-version: ${{ fromJson(needs.init.outputs.parameters).java-version }}
+          java-version: ${{ fromJson(needs.init.outputs.metadata).java-version }}
           distribution: temurin
           cache: gradle
 
@@ -147,13 +153,13 @@ jobs:
         with:
           aws-access-key-id: ${{ secrets.AWS_ORG_ECR_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_ORG_ECR_SECRET_ACCESS_KEY }}
-          aws-region: ${{ fromJson(needs.init.outputs.metadata).ecr.region }}
+          aws-region: ${{ needs.init.outputs.ecr-region }}
 
       - name: Login to Amazon ECR
         id: login-ecr
         uses: aws-actions/amazon-ecr-login@v1
         with:
-          registries: ${{ fromJson(needs.init.outputs.metadata).ecr.registry }}
+          registries: ${{ needs.init.outputs.ecr-registry-code }}
 
       - name: Build Docker Images for <${{ inputs.component }}/${{ inputs.module }}>
         env:
@@ -165,27 +171,28 @@ jobs:
         run: |
           ./gradlew :${{ inputs.module }}:jib \
             -DIMAGE_NAME="${ECR_REGISTRY}/${ECR_REPOSITORY_PREFIX}" \
-            -DTAG_COMMIT=${{ env.HAWK_IMAGE_TAG }}
+            -DTAG_COMMIT=${{ needs.init.outputs.image-tag }}
 
   update-overlays:
     needs: [ init, build ]
     if: ${{ needs.init.outputs.update-kustomize == 'true' }}
     runs-on: [ "self-hosted", "builder" ]
-    steps:
-      - name: Init Job
-        uses: hawk-ai-aml/github-actions/job-init@master
-        with:
-          slack-notification-webhook: ${{ secrets.CICD_MIGRATION_SLACK_WEBHOOK_URL }}
+    strategy:
+      max-parallel: 1
+      matrix:
+        overlay: ${{ fromJson(needs.init.outputs.overlays) }}
 
+    steps:
       - name: Update kustomize overlay
-        id: update-overlay-github
-        uses: hawk-ai-aml/github-actions/kustomize-overlay-multi@master
+        uses: hawk-ai-aml/github-actions/kustomize-overlay@master
         with:
           component-name: ${{ inputs.component }}
-          component-modules: '["${{ inputs.module }}"]'
-          component-overlays: ${{ needs.init.outputs.overlays }}
-          component-tag: ${{ env.HAWK_IMAGE_TAG }}
+          component-tag: ${{ needs.init.outputs.image-tag }}
           kustomize-repo: hawk-ai-aml/kustomize.git
           kustomize-access-token: ${{ secrets.REPO_ACCESS_PAT }}
-
+          ecr-region: ${{ needs.init.outputs.ecr-region }}
+          ecr-registry-code: ${{ needs.init.outputs.ecr-registry-code }}
+          overlay: ${{ matrix.overlay }}
+          module: ${{ inputs.module }}
+          metadata: ${{ needs.init.outputs.metadata }}
 # End of file
