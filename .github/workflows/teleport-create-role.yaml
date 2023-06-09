@@ -2,6 +2,12 @@ name: Create teleport role
 on:
   workflow_dispatch:
       inputs:
+        user_manage:
+          description: "User manage teleport cluster"
+          type: string
+        password_user_manage:
+          description: "Password user manage teleport cluster"
+          type: string
         cluster_teleport:
           description: "Teleport cluster address"
           type: string 
@@ -53,9 +59,3 @@ jobs:
       - name: Verify new roles
         run: tctl get roles --format text
         id: role_info  
-      - name: Slack Notification
-        uses: rtCamp/action-slack-notify@v2
-        env:
-          SLACK_MESSAGE: ${{ steps.user_info.outputs.USER_INFO }}
-          SLACK_TITLE: User `${{ inputs.user_name }}` has been created access URL to complete user setup
-          SLACK_WEBHOOK: ${{ inputs.slack_webhook }}
