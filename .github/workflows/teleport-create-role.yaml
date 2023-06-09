@@ -1,6 +1,6 @@
 name: Create teleport role
 on:
-  workflow_call:
+  workflow_dispatch:
       inputs:
         cluster_teleport:
           description: "Teleport cluster address"
