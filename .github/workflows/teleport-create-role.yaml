@@ -24,6 +24,9 @@ on:
           type: string
           default: "teleport/dev/roles/developer.yaml"
           required: true
+        slack_webhook:
+          description: "webhook"
+          type: string
 jobs:
   create-role:
     name: Run create role
