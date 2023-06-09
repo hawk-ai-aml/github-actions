@@ -56,10 +56,10 @@ jobs:
       - name: Verify login success
         run: tctl status 
       - name: Create new roles
+        id: role_info 
         run: |
           tctl create -f ${{ inputs.role_path }} >> tmp.txt
-          echo "::set-output name=USER_INFO::$(cat tmp.txt)"
-        id: role_info  
+          echo "::set-output name=ROLE_INFO::$(cat tmp.txt)"         
       - name: Verify new roles
         run: tctl get roles --format text 
       - name: Slack Notification
