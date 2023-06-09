@@ -49,7 +49,7 @@ jobs:
             expect "Enter password for Teleport user ${{ inputs.user_manage }}:"
             send "${{ inputs.password_user_manage }}\r"
             expect "Enter an OTP code from a device:"
-            send "${{ inputs.OTP-admin }}\r"
+            send "${{ inputs.OTP_admin }}\r"
             expect eof
           EOF
       - name: Verify login success
