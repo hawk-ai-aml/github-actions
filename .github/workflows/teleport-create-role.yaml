@@ -2,10 +2,17 @@ name: Create teleport role
 on:
   workflow_dispatch:
       inputs:
+        user_manage:
+          description: "User manage teleport cluster"
+          type: string
+        password_user_manage:
+          description: "Password user manage teleport cluster"
+          type: string
         cluster_teleport:
           description: "Teleport cluster address"
-          type: string 
-          default: "teleport.dev.aml-ai.net"
+          type: choice
+          options:
+            - teleport.dev.aml-ai.net
           required: true
         OTP_admin:
           description: "Input OTP admin"
@@ -17,6 +24,9 @@ on:
           type: string
           default: "teleport/dev/roles/developer.yaml"
           required: true
+        slack_webhook:
+          description: "webhook"
+          type: string
 jobs:
   create-role:
     name: Run create role
@@ -39,23 +49,25 @@ jobs:
       - name: login teleport cluster
         run: |
           expect << EOF
-            spawn tsh login --proxy=${{ inputs.cluster_teleport }}  --user=admin
-            expect "Enter password for Teleport user admin:"
-            send "${{ secrets.ADMIN_PASSWORD }}\r"
+            spawn tsh login --proxy=${{ inputs.cluster_teleport }}  --user=${{ inputs.user_manage }}
+            expect "Enter password for Teleport user ${{ inputs.user_manage }}:"
+            send "${{ inputs.password_user_manage }}\r"
             expect "Enter an OTP code from a device:"
-            send "${{ inputs.OTP-admin }}\r"
+            send "${{ inputs.OTP_admin }}\r"
             expect eof
           EOF
       - name: Verify login success
         run: tctl status 
       - name: Create new roles
-        run: tctl create -f ${{ inputs.role_path }}
+        id: role_info 
+        run: |
+          tctl create -f ${{ inputs.role_path }} >> tmp.txt
+          echo "::set-output name=ROLE_INFO::$(cat tmp.txt)"         
       - name: Verify new roles
-        run: tctl get roles --format text
-        id: role_info  
+        run: tctl get roles --format text 
       - name: Slack Notification
         uses: rtCamp/action-slack-notify@v2
         env:
-          SLACK_MESSAGE: ${{ steps.user_info.outputs.USER_INFO }}
-          SLACK_TITLE: User `${{ inputs.user_name }}` has been created access URL to complete user setup
+          SLACK_MESSAGE: New role create on ${{ inputs.cluster_teleport }}/web/roles
+          SLACK_TITLE: ${{ steps.role_info.outputs.ROLE_INFO }}
           SLACK_WEBHOOK: ${{ inputs.slack_webhook }}
