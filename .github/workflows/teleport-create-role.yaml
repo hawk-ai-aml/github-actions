@@ -56,7 +56,15 @@ jobs:
       - name: Verify login success
         run: tctl status 
       - name: Create new roles
-        run: tctl create -f ${{ inputs.role_path }}
-      - name: Verify new roles
-        run: tctl get roles --format text
+        run: |
+          tctl create -f ${{ inputs.role_path }} >> tmp.txt
+          echo "::set-output name=USER_INFO::$(cat tmp.txt)"
         id: role_info  
+      - name: Verify new roles
+        run: tctl get roles --format text 
+      - name: Slack Notification
+        uses: rtCamp/action-slack-notify@v2
+        env:
+          SLACK_MESSAGE: New role create on ${{ inputs.cluster_teleport }}
+          SLACK_TITLE: ${{ steps.role_info.outputs.ROLE_INFO }}
+          SLACK_WEBHOOK: ${{ inputs.slack_webhook }}
