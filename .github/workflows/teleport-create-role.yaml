@@ -45,9 +45,9 @@ jobs:
       - name: login teleport cluster
         run: |
           expect << EOF
-            spawn tsh login --proxy=${{ inputs.cluster_teleport }}  --user=admin
-            expect "Enter password for Teleport user admin:"
-            send "${{ secrets.ADMIN_PASSWORD }}\r"
+            spawn tsh login --proxy=${{ inputs.cluster_teleport }}  --user=${{ inputs.user_manage }}
+            expect "Enter password for Teleport user ${{ inputs.user_manage }}:"
+            send "${{ inputs.password_user_manage }}\r"
             expect "Enter an OTP code from a device:"
             send "${{ inputs.OTP-admin }}\r"
             expect eof
