@@ -12,40 +12,20 @@ on:
         type: boolean
         required: false
         default: false
-      environments:
-        type: string
-        required: true
-      modules:
-        type: string
-        required: true
-      modules-string:
-        type: string
-        required: true
-      profile:
-        type: string
-        required: true
-      ecr-repository-code:
+      kustomizeOverlays:
+        description: "The indicated overlays (dev, test, qa, prod)"
         type: string
         required: false
-        default: 860641649575
-      ecr-repository-region:
-        type: string
-        required: false
-        default: eu-central-1
       ecr-prefix:
         type: string
         required: false
       caller-workflow-type:
         type: string
         required: true
-      python-version:
+      component:
+        description: "Name of the repository"
         type: string
         required: false
-        default: 3.10
-      kustomize-path:
-        type: string
-        required: false
-        default: plattform/processing/features
       vulnerabilityCheck:
         description: "Conduct a vulnerability check using Lacework"
         type: boolean
@@ -53,17 +33,42 @@ on:
         default: false
 
 jobs:
+  init:
+    runs-on: [ "self-hosted", "builder" ]
+    outputs:
+      overlays: ${{ steps.init.outputs.overlays }}
+      update-kustomize: ${{ steps.init.outputs.update-kustomize }}
+      skip-tests: ${{ steps.init.outputs.skip-tests }}
+      image-tag: ${{ steps.init.outputs.image-tag }}
+      ecr-url: ${{ steps.init.outputs.ecr-url }}
+      kustomize-modules: ${{ steps.init.outputs.kustomize-modules }}
+      kustomize-modules-string: ${{ steps.init.outputs.kustomize-modules-string }}
+      ecr-images: ${{ steps.init.outputs.ecr-images }}
+      ecr-registry-code: ${{ steps.init.outputs.ecr-registry-code }}
+      ecr-region: ${{ steps.init.outputs.ecr-region }}
+      metadata: ${{ steps.init.outputs.metadata }}
+
+    steps:
+      - id: init
+        name: Init Workflow
+        uses: hawk-ai-aml/github-actions/workflow-init@master
+        with:
+          skip-tests: ${{ inputs.skipTests }}
+          update-kustomize: ${{ inputs.updateKustomize }}
+          overlays: ${{ inputs.kustomizeOverlays }}
+          repository-name: hawk-ai-aml/${{ inputs.component }}
+          repository-ref: master
+          repository-access-token: ${{ secrets.REPO_ACCESS_PAT }}
 
   build:
+    needs: init
     runs-on: ubuntu-latest
-    outputs:
-      tag: ${{ steps.build-and-tag.outputs.tag }}
     steps:
       - uses: actions/checkout@v3
 
       - uses: actions/setup-python@v4
         with:
-          python-version: ${{ inputs.python-version }}
+          python-version: ${{ fromJson(needs.init.outputs.metadata).python-version }}
 
       - name: Install pipenv
         run: pip install pipenv
@@ -106,103 +111,63 @@ jobs:
         uses: aws-actions/configure-aws-credentials@v1
         with:
           aws-access-key-id: ${{ secrets.AWS_ORG_ECR_ACCESS_KEY_ID }}
-          aws-region: ${{ inputs.ecr-repository-region }}
           aws-secret-access-key: ${{ secrets.AWS_ORG_ECR_SECRET_ACCESS_KEY }}
+          aws-region: ${{ needs.init.outputs.ecr-region }}
 
       - name: Login to Amazon ECR
         id: login-ecr
         uses: aws-actions/amazon-ecr-login@v1
         with:
-          registries: ${{ inputs.ecr-repository-code }}
+          registries: ${{ needs.init.outputs.ecr-registry-code }}
 
       - name: Build and tag images
         id: build-and-tag
         env:
-          MODULES: ${{ inputs.modules-string }}
+          MODULES: ${{ needs.init.outputs.kustomize-modules-string }}
+          IMAGE_TAG: ${{ needs.init.outputs.image-tag }}
+          ECR_PREFIX: ${{ inputs.ecr-prefix }}
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
           PY_UTILS_PAT: ${{ secrets.PY_UTILS_PAT }}
         run: |
-          echo "WORKFLOW TYPE: ${{ inputs.caller-workflow-type }}"
-          echo $MODULES
-          REGISTRY=${{ inputs.ecr-repository-code }}.dkr.ecr.${{ inputs.ecr-repository-region }}.amazonaws.com
-          TAG=$(echo ${GITHUB_REF_NAME} | sed 's,\/,-,g; s,\#,,g')
-          ECR_PREFIX=${{ inputs.ecr-prefix }}
-          # add github commit sha if the job is not called by the TAG pipeline
-          if [[ ! ${{ inputs.caller-workflow-type }} == 'tag' ]]; then
-            TAG+="-${GITHUB_SHA:0:7}"
-          fi
-          echo "tag=${TAG}" >> $GITHUB_OUTPUT
-          echo "tag: ${TAG}"
           for module in $MODULES
           do
             REPOSITORY_FOLDER=$(echo ${module} | sed 's/\_/\-/g')
-            REPOSITORY_FULL_NAME="${REGISTRY}/${ECR_PREFIX}${REPOSITORY_FOLDER}"
+            REPOSITORY_FULL_NAME="${ECR_REGISTRY}/${ECR_PREFIX}${REPOSITORY_FOLDER}"
             echo "${REPOSITORY_FULL_NAME} is building..."
-            DOCKER_BUILDKIT=1 docker build --build-arg SERVICE=${module} --build-arg PY_UTILS_PAT=${PY_UTILS_PAT} -t ${REPOSITORY_FULL_NAME}:${TAG} .
-            docker push ${REPOSITORY_FULL_NAME}:${TAG}
+            DOCKER_BUILDKIT=1 docker build --build-arg SERVICE=${module} --build-arg PY_UTILS_PAT=${PY_UTILS_PAT} -t ${REPOSITORY_FULL_NAME}:${IMAGE_TAG} .
+            docker push ${REPOSITORY_FULL_NAME}:${IMAGE_TAG}
           done
-
-  vulnerability-check-init:
-    if: ${{ (inputs.profile == 'hawk') && (inputs.vulnerabilityCheck == true) }}
-    needs: [ build ]
-    runs-on: ubuntu-latest
-    outputs:
-      imageList: ${{ steps.composeImageList.outputs.images }}
-    steps:
-      - name: Compose Image List
-        id: composeImageList
-        env:
-          MODULES: ${{ inputs.modules-string }}
-        run: |
-          # In order to scan all images within the multi module project we need a list of all repositories.
-          # We convert this list into a JSON array and save it to $GITHUB_OUTPUT so we can use it in the next job as input for the matrix
-          
-          REGISTRY=${{ inputs.ecr-repository-code }}.dkr.ecr.${{ inputs.ecr-repository-region }}.amazonaws.com
-          TAG=$(echo ${GITHUB_REF_NAME} | sed 's,\/,-,g; s,\#,,g')
-          # add github commit sha if the job is not called by the TAG pipeline
-          if [[ ! ${{ inputs.caller-workflow-type }} == 'tag' ]]; then
-            TAG+="-${GITHUB_SHA:0:7}"
-          fi
-          
-          
-          list="[ "
-          
-          for module in $MODULES
-          do
-            REPOSITORY_FOLDER=$(echo ${module} | sed 's/\_/\-/g')
-            REPOSITORY_FULL_NAME="${REGISTRY}/${{ inputs.ecr-prefix }}${REPOSITORY_FOLDER}"
-            list="${list} \"${REPOSITORY_FULL_NAME}\", "
-          done
-
-          list="${list} ]"
-          echo ${list}
-          echo "images=${list}" >> $GITHUB_OUTPUT
 
   vulnerability-check-run:
-    if: ${{ (inputs.profile == 'hawk') && (inputs.vulnerabilityCheck == true) }}
-    needs: [ build, vulnerability-check-init ]
+    if: ${{ inputs.vulnerabilityCheck == true }}
+    needs: [ init, build ]
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       max-parallel: 10
       matrix:
-        test: ${{ fromJSON(needs.vulnerability-check-init.outputs.imageList) }}
+        image: ${{ fromJson(needs.init.outputs.ecr-images) }}
+
     steps:
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v1-node16
         with:
           aws-access-key-id: ${{ secrets.AWS_ORG_ECR_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_ORG_ECR_SECRET_ACCESS_KEY }}
-          aws-region: ${{ inputs.ecr-repository-region }}
+          aws-region: ${{ needs.init.outputs.ecr-region }}
 
       - name: Login to Amazon ECR
         id: login-ecr
         uses: aws-actions/amazon-ecr-login@v1
         with:
-          registries: ${{ inputs.ecr-repository-code }}
+          registries: ${{ needs.init.outputs.ecr-registry-code }}
 
       - name: Retrieve AWS ECR login password for Lacework
         id: ecrLoginPassword
-        run: echo "loginPassword=$(aws ecr get-login-password --region ${{ inputs.ecr-repository-region }})" >> $GITHUB_OUTPUT
+        env:
+          ECR_REGION: ${{ needs.init.outputs.ecr-region }}
+        run: |
+          echo "loginPassword=$(aws ecr get-login-password --region ${ECR_REGION})" >> $GITHUB_OUTPUT
 
       - uses: lacework/lw-scanner-action@v1.3.1
         name: Scan container image for vulnerabilities using Lacework
@@ -211,43 +176,31 @@ jobs:
         with:
           LW_ACCOUNT_NAME: ${{ secrets.LACEWORK_ACCOUNT_NAME }}
           LW_ACCESS_TOKEN: ${{ secrets.LACEWORK_ACCESS_TOKEN }}
-          IMAGE_NAME: ${{ matrix.test }}
-          IMAGE_TAG: ${{ needs.build.outputs.tag }}
+          IMAGE_NAME: ${{ matrix.image }}
+          IMAGE_TAG: ${{ needs.init.outputs.image-tag }}
           SAVE_RESULTS_IN_LACEWORK: true
-          ADDITIONAL_PARAMETERS: --docker-username AWS --docker-server https://${{ inputs.ecr-repository-code }}.dkr.ecr.${{ inputs.ecr-repository-region }}.amazonaws.com --docker-password ${{ steps.ecrLoginPassword.outputs.loginPassword }}
+          ADDITIONAL_PARAMETERS: --docker-username AWS --docker-server ${{ needs.init.outputs.ecr-url }} --docker-password ${{ steps.ecrLoginPassword.outputs.loginPassword }}
 
   update-overlays:
-    if: ${{ inputs.updateKustomize == true }}
-    needs: build
+    needs: [ init, build ]
+    if: ${{ needs.init.outputs.update-kustomize == 'true' }}
     runs-on: [ "self-hosted", "builder" ]
     strategy:
       max-parallel: 1
       matrix:
-        overlay: ${{fromJson(inputs.environments)}}
-        module: ${{fromJson(inputs.modules)}}
+        overlay: ${{ fromJson(needs.init.outputs.overlays) }}
+        module: ${{ fromJson(needs.init.outputs.kustomize-modules) }}
 
     steps:
-      - name: Checkout Kustomize (GitHub)
-        uses: actions/checkout@v3
+      - name: Update kustomize overlay
+        uses: hawk-ai-aml/github-actions/kustomize-overlay@master
         with:
-          repository: hawk-ai-aml/kustomize.git
-          token: ${{ secrets.REPO_ACCESS_PAT }}
-          ref: master
-
-      - name: Update Kustomize (GitHub)
-        run: |
-          cd ${{ github.workspace }}/${{ inputs.kustomize-path }}/${{ matrix.module }}/overlays/${{ matrix.overlay }}
-          REPOSITORY_FOLDER=$(echo ${{ matrix.module }} | sed 's/\_/\-/g')
-          ECR_PREFIX=${{ inputs.ecr-prefix }}
-          REPOSITORY_FULL_NAME="${{ inputs.ecr-repository-code }}.dkr.ecr.${{ inputs.ecr-repository-region }}.amazonaws.com/${ECR_PREFIX}${REPOSITORY_FOLDER}"
-          TAG=${{ needs.build.outputs.tag }}
-          kustomize edit set image $REPOSITORY_FULL_NAME:$TAG
-          git config --global user.name "GitHub Actions"
-          git config --global user.email "github-actions@hawk.ai"
-          if [[ -z $(git status -s) ]]; then
-            echo "no changes in overlays ${overlays} (TAG: $TAG)"
-          else
-            git add .
-            git commit -m "AUTOMATIC COMMIT: Update ${{ matrix.module }} on ${{ matrix.overlay }} to $TAG "
-            git push
-          fi
+          component-name: ${{ inputs.component }}
+          component-tag: ${{ needs.init.outputs.image-tag }}
+          kustomize-repo: hawk-ai-aml/kustomize.git
+          kustomize-access-token: ${{ secrets.REPO_ACCESS_PAT }}
+          ecr-region: ${{ needs.init.outputs.ecr-region }}
+          ecr-registry-code: ${{ needs.init.outputs.ecr-registry-code }}
+          overlay: ${{ matrix.overlay }}
+          module: ${{ matrix.module }}
+          metadata: ${{ needs.init.outputs.metadata }}
