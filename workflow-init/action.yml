@@ -126,7 +126,7 @@ runs:
         
         ECR_REGION=$(echo ${METADATA} | jq -r '.ecr.region')
         ECR_REGISTRY_CODE=$(echo ${METADATA} | jq -r '.ecr."registry-code"')
-        ECR_URL=https://${ECR_REGISTRY_CODE}.dkr.ecr.${ECR_REGION}.amazonaws.com
+        ECR_URL=${ECR_REGISTRY_CODE}.dkr.ecr.${ECR_REGION}.amazonaws.com
         
         # Build kustomize modules and ECR images
         SPACE=" "
