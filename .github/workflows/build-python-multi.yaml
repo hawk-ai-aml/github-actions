@@ -149,37 +149,19 @@ jobs:
         image: ${{ fromJson(needs.init.outputs.ecr-images) }}
 
     steps:
-      - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v1-node16
+      - name: Vulnerability check
+        uses: hawk-ai-aml/github-actions/vulnerability-check@master
         with:
+          ecr-region: ${{ needs.init.outputs.ecr-region }}
+          ecr-registry-code: ${{ needs.init.outputs.ecr-registry-code }}
+          image-name: ${{ matrix.image }}
+          image-tag: ${{ needs.init.outputs.image-tag }}
+          ecr-url: ${{ needs.init.outputs.ecr-url }}
           aws-access-key-id: ${{ secrets.AWS_ORG_ECR_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_ORG_ECR_SECRET_ACCESS_KEY }}
-          aws-region: ${{ needs.init.outputs.ecr-region }}
-
-      - name: Login to Amazon ECR
-        id: login-ecr
-        uses: aws-actions/amazon-ecr-login@v1
-        with:
-          registries: ${{ needs.init.outputs.ecr-registry-code }}
-
-      - name: Retrieve AWS ECR login password for Lacework
-        id: ecrLoginPassword
-        env:
-          ECR_REGION: ${{ needs.init.outputs.ecr-region }}
-        run: |
-          echo "loginPassword=$(aws ecr get-login-password --region ${ECR_REGION})" >> $GITHUB_OUTPUT
-
-      - uses: lacework/lw-scanner-action@v1.3.1
-        name: Scan container image for vulnerabilities using Lacework
-        env:
-          JAVA_OFFLINE_MODE: ${{ env.LACEWORK_JAVA_OFFLINE_MODE }}
-        with:
-          LW_ACCOUNT_NAME: ${{ secrets.LACEWORK_ACCOUNT_NAME }}
-          LW_ACCESS_TOKEN: ${{ secrets.LACEWORK_ACCESS_TOKEN }}
-          IMAGE_NAME: ${{ matrix.image }}
-          IMAGE_TAG: ${{ needs.init.outputs.image-tag }}
-          SAVE_RESULTS_IN_LACEWORK: true
-          ADDITIONAL_PARAMETERS: --docker-username AWS --docker-server ${{ needs.init.outputs.ecr-url }} --docker-password ${{ steps.ecrLoginPassword.outputs.loginPassword }}
+          java-offline-mode: ${{ env.LACEWORK_JAVA_OFFLINE_MODE }}
+          lacework-account-name: ${{ secrets.LACEWORK_ACCOUNT_NAME }}
+          lacework-access-token: ${{ secrets.LACEWORK_ACCESS_TOKEN }}
 
   update-overlays:
     needs: [ init, build ]
