@@ -24,6 +24,11 @@ on:
         description: "Name of the module"
         type: string
         required: true
+      profile:
+        description: "The file name of the profile json"
+        type: string
+        required: false
+        default: profile.json
 
 defaults:
   run:
@@ -47,8 +52,9 @@ jobs:
     steps:
       - id: init
         name: Init Workflow
-        uses: hawk-ai-aml/github-actions/workflow-init@master
+        uses: hawk-ai-aml/github-actions/workflow-init@sre-build-module
         with:
+          profile: ${{ inputs.profile }}
           skip-tests: ${{ inputs.skipTests }}
           update-kustomize: ${{ inputs.updateKustomize }}
           overlays: ${{ inputs.kustomizeOverlays }}

@@ -24,6 +24,9 @@ inputs:
   repository-access-token:
     description: "Access token to repository"
     required: true
+  profile:
+    description: "Profile"
+    required: true
 
 outputs:
   overlays:
@@ -87,8 +90,10 @@ runs:
     - name: Load profile
       id: profile
       shell: bash -l -ET -eo pipefail {0}
+      env:
+        PROFILE: ${{ inputs.profile }}
       run: |
-        METADATA_JSON=$(yj -y < .github/workflows/profile.json)
+        METADATA_JSON=$(yj -y < .github/workflows/${PROFILE})
         echo "metadata=${METADATA_JSON}" >> $GITHUB_OUTPUT
 
     - id: vars
