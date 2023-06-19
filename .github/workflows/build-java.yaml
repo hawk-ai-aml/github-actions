@@ -58,7 +58,7 @@ jobs:
           update-kustomize: ${{ inputs.updateKustomize }}
           overlays: ${{ inputs.kustomizeOverlays }}
           repository-name: hawk-ai-aml/${{ inputs.component }}
-          repository-ref: master
+          repository-ref: ${{ env.GITHUB_REF_NAME }}
           repository-access-token: ${{ secrets.REPO_ACCESS_PAT }}
 
   build:
