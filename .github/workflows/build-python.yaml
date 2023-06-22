@@ -71,7 +71,10 @@ jobs:
         run: |
           pip install pipenv
           if [ -f manual-requirements.txt ]; then
-            pip install -r manual-requirements.txt
+            git clone https://github.com/UKPLab/sentence-transformers
+            cd sentence-transformers
+            pip install -e .
+            cd ..
           fi
 
 
