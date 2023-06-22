@@ -71,10 +71,7 @@ jobs:
         run: |
           pip install pipenv
           if [ -f manual-requirements.txt ]; then
-            cat manual-requirements.txt pipenv-requirements.txt > requirements.txt
-            pipenv run pip install -r manual-requirements.txt
-          else
-             cat pipenv-requirements.txt > requirements.txt
+            pip install -r manual-requirements.txt
           fi
 
 
