@@ -70,12 +70,10 @@ jobs:
       - name: Install pipenv
         run: |
           pip install pipenv
-          if [ -f manual-requirements.txt ]; then
-            git clone https://github.com/UKPLab/sentence-transformers
-            cd sentence-transformers
-            pip install -e .
-            cd ..
-          fi
+          git clone https://github.com/UKPLab/sentence-transformers
+          cd sentence-transformers
+          pip install -e .
+          cd ..
 
 
       - name: Run Pytest
