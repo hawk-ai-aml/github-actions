@@ -46,7 +46,7 @@ runs:
       uses: actions/checkout@v3
       with:
         repository: ${{ inputs.kustomize-repo }}
-        ref: ${{ env.GITHUB_REF_NAME }}
+        ref: master
         token: ${{ inputs.kustomize-access-token }}
 
     - name: Update
