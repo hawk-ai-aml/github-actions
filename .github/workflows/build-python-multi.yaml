@@ -47,6 +47,7 @@ jobs:
       ecr-registry-code: ${{ steps.init.outputs.ecr-registry-code }}
       ecr-region: ${{ steps.init.outputs.ecr-region }}
       metadata: ${{ steps.init.outputs.metadata }}
+      updated-modules: ${{ steps.detect-changes.outputs.updated-modules }}
 
     steps:
       - id: init
@@ -60,9 +61,24 @@ jobs:
           repository-ref: ${{ env.GITHUB_REF_NAME }}
           repository-access-token: ${{ secrets.REPO_ACCESS_PAT }}
 
+      - id: detect-changes
+        name: Detect changes
+        uses: hawk-ai-aml/github-actions/repository-detect-changes@master
+        with:
+          repository: hawk-ai-aml/${{ inputs.component }}
+          repository-ref: ${{ env.GITHUB_REF_NAME }}
+          repository-user: ${{ secrets.RECREATE_DEVELOP_GITHUB_USER }}
+          repository-access-token: ${{ secrets.REPO_ACCESS_PAT }}
+          modules-string: ${{ steps.init.outputs.kustomize-modules-string }}
+
   build:
     needs: init
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        module: ${{ fromJson(needs.init.outputs.updated-modules) }}
+
     steps:
       - uses: actions/checkout@v3
 
@@ -123,20 +139,17 @@ jobs:
       - name: Build and tag images
         id: build-and-tag
         env:
-          MODULES: ${{ needs.init.outputs.kustomize-modules-string }}
           IMAGE_TAG: ${{ needs.init.outputs.image-tag }}
           ECR_PREFIX: ${{ inputs.ecr-prefix }}
           ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
           PY_UTILS_PAT: ${{ secrets.PY_UTILS_PAT }}
+          MODULE: ${{ matrix.module }}
         run: |
-          for module in $MODULES
-          do
-            REPOSITORY_FOLDER=$(echo ${module} | sed 's/\_/\-/g')
-            REPOSITORY_FULL_NAME="${ECR_REGISTRY}/${ECR_PREFIX}${REPOSITORY_FOLDER}"
-            echo "${REPOSITORY_FULL_NAME} is building..."
-            DOCKER_BUILDKIT=1 docker build --build-arg SERVICE=${module} --build-arg PY_UTILS_PAT=${PY_UTILS_PAT} -t ${REPOSITORY_FULL_NAME}:${IMAGE_TAG} .
-            docker push ${REPOSITORY_FULL_NAME}:${IMAGE_TAG}
-          done
+          REPOSITORY_FOLDER=$(echo ${MODULE} | sed 's/\_/\-/g')
+          REPOSITORY_FULL_NAME="${ECR_REGISTRY}/${ECR_PREFIX}${REPOSITORY_FOLDER}"
+          echo "${REPOSITORY_FULL_NAME} is building..."
+          DOCKER_BUILDKIT=1 docker build --build-arg SERVICE=${MODULE} --build-arg PY_UTILS_PAT=${PY_UTILS_PAT} -t ${REPOSITORY_FULL_NAME}:${IMAGE_TAG} .
+          docker push ${REPOSITORY_FULL_NAME}:${IMAGE_TAG}
 
   vulnerability-check-run:
     if: ${{ inputs.vulnerabilityCheck == true }}
@@ -171,7 +184,7 @@ jobs:
       max-parallel: 1
       matrix:
         overlay: ${{ fromJson(needs.init.outputs.overlays) }}
-        module: ${{ fromJson(needs.init.outputs.kustomize-modules) }}
+        module: ${{ fromJson(needs.init.outputs.updated-modules) }}
 
     steps:
       - name: Update kustomize overlay
