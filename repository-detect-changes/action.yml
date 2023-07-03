@@ -50,14 +50,34 @@ runs:
       run: |
         echo "WORKFLOW_TYPE: $WORKFLOW_TYPE"
         case $WORKFLOW_TYPE in
-          "tag")
-            for module in $REPOSITORY_MODULES; do
-              MODULES="${MODULES}\"$module\","
+          "manual")
+            CURRENT_BRANCH=${GITHUB_HEAD_REF:-${GITHUB_REF#refs/heads/}}
+            echo "Branch: ${CURRENT_BRANCH}"
+
+            COMMIT_IDS=$(curl -s https://api.github.com/repos/$REPOSITORY/commits\?sha\=${CURRENT_BRANCH} -u "$USER:$TOKEN" | jq -r '[.[] | if .commit.verification.signature == null then .sha else 1 end] | join(" ")')
+            echo "IDS: ${COMMIT_IDS}"
+        
+            for id in ${COMMIT_IDS}; do
+              if [[ $id == 1 ]]; then
+                break
+              fi
+      
+              FILES=$(curl -s https://api.github.com/repos/$REPOSITORY/commits/${id} -u "$USER:$TOKEN" | jq -r '[.files | .[] | select(.status == "modified") | .filename] | join(" ")')
+      
+              for module in $REPOSITORY_MODULES; do
+                for file in $FILES; do
+                  if [[ $file == *"$module"* && $MODULES != *"$module"* ]];  then
+                    MODULES="${MODULES}\"$module\","
+                    break
+                  fi
+                done
+              done
             done
           ;;
           "pr")
             PULL_NUMBER=$(jq --raw-output .pull_request.number "$GITHUB_EVENT_PATH")
             echo "PR: ${PULL_NUMBER}";
+
             FILES=$(curl -s https://api.github.com/repos/$REPOSITORY/pulls/${PULL_NUMBER}/files -u "$USER:$TOKEN" | jq -r '[.[] | .filename] | join(" ")')          
             echo "FILES: ${FILES}"
           
@@ -71,26 +91,8 @@ runs:
             done
           ;;
           *)
-            CURRENT_BRANCH=${GITHUB_HEAD_REF:-${GITHUB_REF#refs/heads/}}
-            echo "Branch: ${CURRENT_BRANCH}"
-            COMMIT_IDS=$(curl -s https://api.github.com/repos/$REPOSITORY/commits\?sha\=${CURRENT_BRANCH} -u "$USER:$TOKEN" | jq -r '[.[] | if .commit.verification.signature == null then .sha else 1 end] | join(" ")')
-            echo "COMMITS: ${COMMIT_IDS}"
-  
-            for id in ${COMMIT_IDS}; do
-              if [[ $id == 1 ]]; then
-                break
-              fi
-          
-              FILES=$(curl -s https://api.github.com/repos/$REPOSITORY/commits/${id} -u "$USER:$TOKEN" | jq -r '[.files | .[] | select(.status == "modified") | .filename] | join(" ")')
-          
-              for module in $REPOSITORY_MODULES; do
-                for file in $FILES; do
-                  if [[ $file == *"$module"* && $MODULES != *"$module"* ]];  then
-                    MODULES="${MODULES}\"$module\","
-                    break
-                  fi
-                done
-              done
+            for module in $REPOSITORY_MODULES; do
+              MODULES="${MODULES}\"$module\","
             done
           ;;
         esac

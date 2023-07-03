@@ -40,10 +40,12 @@ jobs:
       image-tag: ${{ steps.init.outputs.image-tag }}
       ecr-url: ${{ steps.init.outputs.ecr-url }}
       kustomize-modules: ${{ steps.init.outputs.kustomize-modules }}
+      kustomize-modules-string: ${{ steps.init.outputs.kustomize-modules-string }}
       ecr-images: ${{ steps.init.outputs.ecr-images }}
       ecr-registry-code: ${{ steps.init.outputs.ecr-registry-code }}
       ecr-region: ${{ steps.init.outputs.ecr-region }}
       metadata: ${{ steps.init.outputs.metadata }}
+      updated-modules: ${{ steps.detect-changes.outputs.updated-modules }}
 
     steps:
       - id: init
@@ -57,9 +59,23 @@ jobs:
           repository-ref: ${{ env.GITHUB_REF_NAME }}
           repository-access-token: ${{ secrets.REPO_ACCESS_PAT }}
 
+      - id: detect-changes
+        name: Detect changes
+        uses: hawk-ai-aml/github-actions/repository-detect-changes@master
+        with:
+          repository: hawk-ai-aml/${{ inputs.component }}
+          repository-ref: ${{ env.GITHUB_REF_NAME }}
+          repository-user: ${{ secrets.RECREATE_DEVELOP_GITHUB_USER }}
+          repository-access-token: ${{ secrets.REPO_ACCESS_PAT }}
+          modules-string: ${{ steps.init.outputs.kustomize-modules-string }}
+
   build:
     needs: [ init ]
     runs-on: [ "self-hosted", "builder" ]
+    strategy:
+      fail-fast: false
+      matrix:
+        module: ${{ fromJson(needs.init.outputs.updated-modules) }}
 
     steps:
       - uses: actions/checkout@v3
@@ -88,7 +104,8 @@ jobs:
           ARTIFACTORY_USERNAME: ${{ secrets.ARTIFACTORY_USERNAME }}
           ARTIFACTORY_PASSWORD: ${{ secrets.ARTIFACTORY_PASSWORD }}
           DISABLE_SLACK: true
-        run: ./gradlew clean assemble testClasses -isS
+        run: |
+          ./gradlew clean :${{ matrix.module }}:assemble :${{ matrix.module }}:testClasses -isS
 
       - name: License Report
         env:
@@ -96,7 +113,8 @@ jobs:
           ARTIFACTORY_USERNAME: ${{ secrets.ARTIFACTORY_USERNAME }}
           ARTIFACTORY_PASSWORD: ${{ secrets.ARTIFACTORY_PASSWORD }}
           DISABLE_SLACK: true
-        run: ./gradlew licenseReport --no-parallel
+        run: |
+          ./gradlew :${{ matrix.module }}:licenseReport --no-parallel
 
       - name: Check Quality
         env:
@@ -104,7 +122,8 @@ jobs:
           ARTIFACTORY_USERNAME: ${{ secrets.ARTIFACTORY_USERNAME }}
           ARTIFACTORY_PASSWORD: ${{ secrets.ARTIFACTORY_PASSWORD }}
           DISABLE_SLACK: true
-        run: ./gradlew checkQualityMain
+        run: |
+          ./gradlew :${{ matrix.module }}:checkQualityMain
 
       - name: Run Tests
         if: ${{ needs.init.outputs.skip-tests != 'true' }}
@@ -114,20 +133,15 @@ jobs:
           ARTIFACTORY_PASSWORD: ${{ secrets.ARTIFACTORY_PASSWORD }}
           DISABLE_SLACK: true
         run: |
-          ./gradlew test -isS
-          ./gradlew aggregateJacocoExecutions
+          ./gradlew :${{ matrix.module }}:check :${{ matrix.module }}:jacocoTestReport :jacocoTestCoverageVerification -isS
 
       - name: Aggregate reports for upload
         if: needs.init.outputs.skip-tests != 'true' && (success() || failure())
-        env:
-          METADATA: ${{ needs.init.outputs.metadata }}
         run: |
-          for module in $(echo ${METADATA} | jq -r '.modules | keys | join(" ")'); do
-            mkdir -p reports/${module}/build
-            if [[ -d ${module}/build/reports ]]; then
-              cp -r ${module}/build/reports reports/${module}/build/reports
-            fi
-          done
+          mkdir -p reports/${{ matrix.module }}/build
+          if [[ -d ${{ matrix.module }}/build/reports ]]; then
+            cp -r ${{ matrix.module }}/build/reports reports/${{ matrix.module }}/build/reports
+          fi
 
       - name: Upload Reports to S3
         id: reports
@@ -165,16 +179,18 @@ jobs:
         with:
           registries: ${{ needs.init.outputs.ecr-registry-code }}
 
-      - name: Build Docker Images
+      - name: Build Docker Image
         env:
           ARTIFACTORY_CONTEXT_URL: ${{ secrets.ARTIFACTORY_CONTEXT_URL }}
           ARTIFACTORY_USERNAME: ${{ secrets.ARTIFACTORY_USERNAME }}
           ARTIFACTORY_PASSWORD: ${{ secrets.ARTIFACTORY_PASSWORD }}
           ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
-          ECR_REPOSITORY_PREFIX: ${{ fromJson(needs.init.outputs.metadata).ecr.repository-prefix }}
+          ECR_REPOSITORY: ${{ fromJson(needs.init.outputs.metadata).ecr.repository }}
           IMAGE_TAG: ${{ needs.init.outputs.image-tag }}
         run: |
-          ./gradlew jib -DIMAGE_NAME="${ECR_REGISTRY}/${ECR_REPOSITORY_PREFIX}" -DTAG_COMMIT=${IMAGE_TAG}
+          ./gradlew :${{ matrix.module }}:jib \
+            -DIMAGE_NAME="${ECR_REGISTRY}/${ECR_REPOSITORY}" \
+            -DTAG_COMMIT=${IMAGE_TAG}
 
   vulnerability-check-run:
     if: ${{ inputs.vulnerabilityCheck == true }}
@@ -209,7 +225,7 @@ jobs:
       max-parallel: 1
       matrix:
         overlay: ${{ fromJson(needs.init.outputs.overlays) }}
-        module: ${{ fromJson(needs.init.outputs.kustomize-modules) }}
+        module: ${{ fromJson(needs.init.outputs.updated-modules) }}
 
     steps:
       - name: Update kustomize overlay
