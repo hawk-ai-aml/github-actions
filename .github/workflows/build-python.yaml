@@ -68,7 +68,7 @@ jobs:
           python-version: ${{ fromJson(needs.init.outputs.metadata).python-version }}
 
       - name: Install pipenv
-        run: pip install pipenv
+        run: pip install pipenv==2023.6.18
 
       - name: Run Pytest
         env:
