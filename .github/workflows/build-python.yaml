@@ -32,7 +32,7 @@ defaults:
 
 jobs:
   init:
-    runs-on: [ "self-hosted", "builder" ]
+    runs-on: [ "self-hosted", "small-builder" ]
     outputs:
       overlays: ${{ steps.init.outputs.overlays }}
       update-kustomize: ${{ steps.init.outputs.update-kustomize }}
@@ -155,7 +155,7 @@ jobs:
   update-overlays:
     needs: [ init, build ]
     if: ${{ needs.init.outputs.update-kustomize == 'true' }}
-    runs-on: [ "self-hosted", "builder" ]
+    runs-on: [ "self-hosted", "small-builder" ]
     strategy:
       max-parallel: 1
       matrix:

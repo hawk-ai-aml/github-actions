@@ -231,7 +231,7 @@ jobs:
     # -------------------------------------- END-REPORT --------------------------------------
   test-results:
     needs: test
-    runs-on: [ "self-hosted", "tester" ]
+    runs-on: [ "self-hosted", "small-builder" ]
     environment:
       name: aws-s3
       url: ${{ needs.test.outputs.url }}

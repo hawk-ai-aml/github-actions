@@ -32,7 +32,7 @@ on:
 jobs:
 
   update-kustomize:
-    runs-on: [ "self-hosted", "builder" ]
+    runs-on: [ "self-hosted", "small-builder" ]
     strategy:
       matrix:
         environment: ${{fromJson(inputs.environments)}}

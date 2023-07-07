@@ -14,7 +14,7 @@ on:
 
 jobs:
   init:
-    runs-on: [ "self-hosted", "builder" ]
+    runs-on: [ "self-hosted", "small-builder" ]
     outputs:
       metadata: ${{ steps.init.outputs.metadata }}
     steps:
