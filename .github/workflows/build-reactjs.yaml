@@ -32,7 +32,7 @@ defaults:
 
 jobs:
   init:
-    runs-on: [ "self-hosted", "frontend-builder" ]
+    runs-on: [ "self-hosted", "builder" ]
     outputs:
       overlays: ${{ steps.init.outputs.overlays }}
       metadata: ${{ steps.init.outputs.metadata }}
@@ -57,7 +57,7 @@ jobs:
 
   setup-and-lint:
     needs: [ init ]
-    runs-on: [ "self-hosted", "frontend-builder" ]
+    runs-on: [ "self-hosted", "builder" ]
     outputs:
       releaseVersion: ${{ steps.release-version.outputs.releaseVersion }}
       buildResultCached: ${{ steps.cache-build-results-flag.outputs.buildResultCached }}
@@ -117,7 +117,7 @@ jobs:
 
   tests:
     needs: [ init, setup-and-lint ]
-    runs-on: [ "self-hosted", "frontend-builder" ]
+    runs-on: [ "self-hosted", "builder" ]
 
     strategy:
       matrix:
@@ -240,7 +240,7 @@ jobs:
   update-overlays:
     needs: [ init, setup-and-lint, tests, build ]
     if: ${{ needs.init.outputs.update-kustomize == 'true' }}
-    runs-on: [ "self-hosted", "frontend-builder" ]
+    runs-on: [ "self-hosted", "builder" ]
     strategy:
       max-parallel: 1
       matrix:
@@ -263,7 +263,7 @@ jobs:
 
   clean-up:
     needs: [ init, setup-and-lint, build, tests, update-overlays ]
-    runs-on: [ "self-hosted", "frontend-builder" ]
+    runs-on: [ "self-hosted", "builder" ]
 
     steps:
       - uses: actions/checkout@v3
