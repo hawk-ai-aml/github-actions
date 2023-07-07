@@ -1,0 +1,142 @@
+name: publish-artifacts
+
+on:
+  workflow_call:
+    inputs:
+      skipTests:
+        description: "Skip running test"
+        type: boolean
+        required: false
+        default: false
+      component:
+        type: string
+        required: false
+      artifacts:
+        description: "A list of artifacts separated by a space"
+        type: string
+        required: true
+        default: ""
+
+defaults:
+  run:
+    shell: bash -l -ET -eo pipefail {0}
+
+jobs:
+  init:
+    runs-on: [ "self-hosted", "small-builder" ]
+    outputs:
+      metadata: ${{ steps.init.outputs.metadata }}
+      skip-tests: ${{ steps.init.outputs.skip-tests }}
+    steps:
+      - id: init
+        name: Init Workflow
+        uses: hawk-ai-aml/github-actions/workflow-init@master
+        with:
+          slack-notification-webhook: ${{ secrets.CICD_MIGRATION_SLACK_WEBHOOK_URL }}
+          update-kustomize: false
+          skip-tests: ${{ inputs.skipTests }}
+          repository-name: hawk-ai-aml/${{ inputs.component }}
+          repository-ref: master
+          repository-access-token: ${{ secrets.REPO_ACCESS_PAT }}
+
+  build:
+    needs: [ init ]
+    runs-on: [ "self-hosted", "builder" ]
+    steps:
+
+      - uses: actions/checkout@v3
+
+      - name: Set up JDK
+        uses: actions/setup-java@v3
+        with:
+          java-version: ${{ fromJson(needs.init.outputs.metadata).java-version }}
+          distribution: temurin
+          cache: gradle
+
+      - name: Set up Gradle
+        uses: gradle/gradle-build-action@v2
+        env:
+          GRADLE_BUILD_ACTION_CACHE_DEBUG_ENABLED: true
+
+      - name: Gradle Assemble
+        env:
+          ARTIFACTORY_CONTEXT_URL: ${{ secrets.ARTIFACTORY_CONTEXT_URL }}
+          ARTIFACTORY_USERNAME: ${{ secrets.ARTIFACTORY_USERNAME }}
+          ARTIFACTORY_PASSWORD: ${{ secrets.ARTIFACTORY_PASSWORD }}
+        run: |
+          if [ "${{ inputs.artifacts }}" == "" ]; then
+            ./gradlew clean assemble testClasses -isS
+          else
+            artifacts=(${{ inputs.artifacts }})
+            for i in "${artifacts[@]}"
+            do
+              ./gradlew clean :$i:assemble :$i:testClasses -isS
+            done
+          fi
+
+      - name: License Report
+        env:
+          ARTIFACTORY_CONTEXT_URL: ${{ secrets.ARTIFACTORY_CONTEXT_URL }}
+          ARTIFACTORY_USERNAME: ${{ secrets.ARTIFACTORY_USERNAME }}
+          ARTIFACTORY_PASSWORD: ${{ secrets.ARTIFACTORY_PASSWORD }}
+        run: |
+          if [ "${{ inputs.artifacts }}" == "" ]; then
+            ./gradlew licenseReport --no-parallel
+          else
+            artifacts=(${{ inputs.artifacts }})
+            for i in "${artifacts[@]}"
+            do
+              ./gradlew :$i:licenseReport --no-parallel
+            done
+          fi
+
+      - name: Check Quality
+        env:
+          ARTIFACTORY_CONTEXT_URL: ${{ secrets.ARTIFACTORY_CONTEXT_URL }}
+          ARTIFACTORY_USERNAME: ${{ secrets.ARTIFACTORY_USERNAME }}
+          ARTIFACTORY_PASSWORD: ${{ secrets.ARTIFACTORY_PASSWORD }}
+        run: |
+          if [ "${{ inputs.artifacts }}" == "" ]; then
+            ./gradlew checkQualityMain
+          else
+            artifacts=(${{ inputs.artifacts }})
+            for i in "${artifacts[@]}"
+            do
+              ./gradlew :$i:checkQualityMain
+            done
+          fi
+
+      - name: Run Tests
+        if: ${{ needs.init.outputs.skip-tests != 'true' }}
+        env:
+          ARTIFACTORY_CONTEXT_URL: ${{ secrets.ARTIFACTORY_CONTEXT_URL }}
+          ARTIFACTORY_USERNAME: ${{ secrets.ARTIFACTORY_USERNAME }}
+          ARTIFACTORY_PASSWORD: ${{ secrets.ARTIFACTORY_PASSWORD }}
+        run: |
+          if [ "${{ inputs.artifacts }}" == "" ]; then
+            ./gradlew test -isS
+          else
+            artifacts=(${{ inputs.artifacts }})
+            for i in "${artifacts[@]}"
+            do
+              ./gradlew :$i:check :$i:jacocoTestReport :jacocoTestCoverageVerification -isS
+            done
+          fi
+
+      - name: Publish artifacts to Artifactory
+        env:
+          ARTIFACTORY_CONTEXT_URL: ${{ secrets.ARTIFACTORY_CONTEXT_URL }}
+          ARTIFACTORY_USERNAME: ${{ secrets.ARTIFACTORY_DEPLOY_USERNAME }}
+          ARTIFACTORY_PASSWORD: ${{ secrets.ARTIFACTORY_DEPLOY_PASSWORD }}
+        run: |
+          if [ "${{ inputs.artifacts }}" == "" ]; then
+            ./gradlew artifactoryPublish
+          else
+            artifacts=(${{ inputs.artifacts }})
+            echo "Number of artifacts: ${#artifacts[@]}"
+            for i in "${artifacts[@]}"
+            do
+               echo "Publishing: $i"
+              ./gradlew :$i:artifactoryPublish
+            done
+          fi

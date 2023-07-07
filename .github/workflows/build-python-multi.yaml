@@ -16,6 +16,12 @@ on:
         description: "The indicated overlays (dev, test, qa, prod)"
         type: string
         required: false
+      ecr-prefix:
+        type: string
+        required: false
+      caller-workflow-type:
+        type: string
+        required: true
       component:
         description: "Name of the repository"
         type: string
@@ -25,10 +31,6 @@ on:
         type: boolean
         required: false
         default: false
-
-defaults:
-  run:
-    shell: bash -l -ET -eo pipefail {0}
 
 jobs:
   init:
@@ -40,10 +42,12 @@ jobs:
       image-tag: ${{ steps.init.outputs.image-tag }}
       ecr-url: ${{ steps.init.outputs.ecr-url }}
       kustomize-modules: ${{ steps.init.outputs.kustomize-modules }}
+      kustomize-modules-string: ${{ steps.init.outputs.kustomize-modules-string }}
       ecr-images: ${{ steps.init.outputs.ecr-images }}
       ecr-registry-code: ${{ steps.init.outputs.ecr-registry-code }}
       ecr-region: ${{ steps.init.outputs.ecr-region }}
       metadata: ${{ steps.init.outputs.metadata }}
+      updated-modules: ${{ steps.detect-changes.outputs.updated-modules }}
 
     steps:
       - id: init
@@ -57,9 +61,24 @@ jobs:
           repository-ref: ${{ env.GITHUB_REF_NAME }}
           repository-access-token: ${{ secrets.REPO_ACCESS_PAT }}
 
+      - id: detect-changes
+        name: Detect changes
+        uses: hawk-ai-aml/github-actions/repository-detect-changes@master
+        with:
+          repository: hawk-ai-aml/${{ inputs.component }}
+          repository-ref: ${{ env.GITHUB_REF_NAME }}
+          repository-user: ${{ secrets.RECREATE_DEVELOP_GITHUB_USER }}
+          repository-access-token: ${{ secrets.REPO_ACCESS_PAT }}
+          modules-string: ${{ steps.init.outputs.kustomize-modules-string }}
+
   build:
     needs: init
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        module: ${{ fromJson(needs.init.outputs.updated-modules) }}
+
     steps:
       - uses: actions/checkout@v3
 
@@ -70,26 +89,32 @@ jobs:
       - name: Install pipenv
         run: pip install pipenv==2023.6.18
 
-      - name: Run Pytest
+      - name: Install Requirements and Run Pytest
         env:
-          SCHEMA_REGISTRY_URL: "http://internal-aed0c439480b011ea821006d55bdfaa3-2040159056.eu-central-1.elb.amazonaws.com:8081"
-          KAFKA_SERVICE: "kafka-service:9092"
-          KAFKA_CONSUMER_THREADS: 1
-          KAFKA_AUTO_OFFSET_RESET: "latest"
-          FILES_STORAGE: "files.dev.aml-ai.net"
-          APP_CONFIG_YAML_PATH: "tests"
-          PY_UTILS_PAT: ${{ secrets.PY_UTILS_PAT}}
+          PY_UTILS_PAT: ${{ secrets.PY_UTILS_PAT }}
+          JENKINS: true
+          IS_JENKINS: true
+          AWS_ACCESS_KEY_ID: ${{ secrets.BACKEND_FILE_AWS_ACCESS_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.BACKEND_FILE_AWS_SECRET_ACCESS_KEY }}
         run: |
           pipenv install --dev
-          pipenv lock --keep-outdated > pipenv-requirements.txt
-          pipenv requirements > requirements.txt
-          pipenv run tests --junitxml=report.xml
+          pipenv requirements > pipenv-requirements.txt
+
+          if [ -f manual-requirements.txt ]; then
+            cat manual-requirements.txt pipenv-requirements.txt > requirements.txt
+            pipenv run pip install -r manual-requirements.txt
+          else
+             cat pipenv-requirements.txt > requirements.txt
+          fi
+
+          pipenv run pip install pip-licenses
+          pipenv run pytest tests --junitxml=report.xml
           pipenv run junit2html report.xml report.html
           mkdir report-dir && mv report.html ./report-dir/report.html
 
-      - name: Upload Reports to S3
+      - name: Upload Test Reports to S3
         id: reports
-        if: needs.init.outputs.skip-tests != 'true' && (success() || failure())
+        if: inputs.skipTests != 'true' && (success() || failure())
         uses: hawk-ai-aml/upload-s3-action@master
         with:
           aws_key_id: ${{ secrets.AWS_DEV_ACCESS_KEY_ID }}
@@ -111,21 +136,20 @@ jobs:
         with:
           registries: ${{ needs.init.outputs.ecr-registry-code }}
 
-      - name: Build image
+      - name: Build and tag images
+        id: build-and-tag
         env:
+          IMAGE_TAG: ${{ needs.init.outputs.image-tag }}
+          ECR_PREFIX: ${{ inputs.ecr-prefix }}
           ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
-          ECR_REPOSITORY: ${{ fromJson(needs.init.outputs.metadata).ecr.repository }}
-          PY_UTILS_PAT: ${{ secrets.PY_UTILS_PAT}}
+          PY_UTILS_PAT: ${{ secrets.PY_UTILS_PAT }}
+          MODULE: ${{ matrix.module }}
         run: |
-          DOCKER_BUILDKIT=1 docker build --build-arg PY_UTILS_PAT=${PY_UTILS_PAT} -t ${ECR_REGISTRY}/${ECR_REPOSITORY}:${{ needs.init.outputs.image-tag }} .
-
-      - name: Push Image
-        id: push-image
-        env:
-          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
-          ECR_REPOSITORY: ${{ fromJson(needs.init.outputs.metadata).ecr.repository }}
-        run: |
-          docker push ${ECR_REGISTRY}/${ECR_REPOSITORY}:${{ needs.init.outputs.image-tag }}
+          REPOSITORY_FOLDER=$(echo ${MODULE} | sed 's/\_/\-/g')
+          REPOSITORY_FULL_NAME="${ECR_REGISTRY}/${ECR_PREFIX}${REPOSITORY_FOLDER}"
+          echo "${REPOSITORY_FULL_NAME} is building..."
+          DOCKER_BUILDKIT=1 docker build --build-arg SERVICE=${MODULE} --build-arg PY_UTILS_PAT=${PY_UTILS_PAT} -t ${REPOSITORY_FULL_NAME}:${IMAGE_TAG} .
+          docker push ${REPOSITORY_FULL_NAME}:${IMAGE_TAG}
 
   vulnerability-check-run:
     if: ${{ inputs.vulnerabilityCheck == true }}
@@ -133,7 +157,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
-      max-parallel: 1
+      max-parallel: 10
       matrix:
         image: ${{ fromJson(needs.init.outputs.ecr-images) }}
 
@@ -160,7 +184,7 @@ jobs:
       max-parallel: 1
       matrix:
         overlay: ${{ fromJson(needs.init.outputs.overlays) }}
-        module: ${{ fromJson(needs.init.outputs.kustomize-modules) }}
+        module: ${{ fromJson(needs.init.outputs.updated-modules) }}
 
     steps:
       - name: Update kustomize overlay

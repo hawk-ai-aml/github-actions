@@ -14,15 +14,17 @@ on:
       component:
         type: string
         required: false
-      profile:
-        type: string
-        required: false
       useCacheResults:
         type: boolean
         required: false
       deleteCache:
         type: boolean
         required: false
+      vulnerabilityCheck:
+        description: "Conduct a vulnerability check using Lacework"
+        type: boolean
+        required: false
+        default: false
 
 defaults:
   run:
@@ -30,24 +32,28 @@ defaults:
 
 jobs:
   init:
-    runs-on: [ "self-hosted", "builder" ]
+    runs-on: [ "self-hosted", "small-builder" ]
     outputs:
       overlays: ${{ steps.init.outputs.overlays }}
       metadata: ${{ steps.init.outputs.metadata }}
       update-kustomize: ${{ steps.init.outputs.update-kustomize }}
-      skip-tests: ${{ steps.init.outputs.skip-tests }}
-      parameters: ${{ steps.init.outputs.parameters }}
-      hawk-image-tag: ${{ env.HAWK_IMAGE_TAG }}
+      image-tag: ${{ steps.init.outputs.image-tag }}
+      kustomize-modules: ${{ steps.init.outputs.kustomize-modules }}
+      ecr-url: ${{ steps.init.outputs.ecr-url }}
+      ecr-registry-code: ${{ steps.init.outputs.ecr-registry-code }}
+      ecr-region: ${{ steps.init.outputs.ecr-region }}
+      ecr-images: ${{ steps.init.outputs.ecr-images }}
+
     steps:
       - id: init
         name: Init Workflow
         uses: hawk-ai-aml/github-actions/workflow-init@master
         with:
-          slack-notification-webhook: ${{ secrets.CICD_MIGRATION_SLACK_WEBHOOK_URL }}
-          profile: ${{ inputs.profile }}
-          component: ${{ inputs.component }}
           update-kustomize: ${{ inputs.updateKustomize }}
           overlays: ${{ inputs.kustomizeOverlays }}
+          repository-name: hawk-ai-aml/${{ inputs.component }}
+          repository-ref: ${{ env.GITHUB_REF_NAME }}
+          repository-access-token: ${{ secrets.REPO_ACCESS_PAT }}
 
   setup-and-lint:
     needs: [ init ]
@@ -57,18 +63,6 @@ jobs:
       buildResultCached: ${{ steps.cache-build-results-flag.outputs.buildResultCached }}
 
     steps:
-      - id: init
-        name: Init Job
-        uses: hawk-ai-aml/github-actions/job-init@master
-        with:
-          slack-notification-webhook: ${{ secrets.CICD_MIGRATION_SLACK_WEBHOOK_URL }}
-
-      - name: Login to Docker Hub
-        uses: docker/login-action@v2
-        with:
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
-
       - uses: actions/checkout@v3
 
       - name: Cache Node modules
@@ -107,10 +101,6 @@ jobs:
         id: cache-build-results-flag
         run: |
           echo "buildResultCached=${{ steps.cache-build-results.outputs.cache-hit }}" >> $GITHUB_OUTPUT
-
-      - name: Npm install
-        if: steps.cache-build-results.outputs.cache-hit != 'true'
-        uses: jaid/action-npm-install@v1.2.1
 
       - name: Install Yarn
         if: steps.cache-build-results.outputs.cache-hit != 'true'
@@ -159,14 +149,9 @@ jobs:
 
   build:
     needs: [ init, setup-and-lint, tests ]
-    runs-on: [ "self-hosted", "builder" ]
-    steps:
-      - id: init
-        name: Init Job
-        uses: hawk-ai-aml/github-actions/job-init@master
-        with:
-          slack-notification-webhook: ${{ secrets.CICD_MIGRATION_SLACK_WEBHOOK_URL }}
+    runs-on: [ "self-hosted", "frontend-builder" ]
 
+    steps:
       - uses: actions/checkout@v3
 
       - name: Cache build results
@@ -202,77 +187,83 @@ jobs:
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v1
         with:
-          aws-access-key-id: ${{ inputs.profile == 'nab' && secrets.AWS_NAB_DEV_ECR_ACCESS_KEY_ID || secrets.AWS_ORG_ECR_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ inputs.profile == 'nab' && secrets.AWS_NAB_DEV_ECR_SECRET_ACCESS_KEY || secrets.AWS_ORG_ECR_SECRET_ACCESS_KEY }}
-          aws-region: ${{ fromJson(needs.init.outputs.metadata).ecr.region }}
+          aws-access-key-id: ${{ secrets.AWS_ORG_ECR_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_ORG_ECR_SECRET_ACCESS_KEY }}
+          aws-region: ${{ needs.init.outputs.ecr-region }}
 
       - name: Login to Amazon ECR
         id: login-ecr
         uses: aws-actions/amazon-ecr-login@v1
         with:
-          registries: ${{ fromJson(needs.init.outputs.metadata).ecr.registry }}
+          registries: ${{ needs.init.outputs.ecr-registry-code }}
 
       - name: Build image
         env:
           ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
           ECR_REPOSITORY: ${{ fromJson(needs.init.outputs.metadata).ecr.repository }}
         run: |
-          docker build -t ${ECR_REGISTRY}/${ECR_REPOSITORY}:${{ needs.init.outputs.hawk-image-tag }} .
+          docker build -t ${ECR_REGISTRY}/${ECR_REPOSITORY}:${{ needs.init.outputs.image-tag }} .
 
       - name: Push Image
         id: push-image
-        if: ${{ needs.init.outputs.update-kustomize == 'true' }}
         env:
           ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
           ECR_REPOSITORY: ${{ fromJson(needs.init.outputs.metadata).ecr.repository }}
         run: |
-          hawk.push-docker-image ${ECR_REGISTRY}/${ECR_REPOSITORY}:${{ needs.init.outputs.hawk-image-tag }}
+          docker push ${ECR_REGISTRY}/${ECR_REPOSITORY}:${{ needs.init.outputs.image-tag }}
 
+  vulnerability-check-run:
+    if: ${{ inputs.vulnerabilityCheck == true }}
+    needs: [ init, build ]
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      max-parallel: 1
+      matrix:
+        image: ${{ fromJson(needs.init.outputs.ecr-images) }}
+
+    steps:
+      - name: Vulnerability check
+        uses: hawk-ai-aml/github-actions/vulnerability-check@master
+        with:
+          ecr-region: ${{ needs.init.outputs.ecr-region }}
+          ecr-registry-code: ${{ needs.init.outputs.ecr-registry-code }}
+          image-name: ${{ matrix.image }}
+          image-tag: ${{ needs.init.outputs.image-tag }}
+          ecr-url: ${{ needs.init.outputs.ecr-url }}
+          aws-access-key-id: ${{ secrets.AWS_ORG_ECR_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_ORG_ECR_SECRET_ACCESS_KEY }}
+          java-offline-mode: ${{ env.LACEWORK_JAVA_OFFLINE_MODE }}
+          lacework-account-name: ${{ secrets.LACEWORK_ACCOUNT_NAME }}
+          lacework-access-token: ${{ secrets.LACEWORK_ACCESS_TOKEN }}
 
   update-overlays:
     needs: [ init, setup-and-lint, tests, build ]
     if: ${{ needs.init.outputs.update-kustomize == 'true' }}
-    runs-on: [ "self-hosted", "builder" ]
+    runs-on: [ "self-hosted", "small-builder" ]
     strategy:
       max-parallel: 1
       matrix:
-        overlay: ${{fromJson(needs.init.outputs.overlays)}}
+        overlay: ${{ fromJson(needs.init.outputs.overlays) }}
+        module: ${{ fromJson(needs.init.outputs.kustomize-modules) }}
 
     steps:
-      - id: init
-        name: Init Job
-        uses: hawk-ai-aml/github-actions/job-init@master
-        with:
-          slack-notification-webhook: ${{ secrets.CICD_MIGRATION_SLACK_WEBHOOK_URL }}
-
-      - id: udpate-overlay-github
-        name: Update kustomize overlay
-        if: fromJson(needs.init.outputs.parameters).kustomize == 'github' || fromJson(needs.init.outputs.parameters).kustomize == 'github-fake'
+      - name: Update kustomize overlay
         uses: hawk-ai-aml/github-actions/kustomize-overlay@master
         with:
           component-name: ${{ inputs.component }}
-          component-metadata: ${{ needs.init.outputs.metadata }}
-          component-overlay: ${{ matrix.overlay }}
-          component-tag: ${{ needs.init.outputs.hawk-image-tag }}
-          kustomize-repo: ${{ fromJson(needs.init.outputs.parameters).kustomize == 'github-fake' && 'hawk-ai-aml/kustomize2.git' || 'hawk-ai-aml/kustomize.git' }}
+          component-tag: ${{ needs.init.outputs.image-tag }}
+          kustomize-repo: hawk-ai-aml/kustomize.git
           kustomize-access-token: ${{ secrets.REPO_ACCESS_PAT }}
-
-      - id: udpate-overlay-bitbucket
-        name: Update kustomize overlay
-        if: fromJson(needs.init.outputs.parameters).kustomize == 'bitbucket' || fromJson(needs.init.outputs.parameters).kustomize == 'bitbucket-fake'
-        uses: hawk-ai-aml/github-actions/kustomize-overlay-ssh@master
-        with:
-          component-name: ${{ inputs.component }}
-          component-metadata: ${{ needs.init.outputs.metadata }}
-          component-overlay: ${{ matrix.overlay }}
-          component-tag: ${{ needs.init.outputs.hawk-image-tag }}
-          kustomize-repo: ${{ fromJson(needs.init.outputs.parameters).kustomize == 'bitbucket-fake' && 'git@bitbucket.org:hawkai/kustomize2.git' || 'git@bitbucket.org:hawkai/kustomize.git' }}
-          kustomize-ssh-key: ${{ secrets.KUSTOMIZE_DEPLOY_PRIVATE_KEY }}
-
+          ecr-region: ${{ needs.init.outputs.ecr-region }}
+          ecr-registry-code: ${{ needs.init.outputs.ecr-registry-code }}
+          overlay: ${{ matrix.overlay }}
+          module: ${{ matrix.module }}
+          metadata: ${{ needs.init.outputs.metadata }}
 
   clean-up:
     needs: [ init, setup-and-lint, build, tests, update-overlays ]
-    runs-on: [ "self-hosted", "builder" ]
+    runs-on: [ "self-hosted", "small-builder" ]
 
     steps:
       - uses: actions/checkout@v3

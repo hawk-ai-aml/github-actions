@@ -1,0 +1,109 @@
+name: repository-detect-changes
+description: Detect changes for a repository
+
+inputs:
+  repository:
+    description: "Name of repository"
+    required: true
+
+  repository-ref:
+    description: "Repository ref"
+    required: false
+    default: master
+
+  repository-user:
+    description: "User can access the repository"
+    required: true
+
+  repository-access-token:
+    description: "Repository access token"
+    required: true
+
+  modules-string:
+    description: "Module nane in string"
+    required: true
+
+outputs:
+  updated-modules:
+    description: 'The list of modules has the code changes'
+    value: ${{ steps.changes.outputs.updatedModules }}
+
+runs:
+  using: composite
+  steps:
+    - name: Checkout Kustomize
+      uses: actions/checkout@v3
+      with:
+        repository: ${{ inputs.repository }}
+        ref: ${{ inputs.repository-ref }}
+        token: ${{ inputs.repository-access-token }}
+
+    - name: Detect changes
+      id: changes
+      shell: bash -l -ET -eo pipefail {0}
+      env:
+        USER: ${{ inputs.repository-user }}
+        TOKEN: ${{ inputs.repository-access-token }}
+        REPOSITORY: ${{ inputs.repository }}
+        REPOSITORY_MODULES: ${{ inputs.modules-string }}
+        WORKFLOW_TYPE: ${{ github.workflow }}
+      run: |
+        echo "WORKFLOW_TYPE: $WORKFLOW_TYPE"
+        case $WORKFLOW_TYPE in
+          "manual")
+            CURRENT_BRANCH=${GITHUB_HEAD_REF:-${GITHUB_REF#refs/heads/}}
+            echo "Branch: ${CURRENT_BRANCH}"
+
+            COMMIT_IDS=$(curl -s https://api.github.com/repos/$REPOSITORY/commits\?sha\=${CURRENT_BRANCH} -u "$USER:$TOKEN" | jq -r '[.[] | if .commit.verification.signature == null then .sha else 1 end] | join(" ")')
+            echo "IDS: ${COMMIT_IDS}"
+        
+            for id in ${COMMIT_IDS}; do
+              if [[ $id == 1 ]]; then
+                break
+              fi
+      
+              FILES=$(curl -s https://api.github.com/repos/$REPOSITORY/commits/${id} -u "$USER:$TOKEN" | jq -r '[.files | .[] | select(.status == "modified") | .filename] | join(" ")')
+      
+              for module in $REPOSITORY_MODULES; do
+                for file in $FILES; do
+                  if [[ $file == *"$module"* && $MODULES != *"$module"* ]];  then
+                    MODULES="${MODULES}\"$module\","
+                    break
+                  fi
+                done
+              done
+            done
+          ;;
+          "pr")
+            PULL_NUMBER=$(jq --raw-output .pull_request.number "$GITHUB_EVENT_PATH")
+            echo "PR: ${PULL_NUMBER}";
+
+            FILES=$(curl -s https://api.github.com/repos/$REPOSITORY/pulls/${PULL_NUMBER}/files -u "$USER:$TOKEN" | jq -r '[.[] | .filename] | join(" ")')          
+            echo "FILES: ${FILES}"
+          
+            for module in $REPOSITORY_MODULES; do
+              for file in $FILES; do
+                if [[ $file == *"$module"* && $MODULES != *"$module"* ]];  then
+                  MODULES="${MODULES}\"$module\","
+                  break
+                fi
+              done
+            done
+          ;;
+          *)
+            for module in $REPOSITORY_MODULES; do
+              MODULES="${MODULES}\"$module\","
+            done
+          ;;
+        esac
+
+        LENGTH_OF_MODULE_LIST=$(echo ${#MODULES})
+        MODULES=${MODULES:0:${LENGTH_OF_MODULE_LIST}-1}
+        MODULES="[${MODULES}]"
+
+        # Workflow outputs
+        cat <<EOF | tee -a ${GITHUB_STEP_SUMMARY} | tee -a ${GITHUB_OUTPUT}
+        updatedModules=${MODULES}
+        EOF
+
+# End of file

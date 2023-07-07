@@ -1,0 +1,46 @@
+name: update-platform-version-in-gitops
+
+on:
+  workflow_call:
+    inputs:
+      tag:
+        type: string
+        description: Tag name
+        required: true
+      overlay:
+        type: string
+        description: Gitops overlay will be updated
+        required: false
+jobs:
+  tag:
+    runs-on: [ "self-hosted", "small-builder" ]
+
+    steps:
+      - name: Checkout Gitops
+        uses: actions/checkout@v3
+        with:
+          path: gitops
+          repository: hawk-ai-aml/gitops.git
+          ref: master
+          token: ${{ secrets.REPO_ACCESS_PAT }}
+
+      - name: Update targetRevision for ${{ inputs.overlay }} overlay
+        run: |
+          cd gitops
+
+          for f in overlays/${{ inputs.overlay }}/*
+          do
+            if [ ${f} != "overlays/${{ inputs.overlay }}/kustomization.yaml" ]; then
+              echo Set Tag for ${f}
+              kubectl patch --local -f ${f} -p '{"spec":{"source":{"targetRevision":"'${{ inputs.tag }}'"}}}' --type merge -o yaml > overlay.tmp && mv overlay.tmp ${f}
+          fi
+          done
+
+          if [[ -z $(git status -s) ]]; then
+            echo "No changes in ${{ inputs.overlay }} overlay"
+          else
+            git diff
+            git add .
+            git commit -am "GITHUB ACTION automatic commit, update overlay ${{ inputs.overlay }} to version ${{ inputs.tag }}"
+            git push --set-upstream origin master
+          fi

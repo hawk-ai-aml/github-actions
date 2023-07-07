@@ -37,10 +37,10 @@ jobs:
           ref: ${{ inputs.ref }}
 
     # +++++++++++++++++++++++++++++++++++++ START-SETUP +++++++++++++++++++++++++++++++++++++
-      - name: Set up JDK 11
+      - name: Set up JDK 17
         uses: actions/setup-java@v3
         with:
-          java-version: 11
+          java-version: 17
           distribution: 'temurin'
 
       - name: Set up Node
@@ -126,8 +126,18 @@ jobs:
           AUTH0_DEV_API_CLIENT_SECRET: ${{ secrets.AUTH0_DEV_API_CLIENT_SECRET }}
           AUTH0_PROD_API_CLIENT_SECRET: ${{ secrets.AUTH0_PROD_API_CLIENT_SECRET }}
           AUTH0_PROD_US_EAST_API_CLIENT_SECRET: ${{ secrets.AUTH0_PROD_US_EAST_API_CLIENT_SECRET }}
+          AUTH0_PROD_AP_SOUTHEAST_API_CLIENT_SECRET: ${{ secrets.AUTH0_PROD_AP_SOUTHEAST_API_CLIENT_SECRET }}
           AUTH0_NAB_QA_API_CLIENT_SECRET: ${{ secrets.AUTH0_PROD_US_EAST_API_CLIENT_SECRET }}
           AUTH0_NAB_PROD_API_CLIENT_SECRET: ${{ secrets.AUTH0_PROD_US_EAST_API_CLIENT_SECRET }}
+          
+          ARTIFACTORY_CONTEXT_URL: ${{ secrets.ARTIFACTORY_CONTEXT_URL }}
+          ARTIFACTORY_USERNAME: ${{ secrets.ARTIFACTORY_USERNAME }}
+          ARTIFACTORY_PASSWORD: ${{ secrets.ARTIFACTORY_PASSWORD }}
+
+          DEV_REDIS_HOST: ${{ secrets.DEV_REDIS_HOST }}
+          DEV_REDIS_PORT: ${{ secrets.DEV_REDIS_PORT }}
+          DEV_REDIS_AUTH_TOKEN: ${{ secrets.DEV_REDIS_AUTH_TOKEN }}
+
           environment: ${{ inputs.environment }}
         continue-on-error: true
         run: |
@@ -221,7 +231,7 @@ jobs:
     # -------------------------------------- END-REPORT --------------------------------------
   test-results:
     needs: test
-    runs-on: [ "self-hosted", "tester" ]
+    runs-on: [ "self-hosted", "small-builder" ]
     environment:
       name: aws-s3
       url: ${{ needs.test.outputs.url }}

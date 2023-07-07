@@ -4,7 +4,7 @@ on:
   workflow_call:
     inputs:
       updateKustomize:
-        description: "Update kustomize overlays"
+        description: "Update kustomize overlays (true/false)"
         type: boolean
         required: false
       skipTests:
@@ -18,6 +18,10 @@ on:
         required: false
       component:
         description: "Name of the repository"
+        type: string
+        required: false
+      base-tag:
+        description: "This tag will be used in case we have a specific base image tag (now watchtower and label-engine only)"
         type: string
         required: false
       vulnerabilityCheck:
@@ -58,34 +62,72 @@ jobs:
           repository-access-token: ${{ secrets.REPO_ACCESS_PAT }}
 
   build:
-    needs: init
-    runs-on: ubuntu-latest
+    needs: [ init ]
+    runs-on: [ "self-hosted", "builder" ]
+
     steps:
       - uses: actions/checkout@v3
 
-      - uses: actions/setup-python@v4
+      - name: Login to Docker Hub
+        uses: docker/login-action@v2
         with:
-          python-version: ${{ fromJson(needs.init.outputs.metadata).python-version }}
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      - name: Install pipenv
-        run: pip install pipenv==2023.6.18
+      - name: Set up JDK
+        uses: actions/setup-java@v3
+        with:
+          java-version: ${{ fromJson(needs.init.outputs.metadata).java-version }}
+          distribution: temurin
+          cache: gradle
 
-      - name: Run Pytest
+      - name: Set up Gradle
+        uses: gradle/gradle-build-action@v2
         env:
-          SCHEMA_REGISTRY_URL: "http://internal-aed0c439480b011ea821006d55bdfaa3-2040159056.eu-central-1.elb.amazonaws.com:8081"
-          KAFKA_SERVICE: "kafka-service:9092"
-          KAFKA_CONSUMER_THREADS: 1
-          KAFKA_AUTO_OFFSET_RESET: "latest"
-          FILES_STORAGE: "files.dev.aml-ai.net"
-          APP_CONFIG_YAML_PATH: "tests"
-          PY_UTILS_PAT: ${{ secrets.PY_UTILS_PAT}}
+          GRADLE_BUILD_ACTION_CACHE_DEBUG_ENABLED: true
+
+      - name: Gradle Assemble
+        env:
+          ARTIFACTORY_CONTEXT_URL: ${{ secrets.ARTIFACTORY_CONTEXT_URL }}
+          ARTIFACTORY_USERNAME: ${{ secrets.ARTIFACTORY_USERNAME }}
+          ARTIFACTORY_PASSWORD: ${{ secrets.ARTIFACTORY_PASSWORD }}
+        run: ./gradlew clean assemble testClasses -isS
+
+      - name: License Report
+        env:
+          ARTIFACTORY_CONTEXT_URL: ${{ secrets.ARTIFACTORY_CONTEXT_URL }}
+          ARTIFACTORY_USERNAME: ${{ secrets.ARTIFACTORY_USERNAME }}
+          ARTIFACTORY_PASSWORD: ${{ secrets.ARTIFACTORY_PASSWORD }}
+        run: ./gradlew licenseReport
+
+      - name: Check Quality
+        env:
+          ARTIFACTORY_CONTEXT_URL: ${{ secrets.ARTIFACTORY_CONTEXT_URL }}
+          ARTIFACTORY_USERNAME: ${{ secrets.ARTIFACTORY_USERNAME }}
+          ARTIFACTORY_PASSWORD: ${{ secrets.ARTIFACTORY_PASSWORD }}
+        run: ./gradlew checkQualityMain
+
+      - name: Run Tests
+        if: ${{ needs.init.outputs.skip-tests != 'true' }}
+        env:
+          ARTIFACTORY_CONTEXT_URL: ${{ secrets.ARTIFACTORY_CONTEXT_URL }}
+          ARTIFACTORY_USERNAME: ${{ secrets.ARTIFACTORY_USERNAME }}
+          ARTIFACTORY_PASSWORD: ${{ secrets.ARTIFACTORY_PASSWORD }}
         run: |
-          pipenv install --dev
-          pipenv lock --keep-outdated > pipenv-requirements.txt
-          pipenv requirements > requirements.txt
-          pipenv run tests --junitxml=report.xml
-          pipenv run junit2html report.xml report.html
-          mkdir report-dir && mv report.html ./report-dir/report.html
+          ./gradlew test -isS
+          ./gradlew aggregateJacocoExecutions
+
+      - name: Aggregate reports for upload
+        if: needs.init.outputs.skip-tests != 'true' && (success() || failure())
+        env:
+          METADATA: ${{ needs.init.outputs.metadata }}
+        run: |
+          for module in $(echo ${METADATA} | jq -r '.modules | keys | join(" ")'); do
+            mkdir -p reports/${module}/build
+            if [[ -d ${module}/build/reports ]]; then
+              cp -r ${module}/build/reports reports/${module}/build/reports
+            fi
+          done
 
       - name: Upload Reports to S3
         id: reports
@@ -95,8 +137,20 @@ jobs:
           aws_key_id: ${{ secrets.AWS_DEV_ACCESS_KEY_ID }}
           aws_secret_access_key: ${{ secrets.AWS_DEV_SECRET_ACCESS_KEY }}
           aws_bucket: github-actions-static-html-2
-          source_dir: ./report-dir
+          source_dir: reports
           destination_dir: ${{ github.event.repository.name }}-${{ github.run_id }}
+
+      - name: Provide Links to Reports
+        if: needs.init.outputs.skip-tests != 'true' && (success() || failure())
+        run: |
+          echo "### Test Reports" | tee -a ${GITHUB_STEP_SUMMARY}
+          report_url=https://github-actions-static-html-2.s3.amazonaws.com/${{ github.event.repository.name }}-${{ github.run_id }}/
+          for report_file_loc in ${{ join(fromJSON(steps.reports.outputs.object_locations), ' ') }}; do
+            report_basename=${report_file_loc##${report_url}}
+            if [[ ${report_file_loc} == */main.html || ${report_file_loc} == */index.html || ${report_file_loc} == */licenseReport.html ]]; then
+              echo "* [${report_basename}](${report_file_loc})" | tee -a ${GITHUB_STEP_SUMMARY}
+            fi
+          done
 
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v1
@@ -111,21 +165,17 @@ jobs:
         with:
           registries: ${{ needs.init.outputs.ecr-registry-code }}
 
-      - name: Build image
+      - name: Build Docker image
         env:
+          ARTIFACTORY_CONTEXT_URL: ${{ secrets.ARTIFACTORY_CONTEXT_URL }}
+          ARTIFACTORY_USERNAME: ${{ secrets.ARTIFACTORY_USERNAME }}
+          ARTIFACTORY_PASSWORD: ${{ secrets.ARTIFACTORY_PASSWORD }}
           ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
           ECR_REPOSITORY: ${{ fromJson(needs.init.outputs.metadata).ecr.repository }}
-          PY_UTILS_PAT: ${{ secrets.PY_UTILS_PAT}}
+          BASE_TAG: ${{ inputs.base-tag }}
+          IMAGE_TAG: ${{ needs.init.outputs.image-tag }}
         run: |
-          DOCKER_BUILDKIT=1 docker build --build-arg PY_UTILS_PAT=${PY_UTILS_PAT} -t ${ECR_REGISTRY}/${ECR_REPOSITORY}:${{ needs.init.outputs.image-tag }} .
-
-      - name: Push Image
-        id: push-image
-        env:
-          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
-          ECR_REPOSITORY: ${{ fromJson(needs.init.outputs.metadata).ecr.repository }}
-        run: |
-          docker push ${ECR_REGISTRY}/${ECR_REPOSITORY}:${{ needs.init.outputs.image-tag }}
+          ./gradlew jib -DIMAGE_NAME="${ECR_REGISTRY}/${ECR_REPOSITORY}" -DTAG_COMMIT=${IMAGE_TAG}
 
   vulnerability-check-run:
     if: ${{ inputs.vulnerabilityCheck == true }}

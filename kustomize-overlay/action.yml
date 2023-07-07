@@ -1,5 +1,3 @@
-# Deprecated, use kustomize-overlay-multi
-
 name: kustomize-overlay
 description: Kustomize Overlay
 
@@ -8,12 +6,7 @@ inputs:
     description: "Component name"
     required: true
 
-  component-module:
-    description: "Component module"
-    required: false
-    default: ""
-
-  component-overlay:
+  overlay:
     description: "Overlay to update"
     required: true
 
@@ -22,35 +15,32 @@ inputs:
     required: true
 
   kustomize-repo:
-    description: kustomize repository
+    description: "Kustomize repository"
     required: true
 
   kustomize-access-token:
-    description: kustomize access PAT
+    description: "Kustomize access PAT"
+    required: true
+
+  ecr-registry-code:
+    description: "ECR registry code"
+    required: true
+
+  ecr-region:
+    description: "ECR region"
+    required: true
+
+  module:
+    description: "Module to update"
+    required: true
+
+  metadata:
+    description: "Metadata for the module"
     required: true
 
 runs:
   using: composite
   steps:
-    - name: Get Hawk Image Name
-      id: get-hawk-image-name
-      uses: hawk-ai-aml/github-actions/get-component-image@master
-      with:
-        profile: hawk
-        component: ${{ inputs.component-name }}
-        module: ${{ inputs.component-module }}
-
-    # https://hawkai.atlassian.net/browse/SRE-629
-    # this relies that all nab overlays are called nab-dev
-    # nicer way is to pass profile, than evaluating overlay
-    - name: Get NAB Image Name
-      id: get-nab-image-name
-      if: inputs.component-overlay == 'nab-dev'
-      uses: hawk-ai-aml/github-actions/get-component-image@master
-      with:
-        profile: nab
-        component: ${{ inputs.component-name }}
-        module: ${{ inputs.component-module }}
 
     - name: Checkout Kustomize
       uses: actions/checkout@v3
@@ -59,29 +49,54 @@ runs:
         ref: master
         token: ${{ inputs.kustomize-access-token }}
 
-    - name: Update kustomize Overlay
+    - name: Update
       shell: bash -l -ET -eo pipefail {0}
       env:
-        HAWK_IMAGE_NAME: ${{ steps.get-hawk-image-name.outputs.image-name }}
-        NAB_IMAGE_NAME: ${{ steps.get-nab-image-name.outputs.image-name }}
-        KUSTOMIZE_PATH: ${{ steps.get-hawk-image-name.outputs.kustomize-path }}
-        OVERLAY: ${{ inputs.component-overlay }}
+        METADATA: ${{ inputs.metadata }}
       run: |
-        cd ${KUSTOMIZE_PATH}/overlays/${OVERLAY}
-        # https://hawkai.atlassian.net/browse/SRE-629
-        # this relies that all nab overlays are called nab-dev
-        # nicer way is to pass profile, than evaluating overlay
-        if [[ ${OVERLAY} == 'nab-dev' ]]; then
-          kustomize edit set image ${HAWK_IMAGE_NAME}=${NAB_IMAGE_NAME}:${{ inputs.component-tag }}
-        else
-          kustomize edit set image ${HAWK_IMAGE_NAME}:${{ inputs.component-tag }}
-        fi
+        ECR_REGION=${{ inputs.ecr-region }}
+        ECR_REGISTRY=${{ inputs.ecr-registry-code }}
+        ECR_REPOSITORY=$(echo ${METADATA} | jq -cr --arg MODULE ${{ inputs.module }} '.modules[$MODULE].ecr.repository')
+        KUSTOMIZE_PATH=$(echo ${METADATA} | jq -cr --arg MODULE ${{ inputs.module }} '.modules[$MODULE].kustomize.path')
+        OVERLAY=${{ inputs.overlay }}
+        TAG=${{ inputs.component-tag }}
+
+        IMAGE_NAME=${ECR_REGISTRY}.dkr.ecr.${ECR_REGION}.amazonaws.com/${ECR_REPOSITORY}
+        KUSTOMIZE_OVERLAY_PATH=${KUSTOMIZE_PATH}/overlays/${OVERLAY}
+
+        echo "ECR_REGISTRY: ${ECR_REGISTRY}"
+        echo "IMAGE_NAME: ${IMAGE_NAME}"
+        echo "KUSTOMIZE_OVERLAY_PATH: ${KUSTOMIZE_OVERLAY_PATH}"
+        echo "KUSTOMIZE_PATH: ${KUSTOMIZE_PATH}"
+
+        cd ${KUSTOMIZE_OVERLAY_PATH}
+        kustomize edit set image ${IMAGE_NAME}:${TAG}
         if ! git diff --quiet HEAD; then
           git config --global user.name "GitHub Actions"
           git config --global user.email "github-actions@hawk.ai"
-          git add .
-          git commit -m "AUTOMATIC COMMIT: Update ${KUSTOMIZE_PATH}/overlays/${OVERLAY} for ${{ inputs.component-name }} to ${{ env.HAWK_IMAGE_TAG }}"
-          hawk.git-push || workflow.die "failed to push overlay changes"
+
+          if [[ -z $(git status -s) ]]; then
+            echo "Tag: ${TAG} already existed for overlays ${OVERLAY}."
+          else
+            git add .
+            git commit -m "AUTOMATIC COMMIT: Update ${KUSTOMIZE_PATH}/overlays/${OVERLAY} for ${{ inputs.component-name }} to ${TAG}"
+            
+            REMOTE=${1:-origin}
+            CURRENT_BRANCH=$(git rev-parse --abbrev-ref HEAD)
+            PUSHED="false"
+          
+            for interval in 0 1 2 5 10; do
+              [[ ${interval} -gt 0 ]] && echo "Retrying in ${interval} seconds..."
+              sleep ${interval}
+              git pull --rebase ${REMOTE} ${CURRENT_BRANCH} || return $?
+              if git push ${REMOTE} ${CURRENT_BRANCH}; then
+                PUSHED="true"
+                break
+              fi
+            done
+        
+            [[ ${PUSHED} == "true" ]] || return 1
+          fi
         fi
 
 # End of file

@@ -1,1 +1,0 @@
-# kustomize-overlay-action
