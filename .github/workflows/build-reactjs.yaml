@@ -39,6 +39,7 @@ jobs:
       update-kustomize: ${{ steps.init.outputs.update-kustomize }}
       image-tag: ${{ steps.init.outputs.image-tag }}
       kustomize-modules: ${{ steps.init.outputs.kustomize-modules }}
+      kustomize-modules-string: ${{ steps.init.outputs.kustomize-modules-string }}
       ecr-url: ${{ steps.init.outputs.ecr-url }}
       ecr-registry-code: ${{ steps.init.outputs.ecr-registry-code }}
       ecr-region: ${{ steps.init.outputs.ecr-region }}
@@ -57,7 +58,7 @@ jobs:
 
   setup-and-lint:
     needs: [ init ]
-    runs-on: [ "self-hosted", "builder" ]
+    runs-on: [ "self-hosted", "small-builder" ]
     outputs:
       releaseVersion: ${{ steps.release-version.outputs.releaseVersion }}
       buildResultCached: ${{ steps.cache-build-results-flag.outputs.buildResultCached }}
@@ -241,24 +242,19 @@ jobs:
     needs: [ init, setup-and-lint, tests, build ]
     if: ${{ needs.init.outputs.update-kustomize == 'true' }}
     runs-on: [ "self-hosted", "small-builder" ]
-    strategy:
-      max-parallel: 1
-      matrix:
-        overlay: ${{ fromJson(needs.init.outputs.overlays) }}
-        module: ${{ fromJson(needs.init.outputs.kustomize-modules) }}
 
     steps:
       - name: Update kustomize overlay
         uses: hawk-ai-aml/github-actions/kustomize-overlay@master
         with:
+          overlays: ${{ needs.init.outputs.overlays }}
+          modules: ${{ needs.init.outputs.kustomize-modules-string }}
           component-name: ${{ inputs.component }}
           component-tag: ${{ needs.init.outputs.image-tag }}
           kustomize-repo: hawk-ai-aml/kustomize.git
           kustomize-access-token: ${{ secrets.REPO_ACCESS_PAT }}
           ecr-region: ${{ needs.init.outputs.ecr-region }}
           ecr-registry-code: ${{ needs.init.outputs.ecr-registry-code }}
-          overlay: ${{ matrix.overlay }}
-          module: ${{ matrix.module }}
           metadata: ${{ needs.init.outputs.metadata }}
 
   clean-up:

@@ -78,8 +78,7 @@ runs:
             PULL_NUMBER=$(jq --raw-output .pull_request.number "$GITHUB_EVENT_PATH")
             echo "PR: ${PULL_NUMBER}";
 
-            FILES=$(curl -s https://api.github.com/repos/$REPOSITORY/pulls/${PULL_NUMBER}/files -u "$USER:$TOKEN" | jq -r '[.[] | .filename] | join(" ")')          
-            echo "FILES: ${FILES}"
+            FILES=$(curl -s https://api.github.com/repos/$REPOSITORY/pulls/${PULL_NUMBER}/files -u "$USER:$TOKEN" | jq -r '[.[] | .filename] | join(" ")')
           
             for module in $REPOSITORY_MODULES; do
               for file in $FILES; do
@@ -97,6 +96,15 @@ runs:
           ;;
         esac
 
+        echo "MODULES=${MODULES}"
+        echo "FILES=${FILES}"
+
+        if [[ $MODULES == "" && $(echo ${#FILES}) != 0 ]];  then
+          for module in $REPOSITORY_MODULES; do
+            MODULES="${MODULES}\"$module\","
+          done
+        fi
+        
         LENGTH_OF_MODULE_LIST=$(echo ${#MODULES})
         MODULES=${MODULES:0:${LENGTH_OF_MODULE_LIST}-1}
         MODULES="[${MODULES}]"
