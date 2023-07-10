@@ -153,10 +153,12 @@ runs:
         if [[ ${KUSTOMIZE_OVERLAYS} != "null" ]]; then
           OVERLAYS_JSON=$(echo ${METADATA} | jq -cr --arg OVERLAYS ${KUSTOMIZE_OVERLAYS} '.overlays[$OVERLAYS]')
         fi
+        
+        OVERLAYS_STRING=$(echo ${OVERLAYS_JSON} | jq -r 'join(" ")')
 
         # Workflow outputs
         cat <<EOF | tee -a ${GITHUB_STEP_SUMMARY} | tee -a ${GITHUB_OUTPUT}
-        overlays=${OVERLAYS_JSON}
+        overlays=${OVERLAYS_STRING}
         update-kustomize=${UPDATE_KUSTOMIZE}
         skip-tests=${SKIP_TESTS}
         image-tag=${IMAGE_TAG}
