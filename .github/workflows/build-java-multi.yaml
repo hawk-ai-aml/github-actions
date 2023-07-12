@@ -103,7 +103,7 @@ jobs:
           ARTIFACTORY_PASSWORD: ${{ secrets.ARTIFACTORY_PASSWORD }}
           DISABLE_SLACK: true
         run: |
-          ./gradlew clean build -isS --info
+          ./gradlew clean build -isS
 
 #      - name: License Report
 #        env:
