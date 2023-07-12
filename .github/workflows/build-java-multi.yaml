@@ -186,7 +186,7 @@ jobs:
           ECR_REPOSITORY_PREFIX: ${{ fromJson(needs.init.outputs.metadata).ecr.repository-prefix }}
           IMAGE_TAG: ${{ needs.init.outputs.image-tag }}
         run: |
-          ./gradlew :${{ matrix.module }}:jib \
+          ./gradlew jib \
             -DIMAGE_NAME="${ECR_REGISTRY}/${ECR_REPOSITORY_PREFIX}" \
             -DTAG_COMMIT=${IMAGE_TAG}
 
