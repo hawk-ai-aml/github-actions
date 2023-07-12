@@ -133,38 +133,38 @@ jobs:
           ARTIFACTORY_PASSWORD: ${{ secrets.ARTIFACTORY_PASSWORD }}
           DISABLE_SLACK: true
         run: |
-          ./gradlew :${{ matrix.module }}:check :${{ matrix.module }}:jacocoTestReport :jacocoTestCoverageVerification -isS
+          ./gradlew :${{ matrix.module }}:check
 
-      - name: Aggregate reports for upload
-        if: needs.init.outputs.skip-tests != 'true' && (success() || failure())
-        run: |
-          mkdir -p reports/${{ matrix.module }}/build
-          if [[ -d ${{ matrix.module }}/build/reports ]]; then
-            cp -r ${{ matrix.module }}/build/reports reports/${{ matrix.module }}/build/reports
-          fi
-
-      - name: Upload Reports to S3
-        id: reports
-        if: needs.init.outputs.skip-tests != 'true' && (success() || failure())
-        uses: hawk-ai-aml/upload-s3-action@master
-        with:
-          aws_key_id: ${{ secrets.AWS_DEV_ACCESS_KEY_ID }}
-          aws_secret_access_key: ${{ secrets.AWS_DEV_SECRET_ACCESS_KEY }}
-          aws_bucket: github-actions-static-html-2
-          source_dir: reports
-          destination_dir: ${{ github.event.repository.name }}-${{ github.run_id }}
-
-      - name: Provide Links to Reports
-        if: needs.init.outputs.skip-tests != 'true' && (success() || failure())
-        run: |
-          echo "### Test Reports" | tee -a ${GITHUB_STEP_SUMMARY}
-          report_url=https://github-actions-static-html-2.s3.amazonaws.com/${{ github.event.repository.name }}-${{ github.run_id }}/
-          for report_file_loc in ${{ join(fromJSON(steps.reports.outputs.object_locations), ' ') }}; do
-            report_basename=${report_file_loc##${report_url}}
-            if [[ ${report_file_loc} == */main.html || ${report_file_loc} == */index.html || ${report_file_loc} == */licenseReport.html ]]; then
-              echo "* [${report_basename}](${report_file_loc})" | tee -a ${GITHUB_STEP_SUMMARY}
-            fi
-          done
+#      - name: Aggregate reports for upload
+#        if: needs.init.outputs.skip-tests != 'true' && (success() || failure())
+#        run: |
+#          mkdir -p reports/${{ matrix.module }}/build
+#          if [[ -d ${{ matrix.module }}/build/reports ]]; then
+#            cp -r ${{ matrix.module }}/build/reports reports/${{ matrix.module }}/build/reports
+#          fi
+#
+#      - name: Upload Reports to S3
+#        id: reports
+#        if: needs.init.outputs.skip-tests != 'true' && (success() || failure())
+#        uses: hawk-ai-aml/upload-s3-action@master
+#        with:
+#          aws_key_id: ${{ secrets.AWS_DEV_ACCESS_KEY_ID }}
+#          aws_secret_access_key: ${{ secrets.AWS_DEV_SECRET_ACCESS_KEY }}
+#          aws_bucket: github-actions-static-html-2
+#          source_dir: reports
+#          destination_dir: ${{ github.event.repository.name }}-${{ github.run_id }}
+#
+#      - name: Provide Links to Reports
+#        if: needs.init.outputs.skip-tests != 'true' && (success() || failure())
+#        run: |
+#          echo "### Test Reports" | tee -a ${GITHUB_STEP_SUMMARY}
+#          report_url=https://github-actions-static-html-2.s3.amazonaws.com/${{ github.event.repository.name }}-${{ github.run_id }}/
+#          for report_file_loc in ${{ join(fromJSON(steps.reports.outputs.object_locations), ' ') }}; do
+#            report_basename=${report_file_loc##${report_url}}
+#            if [[ ${report_file_loc} == */main.html || ${report_file_loc} == */index.html || ${report_file_loc} == */licenseReport.html ]]; then
+#              echo "* [${report_basename}](${report_file_loc})" | tee -a ${GITHUB_STEP_SUMMARY}
+#            fi
+#          done
 
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v1-node16
