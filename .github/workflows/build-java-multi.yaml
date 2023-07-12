@@ -103,7 +103,7 @@ jobs:
           ARTIFACTORY_PASSWORD: ${{ secrets.ARTIFACTORY_PASSWORD }}
           DISABLE_SLACK: true
         run: |
-          ./gradlew clean build --build-cache -isS
+          ./gradlew clean build --build-cache -Dorg.gradle.caching.debug=true -isS
 
 #      - name: License Report
 #        env:
