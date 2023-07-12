@@ -74,8 +74,6 @@ jobs:
     runs-on: [ "self-hosted", "builder" ]
     strategy:
       fail-fast: false
-      matrix:
-        module: ${{ fromJson(needs.init.outputs.updated-modules) }}
 
     steps:
       - uses: actions/checkout@v3
@@ -98,42 +96,42 @@ jobs:
         env:
           GRADLE_BUILD_ACTION_CACHE_DEBUG_ENABLED: true
 
-      - name: Gradle Assemble
+      - name: Gradle Build
         env:
           ARTIFACTORY_CONTEXT_URL: ${{ secrets.ARTIFACTORY_CONTEXT_URL }}
           ARTIFACTORY_USERNAME: ${{ secrets.ARTIFACTORY_USERNAME }}
           ARTIFACTORY_PASSWORD: ${{ secrets.ARTIFACTORY_PASSWORD }}
           DISABLE_SLACK: true
         run: |
-          ./gradlew clean :${{ matrix.module }}:assemble :${{ matrix.module }}:testClasses -isS
+          ./gradlew clean build
 
-      - name: License Report
-        env:
-          ARTIFACTORY_CONTEXT_URL: ${{ secrets.ARTIFACTORY_CONTEXT_URL }}
-          ARTIFACTORY_USERNAME: ${{ secrets.ARTIFACTORY_USERNAME }}
-          ARTIFACTORY_PASSWORD: ${{ secrets.ARTIFACTORY_PASSWORD }}
-          DISABLE_SLACK: true
-        run: |
-          ./gradlew :${{ matrix.module }}:licenseReport --no-parallel
-
-      - name: Check Quality
-        env:
-          ARTIFACTORY_CONTEXT_URL: ${{ secrets.ARTIFACTORY_CONTEXT_URL }}
-          ARTIFACTORY_USERNAME: ${{ secrets.ARTIFACTORY_USERNAME }}
-          ARTIFACTORY_PASSWORD: ${{ secrets.ARTIFACTORY_PASSWORD }}
-          DISABLE_SLACK: true
-        run: |
-          ./gradlew :${{ matrix.module }}:checkQualityMain
-
-      - name: Run Tests
-        if: ${{ needs.init.outputs.skip-tests != 'true' }}
-        env:
-          ARTIFACTORY_CONTEXT_URL: ${{ secrets.ARTIFACTORY_CONTEXT_URL }}
-          ARTIFACTORY_USERNAME: ${{ secrets.ARTIFACTORY_USERNAME }}
-          ARTIFACTORY_PASSWORD: ${{ secrets.ARTIFACTORY_PASSWORD }}
-          DISABLE_SLACK: true
-        run: |
-          ./gradlew :${{ matrix.module }}:check
+#      - name: License Report
+#        env:
+#          ARTIFACTORY_CONTEXT_URL: ${{ secrets.ARTIFACTORY_CONTEXT_URL }}
+#          ARTIFACTORY_USERNAME: ${{ secrets.ARTIFACTORY_USERNAME }}
+#          ARTIFACTORY_PASSWORD: ${{ secrets.ARTIFACTORY_PASSWORD }}
+#          DISABLE_SLACK: true
+#        run: |
+#          ./gradlew :${{ matrix.module }}:licenseReport --no-parallel
+#
+#      - name: Check Quality
+#        env:
+#          ARTIFACTORY_CONTEXT_URL: ${{ secrets.ARTIFACTORY_CONTEXT_URL }}
+#          ARTIFACTORY_USERNAME: ${{ secrets.ARTIFACTORY_USERNAME }}
+#          ARTIFACTORY_PASSWORD: ${{ secrets.ARTIFACTORY_PASSWORD }}
+#          DISABLE_SLACK: true
+#        run: |
+#          ./gradlew :${{ matrix.module }}:checkQualityMain
+#
+#      - name: Run Tests
+#        if: ${{ needs.init.outputs.skip-tests != 'true' }}
+#        env:
+#          ARTIFACTORY_CONTEXT_URL: ${{ secrets.ARTIFACTORY_CONTEXT_URL }}
+#          ARTIFACTORY_USERNAME: ${{ secrets.ARTIFACTORY_USERNAME }}
+#          ARTIFACTORY_PASSWORD: ${{ secrets.ARTIFACTORY_PASSWORD }}
+#          DISABLE_SLACK: true
+#        run: |
+#          ./gradlew :${{ matrix.module }}:check
 
 #      - name: Aggregate reports for upload
 #        if: needs.init.outputs.skip-tests != 'true' && (success() || failure())
