@@ -105,6 +105,8 @@ jobs:
           ARTIFACTORY_CONTEXT_URL: ${{ secrets.ARTIFACTORY_CONTEXT_URL }}
           ARTIFACTORY_USERNAME: ${{ secrets.ARTIFACTORY_USERNAME }}
           ARTIFACTORY_PASSWORD: ${{ secrets.ARTIFACTORY_PASSWORD }}
+          GRADLE_CACHE_USERNAME: ${{ secrets.GRADLE_CACHE_USERNAME }}
+          GRADLE_CACHE_PASSWORD: ${{ secrets.GRADLE_CACHE_PASSWORD }}
           DISABLE_SLACK: true
         run: |
           ./gradlew clean :${{ matrix.module }}:assemble :${{ matrix.module }}:testClasses -isS
@@ -116,6 +118,8 @@ jobs:
           ARTIFACTORY_CONTEXT_URL: ${{ secrets.ARTIFACTORY_CONTEXT_URL }}
           ARTIFACTORY_USERNAME: ${{ secrets.ARTIFACTORY_USERNAME }}
           ARTIFACTORY_PASSWORD: ${{ secrets.ARTIFACTORY_PASSWORD }}
+          GRADLE_CACHE_USERNAME: ${{ secrets.GRADLE_CACHE_USERNAME }}
+          GRADLE_CACHE_PASSWORD: ${{ secrets.GRADLE_CACHE_PASSWORD }}
           DISABLE_SLACK: true
         run: |
           ./gradlew :${{ matrix.module }}:licenseReport --no-parallel
@@ -127,6 +131,8 @@ jobs:
           ARTIFACTORY_CONTEXT_URL: ${{ secrets.ARTIFACTORY_CONTEXT_URL }}
           ARTIFACTORY_USERNAME: ${{ secrets.ARTIFACTORY_USERNAME }}
           ARTIFACTORY_PASSWORD: ${{ secrets.ARTIFACTORY_PASSWORD }}
+          GRADLE_CACHE_USERNAME: ${{ secrets.GRADLE_CACHE_USERNAME }}
+          GRADLE_CACHE_PASSWORD: ${{ secrets.GRADLE_CACHE_PASSWORD }}
           DISABLE_SLACK: true
         run: |
           ./gradlew :${{ matrix.module }}:checkQualityMain
@@ -139,6 +145,8 @@ jobs:
           ARTIFACTORY_CONTEXT_URL: ${{ secrets.ARTIFACTORY_CONTEXT_URL }}
           ARTIFACTORY_USERNAME: ${{ secrets.ARTIFACTORY_USERNAME }}
           ARTIFACTORY_PASSWORD: ${{ secrets.ARTIFACTORY_PASSWORD }}
+          GRADLE_CACHE_USERNAME: ${{ secrets.GRADLE_CACHE_USERNAME }}
+          GRADLE_CACHE_PASSWORD: ${{ secrets.GRADLE_CACHE_PASSWORD }}
           DISABLE_SLACK: true
         run: |
           ./gradlew :${{ matrix.module }}:check :${{ matrix.module }}:jacocoTestReport :jacocoTestCoverageVerification -isS
@@ -194,6 +202,8 @@ jobs:
           ARTIFACTORY_CONTEXT_URL: ${{ secrets.ARTIFACTORY_CONTEXT_URL }}
           ARTIFACTORY_USERNAME: ${{ secrets.ARTIFACTORY_USERNAME }}
           ARTIFACTORY_PASSWORD: ${{ secrets.ARTIFACTORY_PASSWORD }}
+          GRADLE_CACHE_USERNAME: ${{ secrets.GRADLE_CACHE_USERNAME }}
+          GRADLE_CACHE_PASSWORD: ${{ secrets.GRADLE_CACHE_PASSWORD }}
           ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
           ECR_REPOSITORY_PREFIX: ${{ fromJson(needs.init.outputs.metadata).ecr.repository-prefix }}
           IMAGE_TAG: ${{ needs.init.outputs.image-tag }}
