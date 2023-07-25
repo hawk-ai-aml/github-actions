@@ -89,7 +89,7 @@ jobs:
       - name: Install pipenv
         run: pip install pipenv==2023.6.18
 
-      - name: Install Requirements
+      - name: Install Dependencies
         env:
           PY_UTILS_PAT: ${{ secrets.PY_UTILS_PAT }}
         run: |
