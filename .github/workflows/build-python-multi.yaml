@@ -89,13 +89,9 @@ jobs:
       - name: Install pipenv
         run: pip install pipenv==2023.6.18
 
-      - name: Install Requirements and Run Pytest
+      - name: Install Dependencies
         env:
           PY_UTILS_PAT: ${{ secrets.PY_UTILS_PAT }}
-          JENKINS: true
-          IS_JENKINS: true
-          AWS_ACCESS_KEY_ID: ${{ secrets.BACKEND_FILE_AWS_ACCESS_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.BACKEND_FILE_AWS_SECRET_ACCESS_KEY }}
         run: |
           pipenv install --dev
           pipenv requirements > pipenv-requirements.txt
@@ -106,9 +102,19 @@ jobs:
           else
              cat pipenv-requirements.txt > requirements.txt
           fi
-
           pipenv run pip install pip-licenses
-          pipenv run pytest tests --junitxml=report.xml
+
+      - name: Run Pytest
+        env:  
+          JENKINS: true
+          IS_JENKINS: true
+          AWS_ACCESS_KEY_ID: ${{ secrets.BACKEND_FILE_AWS_ACCESS_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.BACKEND_FILE_AWS_SECRET_ACCESS_KEY }}
+        run: |
+          pipenv run tests --junitxml=report.xml
+      
+      - name: Generate Reports
+        run: |
           pipenv run junit2html report.xml report.html
           mkdir report-dir && mv report.html ./report-dir/report.html
 
