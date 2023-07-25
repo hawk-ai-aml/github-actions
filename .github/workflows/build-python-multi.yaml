@@ -111,7 +111,7 @@ jobs:
           AWS_ACCESS_KEY_ID: ${{ secrets.BACKEND_FILE_AWS_ACCESS_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.BACKEND_FILE_AWS_SECRET_ACCESS_KEY }}
         run: |
-          pipenv run tests
+          pipenv run tests --junitxml=report.xml
       
       - name: Generate Reports
         run: |
