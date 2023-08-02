@@ -81,8 +81,7 @@ jobs:
           APP_CONFIG_YAML_PATH: "tests"
           PY_UTILS_PAT: ${{ secrets.PY_UTILS_PAT}}
         run: |
-          pipenv install --dev
-          pipenv lock --keep-outdated > pipenv-requirements.txt
+          pipenv sync --dev --keep-outdated > pipenv-requirements.txt
           pipenv requirements > requirements.txt
           pipenv run tests --junitxml=report.xml
           pipenv run junit2html report.xml report.html
