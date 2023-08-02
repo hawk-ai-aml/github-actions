@@ -104,8 +104,11 @@ jobs:
           echo "buildResultCached=${{ steps.cache-build-results.outputs.cache-hit }}" >> $GITHUB_OUTPUT
 
       - name: Install Yarn
-        if: steps.cache-build-results.outputs.cache-hit != 'true'
-        run: npm install -g yarn
+        if: steps.cache-build-results.outputs.cache-hit != 'true' && steps.cache-node-modules.outputs.cache-hit != 'true'
+        run: |
+          set -eux
+          npm install -g yarn
+          yarn run yarn:install
 
       - name: Build license report
         if: steps.cache-build-results.outputs.cache-hit != 'true'
