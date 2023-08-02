@@ -118,12 +118,18 @@ runs:
         # Build image tag
         BUILD_BRANCH=$(echo ${GITHUB_REF_NAME} | sed 's,\/,-,g; s,\#,,g')
         GIT_SHA_SHORT=${GITHUB_SHA:0:7}
-        if [[ ${GITHUB_REF_TYPE} == "tag" ]]; then
-          IMAGE_TAG=${BUILD_BRANCH}
-        else
-          IMAGE_TAG=${BUILD_BRANCH}-${GIT_SHA_SHORT}
-        fi
-        
+        case $GITHUB_WORKFLOW in
+          "tag")
+            IMAGE_TAG=${BUILD_BRANCH}
+          ;;
+          "pr")
+            IMAGE_TAG="pr-${GITHUB_HEAD_REF}-${GIT_SHA_SHORT}"
+          ;;
+          *)
+            IMAGE_TAG=${BUILD_BRANCH}-${GIT_SHA_SHORT}
+          ;;
+        esac
+                
         ECR_REGION=$(echo ${METADATA} | jq -r '.ecr.region')
         ECR_REGISTRY_CODE=$(echo ${METADATA} | jq -r '.ecr."registry-code"')
         ECR_URL=${ECR_REGISTRY_CODE}.dkr.ecr.${ECR_REGION}.amazonaws.com

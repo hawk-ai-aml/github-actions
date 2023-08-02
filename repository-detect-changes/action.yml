@@ -28,6 +28,10 @@ outputs:
     description: 'The list of modules has the code changes'
     value: ${{ steps.changes.outputs.updatedModules }}
 
+  updated-modules-string:
+    description: 'The list of modules has the code changes in string'
+    value: ${{ steps.changes.outputs.updatedModulesString }}
+
 runs:
   using: composite
   steps:
@@ -49,6 +53,8 @@ runs:
         WORKFLOW_TYPE: ${{ github.workflow }}
       run: |
         echo "WORKFLOW_TYPE: $WORKFLOW_TYPE"
+        SPACE=" "
+
         case $WORKFLOW_TYPE in
           "manual")
             CURRENT_BRANCH=${GITHUB_HEAD_REF:-${GITHUB_REF#refs/heads/}}
@@ -68,6 +74,7 @@ runs:
                 for file in $FILES; do
                   if [[ $file == *"$module"* && $MODULES != *"$module"* ]];  then
                     MODULES="${MODULES}\"$module\","
+                    MODULE_LIST_STRING=${MODULE_LIST_STRING}${module}${SPACE}
                     break
                   fi
                 done
@@ -84,6 +91,7 @@ runs:
               for file in $FILES; do
                 if [[ $file == *"$module"* && $MODULES != *"$module"* ]];  then
                   MODULES="${MODULES}\"$module\","
+                  MODULE_LIST_STRING=${MODULE_LIST_STRING}${module}${SPACE}
                   break
                 fi
               done
@@ -92,6 +100,7 @@ runs:
           *)
             for module in $REPOSITORY_MODULES; do
               MODULES="${MODULES}\"$module\","
+              MODULE_LIST_STRING=${MODULE_LIST_STRING}${module}${SPACE}
             done
           ;;
         esac
@@ -102,6 +111,7 @@ runs:
         if [[ $MODULES == "" && $(echo ${#FILES}) != 0 ]];  then
           for module in $REPOSITORY_MODULES; do
             MODULES="${MODULES}\"$module\","
+            MODULE_LIST_STRING=${MODULE_LIST_STRING}${module}${SPACE}
           done
         fi
         
@@ -112,6 +122,7 @@ runs:
         # Workflow outputs
         cat <<EOF | tee -a ${GITHUB_STEP_SUMMARY} | tee -a ${GITHUB_OUTPUT}
         updatedModules=${MODULES}
+        updatedModulesString=${MODULE_LIST_STRING}
         EOF
 
 # End of file
