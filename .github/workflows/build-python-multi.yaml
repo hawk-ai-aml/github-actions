@@ -48,6 +48,7 @@ jobs:
       ecr-region: ${{ steps.init.outputs.ecr-region }}
       metadata: ${{ steps.init.outputs.metadata }}
       updated-modules: ${{ steps.detect-changes.outputs.updated-modules }}
+      updated-modules-string: ${{ steps.detect-changes.outputs.updated-modules-string }}
 
     steps:
       - id: init
@@ -192,7 +193,7 @@ jobs:
         uses: hawk-ai-aml/github-actions/kustomize-overlay@master
         with:
           overlays: ${{ needs.init.outputs.overlays }}
-          modules: ${{ needs.init.outputs.kustomize-modules-string }}
+          modules: ${{ needs.init.outputs.updated-modules-string }}
           component-name: ${{ inputs.component }}
           component-tag: ${{ needs.init.outputs.image-tag }}
           kustomize-repo: hawk-ai-aml/kustomize.git
