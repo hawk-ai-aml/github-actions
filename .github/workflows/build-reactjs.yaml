@@ -14,9 +14,6 @@ on:
       component:
         type: string
         required: false
-      useCacheResults:
-        type: boolean
-        required: false
       deleteCache:
         type: boolean
         required: false
@@ -60,62 +57,59 @@ jobs:
     needs: [ init ]
     runs-on: [ "self-hosted", "small-builder" ]
     outputs:
-      releaseVersion: ${{ steps.release-version.outputs.releaseVersion }}
-      buildResultCached: ${{ steps.cache-build-results-flag.outputs.buildResultCached }}
+      node-module-cache-key: ${{ steps.cache-key.outputs.node-module-cache-key }}
+      yarn-cache-key: ${{ steps.cache-key.outputs.yarn-cache-key }}
+      yarn-dir-path: ${{ steps.yarn-cache-path.outputs.path }}
 
     steps:
       - uses: actions/checkout@v3
 
-      - name: Cache Node modules
-        id: cache-node-modules
-        uses: actions/cache@v3
-        with:
-          path: ./node_modules/
-          key: ${{ runner.os }}-node-modules-
-          restore-keys: |
-            ${{ runner.os }}-node-modules-
-
       - name: Set up Node
-        if: steps.cache-node-modules.outputs.cache-hit != 'true'
         uses: actions/setup-node@v3
         with:
           node-version: '18.x'
 
-      - name: Get current release version
-        id: release-version
-        run: |
-          echo "RELEASE_VERSION=${GITHUB_REF#refs/*/}" >> $GITHUB_ENV
-          echo "releaseVersion=${GITHUB_REF#refs/*/}" >> $GITHUB_OUTPUT
-          echo "current release: ${{ env.RELEASE_VERSION }}"
+      - name: Get Yarn cache directory
+        id: yarn-cache-path
+        run: echo "path=$(yarn cache dir)"  >> $GITHUB_OUTPUT
 
-      - name: Check build results
-        id: cache-build-results
-        if: ${{ inputs.useCacheResults == true }}
+      - name: Generate cache key
+        id: cache-key
+        run: |
+          echo "yarn-cache-key=${{ runner.os }}-yarn" >> $GITHUB_OUTPUT
+          echo "node-module-cache-key=${{ runner.os }}-module-${{ hashFiles('**/yarn.lock') }}" >> $GITHUB_OUTPUT
+
+      - name: Use Yarn cache
         uses: actions/cache@v3
+        id: yarn-cache
         with:
-          path: ./build/
-          key: ${{ runner.os }}-frontend-build-${{ env.RELEASE_VERSION }}
-          restore-keys: |
-            ${{ runner.os }}-frontend-build-${{ env.RELEASE_VERSION }}
-
-      - name: Store build results flag
-        id: cache-build-results-flag
-        run: |
-          echo "buildResultCached=${{ steps.cache-build-results.outputs.cache-hit }}" >> $GITHUB_OUTPUT
+          path: ${{ steps.yarn-cache-path.outputs.path }}
+          key: ${{ steps.cache-key.outputs.yarn-cache-key }}
+          restore-keys: ${{ runner.os }}-yarn-
 
       - name: Install Yarn
-        if: steps.cache-build-results.outputs.cache-hit != 'true' && steps.cache-node-modules.outputs.cache-hit != 'true'
+        if: steps.yarn-cache.outputs.cache-hit != 'true'
         run: |
           set -eux
           npm install -g yarn
-          yarn run yarn:install
+
+      - name: Node module cache
+        uses: actions/cache@v3
+        id: module-cache
+        with:
+          path: |
+            **/node_modules
+          key: ${{ steps.cache-key.outputs.node-module-cache-key }}
+          restore-keys: ${{ runner.os }}-modules-
+
+      - name: Install node modules
+        if: steps.module-cache.outputs.cache-hit != 'true'
+        run: yarn run yarn:install
 
       - name: Build license report
-        if: steps.cache-build-results.outputs.cache-hit != 'true'
         run: ./node_modules/license-checker/bin/license-checker > licenseReport.txt
 
       - name: Lint check
-        if: steps.cache-build-results.outputs.cache-hit != 'true'
         run: yarn run prettier:check
 
 
@@ -129,25 +123,34 @@ jobs:
     steps:
       - uses: actions/checkout@v3
 
-      - name: Cache Node modules
-        id: cache-node-modules
+      - name: Use Yarn cache
         uses: actions/cache@v3
+        id: yarn-cache
         with:
-          path: ./node_modules/
-          key: ${{ runner.os }}-node-modules-
-          restore-keys: |
-            ${{ runner.os }}-node-modules-
+          path: ${{ needs.setup-and-lint.outputs.yarn-dir-path }}
+          key: ${{ needs.setup-and-lint.outputs.yarn-cache-key }}
+          restore-keys: ${{ runner.os }}-yarn-
 
-      - name: Install packages
-        if: steps.cache-node-modules.outputs.cache-hit != 'true'
+      - name: Install Yarn
+        if: steps.yarn-cache.outputs.cache-hit != 'true'
+        run: |
+          set -eux
+          npm install -g yarn
+
+      - name: Node modules cache
+        uses: actions/cache@v3
+        id: module-cache
+        with:
+          path: |
+            **/node_modules
+          key: ${{ needs.setup-and-lint.outputs.node-module-cache-key }}
+          restore-keys: ${{ runner.os }}-modules-
+
+      - name: Install node modules
+        if: steps.module-cache.outputs.cache-hit != 'true'
         run: yarn run yarn:install
 
-      - name: Check
-        run: |
-          echo "buildResultCached: ${{ needs.setup-and-lint.outputs.buildResultCached }}"
-
       - name: Yarn test
-        if: needs.setup-and-lint.outputs.buildResultCached != 'true'
         run: yarn run test:ci --shard=${{ matrix.shard }}/${{ strategy.job-total }}
 
 
@@ -158,32 +161,34 @@ jobs:
     steps:
       - uses: actions/checkout@v3
 
-      - name: Cache build results
-        id: cache-build-results
-        if: ${{ inputs.useCacheResults == true }}
+      - name: Yarn cache
         uses: actions/cache@v3
+        id: yarn-cache
         with:
-          path: ./build/
-          key: ${{ runner.os }}-frontend-build-${{ needs.setup-and-lint.outputs.releaseVersion }}
-          restore-keys: |
-            ${{ runner.os }}-frontend-build-${{ needs.setup-and-lint.outputs.releaseVersion }}
+          path: ${{ needs.setup-and-lint.outputs.yarn-dir-path }}
+          key: ${{ needs.setup-and-lint.outputs.yarn-cache-key }}
+          restore-keys: ${{ runner.os }}-yarn-
 
-      - name: Cache Node modules
-        id: cache-node-modules
-        if: steps.cache-build-results.outputs.cache-hit != 'true'
+      - name: Install Yarn
+        if: steps.yarn-cache.outputs.cache-hit != 'true'
+        run: |
+          set -eux
+          npm install -g yarn
+
+      - name: Node module cache
         uses: actions/cache@v3
+        id: module-cache
         with:
-          path: ./node_modules/
-          key: ${{ runner.os }}-node-modules-
-          restore-keys: |
-            ${{ runner.os }}-node-modules-
+          path: |
+            **/node_modules
+          key: ${{ needs.setup-and-lint.outputs.node-module-cache-key }}
+          restore-keys: ${{ runner.os }}-modules-
 
-      - name: Install packages
-        if: (inputs.useCacheResults == true && steps.cache-build-results.outputs.cache-hit != 'true') || (inputs.useCacheResults != true && steps.cache-node-modules.outputs.cache-hit != 'true')
+      - name: Install node modules
+        if: steps.module-cache.outputs.cache-hit != 'true'
         run: yarn run yarn:install
 
       - name: Yarn build
-        if: steps.cache-build-results.outputs.cache-hit != 'true'
         env:
           NODE_OPTIONS: "--max_old_space_size=4096"
         run: yarn run build
@@ -261,7 +266,7 @@ jobs:
           metadata: ${{ needs.init.outputs.metadata }}
 
   clean-up:
-    needs: [ init, setup-and-lint, build, tests, update-overlays ]
+    needs: [ init, setup-and-lint, tests, build ]
     runs-on: [ "self-hosted", "small-builder" ]
 
     steps:
@@ -273,7 +278,7 @@ jobs:
           USER: ${{ secrets.RECREATE_DEVELOP_GITHUB_USER }}
           TOKEN: ${{ secrets.RECREATE_DEVELOP_GITHUB_TOKEN }}
           REPOSITORY: ${{ inputs.component }}
-          CACHE_KEY: ${{ runner.os }}-frontend-build-${{ needs.setup-and-lint.outputs.releaseVersion }}
+          CACHE_KEY: ${{ needs.setup-and-lint.outputs.node-module-cache-key }}
         run: |
           chmod +x ./lib/delete-cache.sh
           ./lib/delete-cache.sh
