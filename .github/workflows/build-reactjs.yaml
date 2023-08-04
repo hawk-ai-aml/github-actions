@@ -100,7 +100,7 @@ jobs:
           path: |
             **/node_modules
           key: ${{ steps.cache-key.outputs.node-module-cache-key }}
-          restore-keys: ${{ runner.os }}-modules-
+          restore-keys: ${{ runner.os }}-module-
 
       - name: Install node modules
         if: steps.module-cache.outputs.cache-hit != 'true'
@@ -144,7 +144,7 @@ jobs:
           path: |
             **/node_modules
           key: ${{ needs.setup-and-lint.outputs.node-module-cache-key }}
-          restore-keys: ${{ runner.os }}-modules-
+          restore-keys: ${{ runner.os }}-module-
 
       - name: Install node modules
         if: steps.module-cache.outputs.cache-hit != 'true'
@@ -182,7 +182,7 @@ jobs:
           path: |
             **/node_modules
           key: ${{ needs.setup-and-lint.outputs.node-module-cache-key }}
-          restore-keys: ${{ runner.os }}-modules-
+          restore-keys: ${{ runner.os }}-module-
 
       - name: Install node modules
         if: steps.module-cache.outputs.cache-hit != 'true'
