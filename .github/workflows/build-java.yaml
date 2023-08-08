@@ -123,7 +123,8 @@ jobs:
           GRADLE_CACHE_USERNAME: ${{ secrets.GRADLE_CACHE_USERNAME }}
           GRADLE_CACHE_PASSWORD: ${{ secrets.GRADLE_CACHE_PASSWORD }}
         run: |
-          ./gradlew check jacocoTestReport jacocoTestVerification -isS
+          ./gradlew test -isS
+          ./gradlew aggregateJacocoExecutions
 
       - name: Aggregate reports for upload
         if: needs.init.outputs.skip-tests != 'true' && (success() || failure())
