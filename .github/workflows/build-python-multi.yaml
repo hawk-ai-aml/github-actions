@@ -131,6 +131,7 @@ jobs:
           destination_dir: ${{ github.event.repository.name }}-${{ github.run_id }}
 
       - name: Configure AWS credentials
+        if: ${{ github.workflow != 'pr' }}
         uses: aws-actions/configure-aws-credentials@v1
         with:
           aws-access-key-id: ${{ secrets.AWS_ORG_ECR_ACCESS_KEY_ID }}
@@ -139,12 +140,13 @@ jobs:
 
       - name: Login to Amazon ECR
         id: login-ecr
+        if: ${{ github.workflow != 'pr' }}
         uses: aws-actions/amazon-ecr-login@v1
         with:
           registries: ${{ needs.init.outputs.ecr-registry-code }}
 
       - name: Build and tag images
-        id: build-and-tag
+        if: ${{ github.workflow != 'pr' }}
         env:
           IMAGE_TAG: ${{ needs.init.outputs.image-tag }}
           ECR_PREFIX: ${{ inputs.ecr-prefix }}
@@ -185,7 +187,7 @@ jobs:
 
   update-overlays:
     needs: [ init, build ]
-    if: ${{ needs.init.outputs.update-kustomize == 'true' }}
+    if: ${{ needs.init.outputs.update-kustomize == 'true' && github.workflow != 'pr' }}
     runs-on: [ "self-hosted", "small-builder" ]
 
     steps:
