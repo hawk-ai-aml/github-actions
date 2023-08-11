@@ -67,7 +67,7 @@ jobs:
         with:
           repository: ${{ fromJson(needs.init.outputs.metadata).ecr.repository }}
           tag: master-25ce9d0
-          new-tags: dev
+          new-tags: dev2
 
   update-overlays:
     needs: [ init, tag ]
@@ -80,7 +80,7 @@ jobs:
           overlays: ${{ needs.init.outputs.overlays }}
           modules: ${{ needs.init.outputs.kustomize-modules-string }}
           component-name: ${{ inputs.component }}
-          component-tag: ${{ needs.init.outputs.image-tag }}
+          component-tag: dev2
           kustomize-repo: hawk-ai-aml/kustomize.git
           kustomize-access-token: ${{ secrets.REPO_ACCESS_PAT }}
           ecr-region: ${{ needs.init.outputs.ecr-region }}
