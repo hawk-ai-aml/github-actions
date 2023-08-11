@@ -65,9 +65,9 @@ jobs:
       - name: Tag Docker image
         uses: abronin/ecr-retag-action@v1
         with:
-          repository: ${{ fromJson(needs.init.outputs.metadata).ecr.repository }}/master-25ce9d0
+          repository: ${{ fromJson(needs.init.outputs.metadata).ecr.repository }}
           tag: master-25ce9d0
-          new-tags: master-tag-001
+          new-tags: master-25ce9d0:dev
 
   update-overlays:
     needs: [ init, tag ]
