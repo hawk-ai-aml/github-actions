@@ -70,7 +70,7 @@ jobs:
           new-tags: master-tag-001
 
   update-overlays:
-    needs: [ init, build ]
+    needs: [ init, tag ]
     runs-on: [ "self-hosted", "small-builder" ]
 
     steps:
