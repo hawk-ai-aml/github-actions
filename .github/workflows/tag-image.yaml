@@ -67,7 +67,7 @@ jobs:
         with:
           repository: ${{ fromJson(needs.init.outputs.metadata).ecr.repository }}
           tag: master-25ce9d0
-          new-tags: master-25ce9d0:dev
+          new-tags: dev
 
   update-overlays:
     needs: [ init, tag ]
