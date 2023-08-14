@@ -92,16 +92,6 @@ jobs:
           DISABLE_SLACK: true
         run: ./gradlew clean :${{ inputs.module }}:assemble :${{ inputs.module }}:testClasses -isS
 
-      - name: License Report for <${{ inputs.component }}/${{ inputs.module }}>
-        env:
-          ARTIFACTORY_CONTEXT_URL: ${{ secrets.ARTIFACTORY_CONTEXT_URL }}
-          ARTIFACTORY_USERNAME: ${{ secrets.ARTIFACTORY_USERNAME }}
-          ARTIFACTORY_PASSWORD: ${{ secrets.ARTIFACTORY_PASSWORD }}
-          GRADLE_CACHE_USERNAME: ${{ secrets.GRADLE_CACHE_USERNAME }}
-          GRADLE_CACHE_PASSWORD: ${{ secrets.GRADLE_CACHE_PASSWORD }}
-          DISABLE_SLACK: true
-        run: ./gradlew :${{ inputs.module }}:licenseReport --no-parallel
-
       - name: Check Quality for <${{ inputs.component }}/${{ inputs.module }}>
         env:
           ARTIFACTORY_CONTEXT_URL: ${{ secrets.ARTIFACTORY_CONTEXT_URL }}
@@ -123,6 +113,16 @@ jobs:
           DISABLE_SLACK: true
         run: |
           ./gradlew :${{ inputs.module }}:check :${{ inputs.module }}:jacocoTestReport :jacocoTestCoverageVerification -isS
+
+      - name: License Report for <${{ inputs.component }}/${{ inputs.module }}>
+        env:
+          ARTIFACTORY_CONTEXT_URL: ${{ secrets.ARTIFACTORY_CONTEXT_URL }}
+          ARTIFACTORY_USERNAME: ${{ secrets.ARTIFACTORY_USERNAME }}
+          ARTIFACTORY_PASSWORD: ${{ secrets.ARTIFACTORY_PASSWORD }}
+          GRADLE_CACHE_USERNAME: ${{ secrets.GRADLE_CACHE_USERNAME }}
+          GRADLE_CACHE_PASSWORD: ${{ secrets.GRADLE_CACHE_PASSWORD }}
+          DISABLE_SLACK: true
+        run: ./gradlew :${{ inputs.module }}:licenseReport --no-parallel
 
       - name: Aggregate reports for upload
         if: needs.init.outputs.skip-tests != 'true' && (success() || failure())
