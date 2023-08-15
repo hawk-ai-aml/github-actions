@@ -137,7 +137,7 @@ jobs:
           GRADLE_CACHE_PASSWORD: ${{ secrets.GRADLE_CACHE_PASSWORD }}
           DISABLE_SLACK: true
         run: |
-          ./gradlew :${{ matrix.module }}:test :${{ matrix.module }}:jacocoTestReport :jacocoTestCoverageVerification -isS
+          ./gradlew :${{ matrix.module }}:check :${{ matrix.module }}:jacocoTestReport :${{ matrix.module }}:jacocoTestCoverageVerification -isS
 
       - name: License Report
         env:

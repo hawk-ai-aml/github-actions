@@ -112,7 +112,7 @@ jobs:
           GRADLE_CACHE_PASSWORD: ${{ secrets.GRADLE_CACHE_PASSWORD }}
           DISABLE_SLACK: true
         run: |
-          ./gradlew :${{ inputs.module }}:check :${{ inputs.module }}:jacocoTestReport :jacocoTestCoverageVerification -isS
+          ./gradlew :${{ inputs.module }}:check :${{ inputs.module }}:jacocoTestReport :${{ inputs.module }}:jacocoTestCoverageVerification -isS
 
       - name: License Report for <${{ inputs.component }}/${{ inputs.module }}>
         env:
