@@ -114,7 +114,7 @@ jobs:
           GRADLE_CACHE_USERNAME: ${{ secrets.GRADLE_CACHE_USERNAME }}
           GRADLE_CACHE_PASSWORD: ${{ secrets.GRADLE_CACHE_PASSWORD }}
         run: |
-          ./gradlew test -isS
+          ./gradlew check -isS
           ./gradlew aggregateJacocoExecutions
 
       - name: License Report

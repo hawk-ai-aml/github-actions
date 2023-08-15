@@ -107,8 +107,17 @@ runs:
 
         echo "MODULES=${MODULES}"
         echo "FILES=${FILES}"
+        
+        CORE_CHANGES=false
 
-        if [[ $MODULES == "" && $(echo ${#FILES}) != 0 ]];  then
+        for file in $FILES; do
+          if [[ $file == *"core"* ]];  then
+            CORE_CHANGES=true
+            break
+          fi
+        done
+        
+        if [[ ($MODULES == "" && $(echo ${#FILES}) != 0) || $CORE_CHANGES == true ]];  then
           for module in $REPOSITORY_MODULES; do
             MODULES="${MODULES}\"$module\","
             MODULE_LIST_STRING=${MODULE_LIST_STRING}${module}${SPACE}
