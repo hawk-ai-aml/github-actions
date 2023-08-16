@@ -35,7 +35,7 @@ jobs:
     runs-on: [ "self-hosted", "small-builder" ]
     strategy:
       matrix:
-        environment: ${{fromJson(inputs.environments)}}
+        environment: ${{ fromJson(inputs.environments) }}
     steps:
       - name: Checkout Kustomize
         uses: actions/checkout@v3
@@ -44,7 +44,7 @@ jobs:
           token: ${{ secrets.TOKEN }}
           ref: ${{ inputs.kustomize-branch }}
 
-      - name: Update Overlay
+      - name: Update ${{ matrix.environment }} to ${{ inputs.tag }}
         run: |
           ls ${{ github.workspace }}
           cd ${{ github.workspace }}/plattform/${{ inputs.ecr-repository }}/overlays/${{ matrix.environment }}

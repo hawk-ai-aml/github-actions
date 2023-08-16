@@ -24,7 +24,7 @@ jobs:
           ref: master
           token: ${{ secrets.REPO_ACCESS_PAT }}
 
-      - name: Update targetRevision for ${{ inputs.overlay }} overlay
+      - name: Update targetRevision for ${{ inputs.overlay }} to ${{ inputs.tag }}
         run: |
           cd gitops
 
