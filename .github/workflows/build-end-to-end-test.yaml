@@ -75,9 +75,10 @@ jobs:
           curl -L -O "https://edgedl.me.gvt1.com/edgedl/chrome/chrome-for-testing/${CHROMEDRIVER_VERSION}/linux64/chrome-linux64.zip"
           ls -ahl
           unzip chrome-linux64.zip && chmod +x chrome-linux64/chrome && sudo mv chrome-linux64/chrome /usr/local/bin/chromedriver
-          chromedriver -version
-          which chromedriver
-          which google-chrome
+          echo "chromeDriver version: $(chromedriver --version)"
+          echo "chromeDriver location: $(which chromedriver)"
+          echo "chromeBrowser version: $(google-chrome --version)"
+          echo "chromeBrowser location: $(which google-chrome)"
 
       - name: Generate cache ID
         run: |
