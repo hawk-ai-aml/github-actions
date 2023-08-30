@@ -14,6 +14,10 @@ on:
         type: string
         description: Tag or branch name
         required: true
+      metadata:
+        description: The metadata for the test
+        type: string
+        required: false
 
 defaults:
   run:
@@ -31,6 +35,8 @@ jobs:
       - name: Checkout
         run: |
           echo "Checkout ref: ${{ inputs.ref }}"
+          METADATA=$(echo "${{ inputs.metadata }}" | sed s/\'/\"/g)
+          echo "METADATA: $METADATA"
 
       - uses: actions/checkout@v3
         with:
