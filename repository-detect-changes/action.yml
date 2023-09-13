@@ -72,7 +72,8 @@ runs:
       
               for module in $REPOSITORY_MODULES; do
                 for file in $FILES; do
-                  if [[ $file == *"$module"* && $MODULES != *"$module"* ]];  then
+                  IFS='/' read -ra ADDR <<< "$file"
+                  if [[ ${ADDR[0]} == *"$module"* && $MODULES != *"$module"* ]];  then
                     MODULES="${MODULES}\"$module\","
                     MODULE_LIST_STRING=${MODULE_LIST_STRING}${module}${SPACE}
                     break
@@ -89,7 +90,8 @@ runs:
           
             for module in $REPOSITORY_MODULES; do
               for file in $FILES; do
-                if [[ $file == *"$module"* && $MODULES != *"$module"* ]];  then
+                IFS='/' read -ra ADDR <<< "$file"
+                if [[ ${ADDR[0]} == *"$module"* && $MODULES != *"$module"* ]];  then
                   MODULES="${MODULES}\"$module\","
                   MODULE_LIST_STRING=${MODULE_LIST_STRING}${module}${SPACE}
                   break
@@ -117,10 +119,12 @@ runs:
           fi
         done
         
-        if [[ ($MODULES == "" && $(echo ${#FILES}) != 0) || $CORE_CHANGES == true ]];  then
+        if [[ ((${MODULES} == "" || ${MODULES} == "\"core\",") && $(echo ${#FILES}) != 0) || ((${MODULES} == "" || ${MODULES} == "\"core\",") && $CORE_CHANGES == true) ]];  then
           for module in $REPOSITORY_MODULES; do
-            MODULES="${MODULES}\"$module\","
-            MODULE_LIST_STRING=${MODULE_LIST_STRING}${module}${SPACE}
+            if [[ $MODULES != *"$module"* ]];  then
+              MODULES="${MODULES}\"$module\","
+              MODULE_LIST_STRING=${MODULE_LIST_STRING}${module}${SPACE}
+            fi
           done
         fi
         

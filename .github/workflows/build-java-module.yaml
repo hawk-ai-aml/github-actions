@@ -194,7 +194,7 @@ jobs:
         uses: hawk-ai-aml/github-actions/kustomize-overlay@master
         with:
           overlays: ${{ needs.init.outputs.overlays }}
-          modules: ${{ needs.init.outputs.kustomize-modules-string }}
+          modules: ${{ inputs.module }}
           component-name: ${{ inputs.component }}
           component-tag: ${{ needs.init.outputs.image-tag }}
           kustomize-repo: hawk-ai-aml/kustomize.git
