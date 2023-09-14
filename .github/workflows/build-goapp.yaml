@@ -20,7 +20,6 @@ jobs:
       ecr-images: ${{ steps.init.outputs.ecr-images }}
       ecr-registry-code: ${{ steps.init.outputs.ecr-registry-code }}
       ecr-region: ${{ steps.init.outputs.ecr-region }}
-      metadata: ${{ steps.init.outputs.metadata }}
 
     steps:
       - id: init
@@ -54,13 +53,13 @@ jobs:
       - name: Build Docker image
         env:
           ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
-          ECR_REPOSITORY: github-api-exporter
+          ECR_REPOSITORY: ${{ fromJson(needs.init.outputs.metadata).ecr.repository }}
         run: docker build -t ${ECR_REGISTRY}/${ECR_REPOSITORY}:${{ needs.init.outputs.image-tag }} .
 
       - name: Push Image
         id: push-image
         env:
           ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
-          ECR_REPOSITORY: github-api-exporter
+          ECR_REPOSITORY: ${{ fromJson(needs.init.outputs.metadata).ecr.repository }}
         run: |
           docker push ${ECR_REGISTRY}/${ECR_REPOSITORY}:${{ needs.init.outputs.image-tag }}
