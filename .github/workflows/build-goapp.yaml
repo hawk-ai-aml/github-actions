@@ -1,0 +1,60 @@
+name: build goapp
+
+on:
+  workflow_call:
+defaults:
+  run:
+    shell: bash -l -ET -eo pipefail {0}
+
+jobs:
+  init:
+    runs-on: [ "self-hosted", "small-builder" ]
+    outputs:
+      image-tag: ${{ steps.init.outputs.image-tag }}
+      ecr-url: ${{ steps.init.outputs.ecr-url }}
+      ecr-images: ${{ steps.init.outputs.ecr-images }}
+      ecr-registry-code: ${{ steps.init.outputs.ecr-registry-code }}
+      ecr-region: ${{ steps.init.outputs.ecr-region }}
+
+    steps:
+      - id: init
+        name: Init Workflow
+        uses: hawk-ai-aml/github-actions/workflow-init@master
+        with:
+          repository-name: hawk-ai-aml/${{ inputs.component }}
+          repository-ref: ${{ env.GITHUB_REF_NAME }}
+          repository-access-token: ${{ secrets.REPO_ACCESS_PAT }}
+
+  build:
+    runs-on: [ "self-hosted", "small-builder" ]
+    needs: init
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ORG_ECR_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_ORG_ECR_SECRET_ACCESS_KEY }}
+          aws-region: ${{ needs.init.outputs.ecr-region }}
+
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v1
+        with:
+          registries: ${{ needs.init.outputs.ecr-registry-code }}
+
+      - name: Build Docker image
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          ECR_REPOSITORY: ${{ fromJson(needs.init.outputs.metadata).ecr.repository }}
+        run: docker build -t ${ECR_REGISTRY}/${ECR_REPOSITORY}:${{ needs.init.outputs.image-tag }} .
+
+      - name: Push Image
+        id: push-image
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          ECR_REPOSITORY: ${{ fromJson(needs.init.outputs.metadata).ecr.repository }}
+        run: |
+          docker push ${ECR_REGISTRY}/${ECR_REPOSITORY}:${{ needs.init.outputs.image-tag }}
