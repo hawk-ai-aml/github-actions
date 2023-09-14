@@ -20,6 +20,7 @@ jobs:
       ecr-images: ${{ steps.init.outputs.ecr-images }}
       ecr-registry-code: ${{ steps.init.outputs.ecr-registry-code }}
       ecr-region: ${{ steps.init.outputs.ecr-region }}
+      metadata: ${{ steps.init.outputs.metadata }}
 
     steps:
       - id: init
