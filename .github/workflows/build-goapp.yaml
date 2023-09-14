@@ -15,7 +15,7 @@ jobs:
   init:
     runs-on: [ "self-hosted", "small-builder" ]
     outputs:
-      image-tag: ${{ steps.init.outputs.image-tag }}
+      image-tag: latest
       ecr-url: ${{ steps.init.outputs.ecr-url }}
       ecr-images: ${{ steps.init.outputs.ecr-images }}
       ecr-registry-code: ${{ steps.init.outputs.ecr-registry-code }}
