@@ -2,6 +2,11 @@ name: build goapp
 
 on:
   workflow_call:
+    inputs:
+      component:
+        description: "Name of the repository"
+        type: string
+        required: false    
 defaults:
   run:
     shell: bash -l -ET -eo pipefail {0}
