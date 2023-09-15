@@ -69,18 +69,14 @@ jobs:
       - name: Set up Chrome driver
         if: always()
         run: |
-          
           echo Getting Chrome Browser and Chrome Driver versions
-          export CHROME_VERSION=`curl -s https://googlechromelabs.github.io/chrome-for-testing/last-known-good-versions-with-downloads.json | jq -r '.channels.Stable.version'`
+          export CHROME_VERSION = `curl -s https://googlechromelabs.github.io/chrome-for-testing/last-known-good-versions-with-downloads.json | jq -r '.channels.Stable.version'`
           echo "Chrome version: $CHROME_VERSION"
           
           echo Installing Chrome Browser
-          curl -L -O "https://edgedl.me.gvt1.com/edgedl/chrome/chrome-for-testing/$CHROME_VERSION/linux64/chrome-linux64.zip"
-          ls -ahl
-          unzip chrome-linux64.zip && sudo mv chrome-linux64/chrome /usr/local/bin/chrome && chmod +x /usr/local/bin/chrome
-          echo "path content: "
-          echo $PATH
-          
+          npm install puppeteer -y
+          npx @puppeteer/browsers install chrome@$CHROME_VERSION
+                    
           echo Installing Chrome Driver
           curl -L -O "https://edgedl.me.gvt1.com/edgedl/chrome/chrome-for-testing/$CHROME_VERSION/linux64/chromedriver-linux64.zip"
           ls -ahl
@@ -89,7 +85,7 @@ jobs:
           echo "chromeDriver version: $(chromedriver --version)"
           echo "chromeDriver location: $(which chromedriver)"
           echo "chromeBrowser version: $(google-chrome --version)"
-          echo "chromeBrowser location: $(which google-chrome)"
+          echo "chromeBrowser location: $CHROMEBROWSER_PATH"
 
       - name: Generate cache ID
         run: |
