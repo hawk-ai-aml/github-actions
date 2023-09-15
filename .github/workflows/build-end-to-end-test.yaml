@@ -85,7 +85,7 @@ jobs:
           echo "chromeDriver version: $(chromedriver --version)"
           echo "chromeDriver location: $(which chromedriver)"
           echo "chromeBrowser version: $(google-chrome --version)"
-          echo "chromeBrowser location: $CHROMEBROWSER_PATH"
+          echo "chromeBrowser location: $(which google-chrome)"
 
       - name: Generate cache ID
         run: |
