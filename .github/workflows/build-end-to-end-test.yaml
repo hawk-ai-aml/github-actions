@@ -72,14 +72,17 @@ jobs:
           
           echo Getting Chrome Browser and Chrome Driver versions
           export CHROME_VERSION=`curl -s https://googlechromelabs.github.io/chrome-for-testing/last-known-good-versions-with-downloads.json | jq -r '.channels.Stable.version'`
+          echo "Chrome version: $CHROME_VERSION"
           
           echo Installing Chrome Browser
-          curl -L -O "https://edgedl.me.gvt1.com/edgedl/chrome/chrome-for-testing/${CHROME_VERSION}/linux64/chrome-linux64.zip"
+          curl -L -O "https://edgedl.me.gvt1.com/edgedl/chrome/chrome-for-testing/$CHROME_VERSION/linux64/chrome-linux64.zip"
           ls -ahl
           unzip chrome-linux64.zip && sudo mv chrome-linux64/chrome /usr/local/bin/chrome && chmod +x /usr/local/bin/chrome
+          echo "path content: "
+          echo $PATH
           
           echo Installing Chrome Driver
-          curl -L -O "https://edgedl.me.gvt1.com/edgedl/chrome/chrome-for-testing/${CHROME_VERSION}/linux64/chromedriver-linux64.zip"
+          curl -L -O "https://edgedl.me.gvt1.com/edgedl/chrome/chrome-for-testing/$CHROME_VERSION/linux64/chromedriver-linux64.zip"
           ls -ahl
           unzip chromedriver-linux64.zip && chmod +x chromedriver-linux64/chromedriver && sudo mv chromedriver-linux64/chromedriver /usr/local/bin/chromedriver
           
