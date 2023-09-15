@@ -76,6 +76,7 @@ jobs:
           echo Installing Chrome Browser
           npm install puppeteer -y
           npx @puppeteer/browsers install chrome@$CHROME_VERSION
+          mv /runner/_work/end-to-end-tests/end-to-end-tests/chrome/linux-$CHROME_VERSION/chrome-linux64/chrome /usr/bin/google-chrome
                     
           echo Installing Chrome Driver
           curl -L -O "https://edgedl.me.gvt1.com/edgedl/chrome/chrome-for-testing/$CHROME_VERSION/linux64/chromedriver-linux64.zip"
