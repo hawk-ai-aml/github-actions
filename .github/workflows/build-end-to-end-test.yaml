@@ -70,7 +70,7 @@ jobs:
         if: always()
         run: |
           echo Getting Chrome Browser and Chrome Driver versions
-          export CHROME_VERSION = `curl -s https://googlechromelabs.github.io/chrome-for-testing/last-known-good-versions-with-downloads.json | jq -r '.channels.Stable.version'`
+          export CHROME_VERSION=`curl -s https://googlechromelabs.github.io/chrome-for-testing/last-known-good-versions-with-downloads.json | jq -r '.channels.Stable.version'`
           echo "Chrome version: $CHROME_VERSION"
           
           echo Installing Chrome Browser
