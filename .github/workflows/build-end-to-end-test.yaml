@@ -77,6 +77,9 @@ jobs:
           npm install puppeteer -y
           npx @puppeteer/browsers install chrome@$CHROME_VERSION
           sudo mv /runner/_work/end-to-end-tests/end-to-end-tests/chrome/linux-$CHROME_VERSION/chrome-linux64/chrome /usr/local/bin/chrome-for-testing
+          ls /runner/_work/end-to-end-tests/end-to-end-tests/chrome/linux-$CHROME_VERSION/chrome-linux64/chrome
+          echo "another one" 
+          ls /usr/local/bin/chrome-for-testing
           export CHROME_BIN=/usr/local/bin/chrome-for-testing
                     
           echo Installing Chrome Driver
