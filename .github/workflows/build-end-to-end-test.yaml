@@ -76,6 +76,7 @@ jobs:
           echo Installing Chrome Browser
           npm install puppeteer -y
           npx @puppeteer/browsers install chrome@$CHROME_VERSION
+          sudo rm -r /usr/bin/chrome-browser
           sudo mv /runner/_work/end-to-end-tests/end-to-end-tests/chrome/linux-$CHROME_VERSION/chrome-linux64/chrome /usr/bin/chrome-browser
                     
           echo Installing Chrome Driver
