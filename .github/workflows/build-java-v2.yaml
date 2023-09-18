@@ -24,11 +24,6 @@ on:
         description: "This tag will be used in case we have a specific base image tag (now watchtower and label-engine only)"
         type: string
         required: false
-      vulnerabilityCheck:
-        description: "Conduct a vulnerability check using Lacework"
-        type: boolean
-        required: false
-        default: false
 
 defaults:
   run:
@@ -191,31 +186,6 @@ jobs:
         run: |
           ./gradlew jib -DIMAGE_NAME="${ECR_REGISTRY}/${ECR_REPOSITORY}" -DTAG_COMMIT=${IMAGE_TAG}
 
-  vulnerability-check-run:
-    if: ${{ inputs.vulnerabilityCheck == true }}
-    needs: [ init, build ]
-    runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      max-parallel: 1
-      matrix:
-        image: ${{ fromJson(needs.init.outputs.ecr-images) }}
-
-    steps:
-      - name: Vulnerability check
-        uses: hawk-ai-aml/github-actions/vulnerability-check@master
-        with:
-          ecr-region: ${{ needs.init.outputs.ecr-region }}
-          ecr-registry-code: ${{ needs.init.outputs.ecr-registry-code }}
-          image-name: ${{ matrix.image }}
-          image-tag: ${{ needs.init.outputs.image-tag }}
-          ecr-url: ${{ needs.init.outputs.ecr-url }}
-          aws-access-key-id: ${{ secrets.AWS_ORG_ECR_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_ORG_ECR_SECRET_ACCESS_KEY }}
-          java-offline-mode: ${{ env.LACEWORK_JAVA_OFFLINE_MODE }}
-          lacework-account-name: ${{ secrets.LACEWORK_ACCOUNT_NAME }}
-          lacework-access-token: ${{ secrets.LACEWORK_ACCESS_TOKEN }}
-
   update-overlays:
     needs: [ init, build ]
     if: ${{ needs.init.outputs.update-kustomize == 'true' && github.workflow != 'pr' }}
@@ -235,22 +205,76 @@ jobs:
           ecr-registry-code: ${{ needs.init.outputs.ecr-registry-code }}
           metadata: ${{ needs.init.outputs.metadata }}
 
-  run-e2e-test:
-    needs: [ update-overlays ]
-    if: ${{ needs.init.outputs.update-kustomize == 'true' && github.workflow != 'master' }}
+  # TODO: Check image status on TEST system
+
+  metadata:
+    needs: [ init, build, update-overlays ]
     runs-on: [ "self-hosted", "small-builder" ]
+
+    outputs:
+      metadata: ${{ steps.e2e-metadata.outputs.metadata }}
+
     steps:
-      - name: Generate e2e test metadata
+      - name: Generate e2e tests metadata
         id: e2e-metadata
-        uses: hawk-ai-aml/github-actions/e2e-test-metadata@master
+        uses: hawk-ai-aml/github-actions/e2e-tests-metadata@master
         with:
           repository-access-token: ${{ secrets.REPO_ACCESS_PAT }}
 
-      - name: Run e2e test
-        env:
-          USER: ${{ secrets.RECREATE_DEVELOP_GITHUB_USER }}
-          TOKEN: ${{ secrets.REPO_ACCESS_PAT }}
-          METADATA: ${{ steps.e2e-metadata.outputs.metadata }}
+  e2e-tests:
+    needs: metadata
+    runs-on: [ "self-hosted", "builder" ]
+    strategy:
+      fail-fast: false
+      matrix:
+        test: [ "amlcheck", "amnis", "bbamericas", "blacklist", "config", "configui", "countryvolumerules", "crosscard", "crr", "devportal", "dockfinancial", "effortful", "frontend", "grouping", "machineintelligence", "mapfintech", "passthrough", "pepsanction", "ratepay", "riskywords", "unusualfrequency", "volumechanges", "volumerisk", "worldline" ]
+
+    steps:
+      - name: Run ${{ matrix.test }} test
+        id: test
+        uses: hawk-ai-aml/github-actions/build-e2e-test@master
+        with:
+          environment: "test"
+          test: ${{ matrix.test }}
+          ref: "master"
+          metadata: ${{ needs.metadata.outputs.metadata }}
+          repository-access-token: ${{ secrets.REPO_ACCESS_PAT }}
+          auth0-dev-api-client-secret: ${{ secrets.AUTH0_DEV_API_CLIENT_SECRET }}
+          auth0-prod-api-client-secret: ${{ secrets.AUTH0_PROD_API_CLIENT_SECRET }}
+          auth0-prod-us-east-api-client-secret: ${{ secrets.AUTH0_PROD_US_EAST_API_CLIENT_SECRET }}
+          auth0-prod-ap-southeast-api-client-secret: ${{ secrets.AUTH0_PROD_AP_SOUTHEAST_API_CLIENT_SECRET }}
+          auth0-nab-qa-api-client-secret: ${{ secrets.AUTH0_PROD_US_EAST_API_CLIENT_SECRET }}
+          auth0-nab-prod-api-client-secret: ${{ secrets.AUTH0_PROD_US_EAST_API_CLIENT_SECRET }}
+          auth0-prod-ch-api-client-secret: ${{ secrets.AUTH0_PROD_CH_API_CLIENT_SECRET }}
+          artifactory-context-url: ${{ secrets.ARTIFACTORY_CONTEXT_URL }}
+          artifactory-username: ${{ secrets.ARTIFACTORY_USERNAME }}
+          artifactory-password: ${{ secrets.ARTIFACTORY_PASSWORD }}
+          gradle-cache-username: ${{ secrets.GRADLE_CACHE_USERNAME }}
+          gradle-cache-password: ${{ secrets.GRADLE_CACHE_PASSWORD }}
+          dev-redis-host: ${{ secrets.DEV_REDIS_HOST }}
+          dev-redis-port: ${{ secrets.DEV_REDIS_PORT }}
+          dev-redis-auth-token: ${{ secrets.DEV_REDIS_AUTH_TOKEN }}
+          aws-key-id: ${{ secrets.AWS_DEV_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_DEV_SECRET_ACCESS_KEY }}
+
+      - name: Test status
         run: |
-          STATUS_CODE=$(curl --silent --output /dev/stderr --write-out "%{http_code}" -X POST -H "Accept: application/vnd.github+json" "https://api.github.com/repos/hawk-ai-aml/end-to-end-tests/actions/workflows/test-e2e-amlcheck-tests.yaml/dispatches" -d "{\"ref\":\"master\", \"inputs\": {\"metadata\": \"${METADATA}\"}}" -u "$USER:$TOKEN")
-          echo "Status: $STATUS_CODE"
+          TEST_STATUS=${{ steps.test.outputs.test-status }}
+          if [[ $TEST_STATUS == "failures" ]]; then
+            exit 1
+          fi
+
+  tagging:
+    needs: e2e-tests
+    runs-on: [ "self-hosted", "small-builder" ]
+    if: always()
+    steps:
+      - name: Tagging
+        run: |
+          echo "Conclusion: ${{ needs.e2e-tests.result }}"
+          if [[ ${{ needs.e2e-tests.result }} != "success" ]]; then
+            echo "Some mandatory tests failed."
+            exit 1
+          fi
+          
+          echo "Start tagging process ..."
