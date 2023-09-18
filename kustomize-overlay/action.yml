@@ -63,18 +63,21 @@ runs:
         
         for module in $MODULES; do
           ECR_REPOSITORY=$(echo ${METADATA} | jq -cr --arg MODULE ${module} '.modules[$MODULE].ecr.repository')
-          KUSTOMIZE_PATH=$(echo ${METADATA} | jq -cr --arg MODULE ${module} '.modules[$MODULE].kustomize.path')
-          IMAGE_NAME=${ECR_REGISTRY}.dkr.ecr.${ECR_REGION}.amazonaws.com/${ECR_REPOSITORY}
-        
-          for overlay in $OVERLAYS; do
-            KUSTOMIZE_OVERLAY_PATH=${KUSTOMIZE_PATH}/overlays/${overlay}
-    
-            (
-              cd ${KUSTOMIZE_OVERLAY_PATH}
-              kustomize edit set image ${IMAGE_NAME}:${TAG}
-              echo "Update overlay ${overlay} of ${ECR_REPOSITORY} to ${TAG}"
-            )
-          done
+
+          if [[ $ECR_REPOSITORY != null ]]; then
+            KUSTOMIZE_PATH=$(echo ${METADATA} | jq -cr --arg MODULE ${module} '.modules[$MODULE].kustomize.path')
+            IMAGE_NAME=${ECR_REGISTRY}.dkr.ecr.${ECR_REGION}.amazonaws.com/${ECR_REPOSITORY}
+          
+            for overlay in $OVERLAYS; do
+              KUSTOMIZE_OVERLAY_PATH=${KUSTOMIZE_PATH}/overlays/${overlay}
+      
+              (
+                cd ${KUSTOMIZE_OVERLAY_PATH}
+                kustomize edit set image ${IMAGE_NAME}:${TAG}
+                echo "Update overlay ${overlay} of ${ECR_REPOSITORY} to ${TAG}"
+              )
+            done
+          fi
         done
         
         if ! git diff --quiet HEAD; then
