@@ -138,14 +138,14 @@ runs:
         # Build kustomize modules and ECR images
         SPACE=" "
         for module in $(echo ${METADATA} | jq -cr '.modules | keys | join(" ")'); do
-          module_ecr=$(echo ${METADATA} | jq -cr --arg MODULE ${module} '.modules[$MODULE].ecr')
-          [[ "${module_ecr}" == "null" ]] && continue
-            
           MODULE_LIST="${MODULE_LIST}\"${module}\","
           MODULE_LIST_STRING=${MODULE_LIST_STRING}${module}${SPACE}
-        
-          MODULE_REPOSITORY=$(echo ${METADATA} | jq -cr --arg MODULE ${module} '.modules[$MODULE].ecr.repository')
-          IMAGE_LIST="${IMAGE_LIST}\"${ECR_URL}/${MODULE_REPOSITORY}\","
+          
+          MODULE_ECR=$(echo ${METADATA} | jq -cr --arg MODULE ${module} '.modules[$MODULE].ecr')
+          if [[ ${MODULE_ECR} != "null" ]]; then
+            MODULE_REPOSITORY=$(echo ${METADATA} | jq -cr --arg MODULE ${module} '.modules[$MODULE].ecr.repository')
+            IMAGE_LIST="${IMAGE_LIST}\"${ECR_URL}/${MODULE_REPOSITORY}\","
+          fi
         done
 
         LENGTH_OF_MODULE_LIST=$(echo ${#MODULE_LIST})
