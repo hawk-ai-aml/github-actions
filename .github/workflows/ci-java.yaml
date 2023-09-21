@@ -205,10 +205,25 @@ jobs:
           ecr-registry-code: ${{ needs.init.outputs.ecr-registry-code }}
           metadata: ${{ needs.init.outputs.metadata }}
 
-  # TODO: Check image status on TEST system
+  service-image-status:
+    needs: [ init, update-overlays ]
+    if: ${{ needs.init.outputs.update-kustomize == 'true' }}
+    runs-on: [ "self-hosted", "small-builder" ]
 
-  metadata:
-    needs: [ init, build, update-overlays ]
+    outputs:
+      status: ${{ steps.image-status.outputs.status }}
+
+    steps:
+      - name: Image status
+        id: image-status
+        uses: hawk-ai-aml/github-actions/kube-service-status@master
+        with:
+          deployment: ${{ inputs.component }}
+          tag: ${{ needs.init.outputs.image-tag }}
+
+  e2e-metadata:
+    needs: service-image-status
+    if: ${{ needs.init.outputs.update-kustomize == 'true' && needs.service-image-status.outputs.status == 'true' }}
     runs-on: [ "self-hosted", "small-builder" ]
 
     outputs:
@@ -222,7 +237,8 @@ jobs:
           repository-access-token: ${{ secrets.REPO_ACCESS_PAT }}
 
   e2e-tests:
-    needs: metadata
+    needs: [ e2e-metadata, service-image-status ]
+    if: ${{ needs.init.outputs.update-kustomize == 'true' && needs.service-image-status.outputs.status == 'true' }}
     runs-on: [ "self-hosted", "builder" ]
     strategy:
       fail-fast: false
@@ -237,7 +253,7 @@ jobs:
           environment: "test"
           test: ${{ matrix.test }}
           ref: "master"
-          metadata: ${{ needs.metadata.outputs.metadata }}
+          metadata: ${{ needs.e2e-metadata.outputs.metadata }}
           repository-access-token: ${{ secrets.REPO_ACCESS_PAT }}
           auth0-dev-api-client-secret: ${{ secrets.AUTH0_DEV_API_CLIENT_SECRET }}
           auth0-prod-api-client-secret: ${{ secrets.AUTH0_PROD_API_CLIENT_SECRET }}
