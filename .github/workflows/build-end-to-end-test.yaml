@@ -35,8 +35,6 @@ jobs:
       - name: Checkout
         run: |
           echo "Checkout ref: ${{ inputs.ref }}"
-          METADATA=$(echo "${{ inputs.metadata }}" | sed s/\'/\"/g)
-          echo "METADATA: $METADATA"
 
       - uses: actions/checkout@v3
         with:
@@ -164,6 +162,10 @@ jobs:
           pwd
           mkdir github-artifact
           mv ${{ inputs.test }}/build/reports/tests/* github-artifact
+          METADATA=$(echo "${{ inputs.metadata }}" | sed s/\'/\"/g)
+          echo "METADATA: $METADATA"
+          echo "$METADATA" > github-artifact/metadata.json
+      
 
     # -------------------------------------- END-TEST --------------------------------------
     # ++++++++++++++++++++++++++++++++++++ START-REPORT ++++++++++++++++++++++++++++++++++++

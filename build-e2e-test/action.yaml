@@ -1,0 +1,290 @@
+name: e2e-tests
+description: Run e2e tests
+
+inputs:
+  environment:
+    description: Environment
+    required: true
+
+  test:
+    description: Test module
+    required: true
+
+  ref:
+    description: Tag or branch name
+    required: true
+
+  metadata:
+    description: The metadata for the test
+    required: false
+
+  repository-access-token:
+    description: Access token to repository
+    required: true
+
+  auth0-dev-api-client-secret:
+    description: Auth0 dev api client secret
+    required: true
+
+  auth0-prod-api-client-secret:
+    description: Auth0 prod api client secret
+    required: true
+
+  auth0-prod-us-east-api-client-secret:
+    description: Auth0 prod US east api client secret
+    required: true
+
+  auth0-prod-ap-southeast-api-client-secret:
+    description: Auth0 prod AP Southeast api client secret
+    required: true
+
+  auth0-nab-qa-api-client-secret:
+    description: Auth0 NAB qa api client secret
+    required: true
+
+  auth0-nab-prod-api-client-secret:
+    description: Auth0 NAB prod api client secret
+    required: true
+
+  auth0-prod-ch-api-client-secret:
+    description: Auth0 prod CH api client secret
+    required: true
+
+  artifactory-context-url:
+    description: Artifactory context url
+    required: true
+
+  artifactory-username:
+    description: Artifactory username
+    required: true
+
+  artifactory-password:
+    description: Artifactory password
+    required: true
+
+  gradle-cache-username:
+    description: Gradle cache username
+    required: true
+
+  gradle-cache-password:
+    description: Gradle cache password
+    required: true
+
+  dev-redis-host:
+    description: DEV redis host
+    required: true
+
+  dev-redis-port:
+    description: DEV redis port
+    required: true
+
+  dev-redis-auth-token:
+    description: DEV redis auth token
+    required: true
+
+  aws-key-id:
+    description: DEV redis auth token
+    required: true
+
+  aws-secret-access-key:
+    description: DEV redis auth token
+    required: true
+
+outputs:
+  test-status:
+    description: The status of the test
+    value: ${{ steps.results.outputs.test_status }}
+
+  allure-report-url:
+    description: The Allure report url
+    value: ${{ steps.results.outputs.allure_report_url }}
+
+runs:
+  using: composite
+  steps:
+    - uses: actions/checkout@v3
+      with:
+        repository: hawk-ai-aml/end-to-end-tests
+        token: ${{ inputs.repository-access-token }}
+        ref: ${{ inputs.ref }}
+
+    - name: Set up JDK 17
+      uses: actions/setup-java@v3
+      with:
+        java-version: 17
+        distribution: 'temurin'
+
+    - name: Set up Node
+      uses: actions/setup-node@v3
+      with:
+        node-version: 18.x
+
+    - name: Install Allure
+      shell: bash -l -ET -eo pipefail {0}
+      run: |
+        npm install -g allure-commandline --save-dev
+        allure --version
+
+    - name: Set up Wget
+      if: always()
+      shell: bash -l -ET -eo pipefail {0}
+      run: |
+        sudo apt-get update
+        sudo apt-get install wget
+        wget --version
+
+    - name: Set up Chrome driver
+      if: always()
+      shell: bash -l -ET -eo pipefail {0}
+      run: |
+        echo Installing Chrome
+        wget -O - https://dl-ssl.google.com/linux/linux_signing_key.pub | gpg --dearmor | sudo tee /etc/apt/trusted.gpg.d/spotify.gpg
+        echo "deb http://dl.google.com/linux/chrome/deb/ stable main" | sudo tee -a /etc/apt/sources.list.d/google-chrome.list
+        sudo apt-get update -qqy
+        sudo apt-get -qqy install google-chrome-stable
+        sudo rm /etc/apt/sources.list.d/google-chrome.list
+        
+        echo Installing Chrome driver
+        export CHROMEDRIVER_VERSION=`curl -s https://googlechromelabs.github.io/chrome-for-testing/last-known-good-versions-with-downloads.json | jq -r '.channels.Stable.version'`
+        curl -L -O "https://edgedl.me.gvt1.com/edgedl/chrome/chrome-for-testing/${CHROMEDRIVER_VERSION}/linux64/chromedriver-linux64.zip"
+        ls -ahl
+        unzip chromedriver-linux64.zip && chmod +x chromedriver-linux64/chromedriver && sudo mv chromedriver-linux64/chromedriver /usr/local/bin/chromedriver
+        
+        echo "chromeDriver version: $(chromedriver --version)"
+        echo "chromeDriver location: $(which chromedriver)"
+        echo "chromeBrowser version: $(google-chrome --version)"
+        echo "chromeBrowser location: $(which google-chrome)"
+
+    - name: Generate cache ID
+      id: ids
+      shell: bash -l -ET -eo pipefail {0}
+      run: |
+        TEST_NAME="${{ inputs.test }}"
+        if [[ $TEST_NAME == *"ci"* ]]; then
+          TEST_NAME=$(echo "${TEST_NAME}" | sed s/"ci"/"cy"/g)
+        fi
+        
+        echo TEST_NAME="${TEST_NAME}" >> $GITHUB_ENV        
+        echo CACHE_ID=$(date +'%Y-%m-%dT%H:%M:%S') >> $GITHUB_ENV
+        echo CACHE_PATH="$GITHUB_WORKSPACE/${{ inputs.environment }}-${{ inputs.test }}-test-histories/" >> $GITHUB_ENV
+
+    - name: Create cache folder
+      continue-on-error: true
+      shell: bash -l -ET -eo pipefail {0}
+      run: |
+        pwd
+        mkdir ${{ inputs.environment }}-${{ inputs.test }}-test-histories
+        echo "init at - $(date +'%Y-%m-%dT%H:%M:%S')" >> ${{ inputs.environment }}-${{ inputs.test }}-test-histories/init-cache.txt
+
+    - name: Caching test history
+      id: cache-test-history
+      if: always()
+      uses: actions/cache@v3
+      continue-on-error: true
+      with:
+        path: ${{ env.CACHE_PATH }}
+        key: ${{ runner.os }}-${{ inputs.environment }}-${{ inputs.test }}-test-histories-${{ env.CACHE_ID }}
+        restore-keys: |
+          ${{ runner.os }}-${{ inputs.environment }}-${{ inputs.test }}-test-histories-
+
+    - name: Cache Gradle
+      uses: actions/cache@v3
+      with:
+        path: /home/builder/.gradle/
+        key: ${{ runner.os }}-gradle-
+        restore-keys: |
+          ${{ runner.os }}-gradle-
+
+    - name: Build <${{ inputs.test }}> tests
+      if: always()
+      shell: bash -l -ET -eo pipefail {0}
+      env:
+        environment: ${{ inputs.environment }}
+      run: |
+        ./gradlew :${{ inputs.test }}:clean :${{ inputs.test }}:assemble :${{ inputs.test }}:testClasses -isS
+
+    - name: Run <${{ inputs.test }} tests on ${{ inputs.environment }}>
+      id: run-e2e-test
+      shell: bash -l -ET -eo pipefail {0}
+      if: always()
+      env:
+        AUTH0_DEV_API_CLIENT_SECRET: ${{ inputs.auth0-dev-api-client-secret }}
+        AUTH0_PROD_API_CLIENT_SECRET: ${{ inputs.auth0-prod-api-client-secret }}
+        AUTH0_PROD_US_EAST_API_CLIENT_SECRET: ${{ inputs.auth0-prod-us-east-api-client-secret }}
+        AUTH0_PROD_AP_SOUTHEAST_API_CLIENT_SECRET: ${{ inputs.auth0-prod-ap-southeast-api-client-secret }}
+        AUTH0_NAB_QA_API_CLIENT_SECRET: ${{ inputs.auth0-nab-qa-api-client-secret }}
+        AUTH0_NAB_PROD_API_CLIENT_SECRET: ${{ inputs.auth0-nab-prod-api-client-secret }}
+        AUTH0_PROD_CH_API_CLIENT_SECRET: ${{ inputs.auth0-prod-ch-api-client-secret }}
+
+        ARTIFACTORY_CONTEXT_URL: ${{ inputs.artifactory-context-url }}
+        ARTIFACTORY_USERNAME: ${{ inputs.artifactory-username }}
+        ARTIFACTORY_PASSWORD: ${{ inputs.artifactory-password }}
+        GRADLE_CACHE_USERNAME: ${{ inputs.gradle-cache-username }}
+        GRADLE_CACHE_PASSWORD: ${{ inputs.gradle-cache-password }}
+
+        DEV_REDIS_HOST: ${{ inputs.dev-redis-host }}
+        DEV_REDIS_PORT: ${{ inputs.dev-redis-port }}
+        DEV_REDIS_AUTH_TOKEN: ${{ inputs.dev-redis-auth-token }}
+
+        environment: ${{ inputs.environment }}
+      continue-on-error: true
+      run: |
+        ./gradlew :${{ inputs.test }}:check -Denvironment=${{ inputs.environment }} -isS
+
+    - name: Prepare metadata for GitHub Artifact
+      if: always()
+      shell: bash -l -ET -eo pipefail {0}
+      run: |
+        pwd
+        mkdir github-artifact
+        METADATA=$(echo "${{ inputs.metadata }}" | sed s/\'/\"/g)
+        echo "$METADATA" > github-artifact/metadata.json
+
+    - name: Upload metadata to GitHub Artifact
+      uses: actions/upload-artifact@v2
+      if: always()
+      with:
+        name: metadata
+        path: github-artifact
+
+    - name: Generate Allure reports
+      if: always()
+      shell: bash -l -ET -eo pipefail {0}
+      run: |
+        pwd
+        mkdir ${{ inputs.test }}/allure-report
+        allure generate ${{ inputs.test }}/allure-results -o ${{ inputs.test }}/allure-report --clean
+
+    - name: Init/Update cache
+      if: always()
+      shell: bash -l -ET -eo pipefail {0}
+      run: |
+        pwd
+        cp -a -r ${{ inputs.environment }}-${{ inputs.test }}-test-histories/* ${{ inputs.test }}/allure-results
+        mkdir ${{ inputs.test }}/allure-report2
+        allure generate ${{ inputs.test }}/allure-results -o ${{ inputs.test }}/allure-report2 --clean
+        cp -a -r ${{ inputs.test }}/allure-report2/history ${{ inputs.environment }}-${{ inputs.test }}-test-histories
+
+    - name: Upload Allure report to S3
+      if: always()
+      uses: hawk-ai-aml/upload-s3-action@master
+      with:
+        aws_key_id: ${{ inputs.aws-key-id }}
+        aws_secret_access_key: ${{ inputs.aws-secret-access-key }}
+        aws_bucket: github-actions-static-html-2
+        source_dir: ${{ inputs.test }}/allure-report2
+        destination_dir: e2e-${{ env.TEST_NAME }}-test-${{ env.CACHE_ID }}
+
+    - name: Test results
+      id: results
+      shell: bash -l -ET -eo pipefail {0}
+      run: |
+        TEST_STATUS="success"
+        if [[ ${{ steps.run-e2e-test.outcome }} != 'success' ]]; then
+          TEST_STATUS="failures"
+        fi
+        
+        cat <<EOF | tee -a ${GITHUB_STEP_SUMMARY} | tee -a ${GITHUB_OUTPUT}
+        test_status=$TEST_STATUS
+        allure_report_url=https://github-actions-static-html-2.s3.eu-central-1.amazonaws.com/e2e-${{ env.TEST_NAME }}-test-${{ env.CACHE_ID }}/index.html
+        EOF
