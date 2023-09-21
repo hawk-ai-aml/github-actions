@@ -26,7 +26,7 @@ jobs:
         name: Init Workflow
         uses: hawk-ai-aml/github-actions/workflow-init@master
         with:
-          image-tag: ${{ inputs.tag }}
+          image-t: ${{ inputs.tag }}
           repository-name: hawk-ai-aml/${{ inputs.component }}
           repository-ref: ${{ env.GITHUB_REF_NAME }}
           repository-access-token: ${{ secrets.REPO_ACCESS_PAT }}
@@ -55,7 +55,7 @@ jobs:
         env:
           ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
           ECR_REPOSITORY: ${{ fromJson(needs.init.outputs.metadata).ecr.repository }}
-        run: docker build -t ${ECR_REGISTRY}/${ECR_REPOSITORY}:${{ needs.init.outputs.image-tag }} .
+        run: docker build -t ${ECR_REGISTRY}/${ECR_REPOSITORY}:${{ inputs.tag }} .
 
       - name: Push Image
         id: push-image
@@ -63,4 +63,4 @@ jobs:
           ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
           ECR_REPOSITORY: ${{ fromJson(needs.init.outputs.metadata).ecr.repository }}
         run: |
-          docker push ${ECR_REGISTRY}/${ECR_REPOSITORY}:${{ needs.init.outputs.image-tag }}
+          docker push ${ECR_REGISTRY}/${ECR_REPOSITORY}:${{ inputs.tag }}
