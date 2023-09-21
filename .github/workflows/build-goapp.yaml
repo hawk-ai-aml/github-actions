@@ -2,6 +2,11 @@ name: build goapp
 
 on:
   workflow_call:
+    inputs:
+      component:
+        description: "Name of the repository"
+        type: string
+        required: false    
 defaults:
   run:
     shell: bash -l -ET -eo pipefail {0}
@@ -10,11 +15,11 @@ jobs:
   init:
     runs-on: [ "self-hosted", "small-builder" ]
     outputs:
-      
       ecr-url: ${{ steps.init.outputs.ecr-url }}
       ecr-images: ${{ steps.init.outputs.ecr-images }}
       ecr-registry-code: ${{ steps.init.outputs.ecr-registry-code }}
       ecr-region: ${{ steps.init.outputs.ecr-region }}
+      metadata: ${{ steps.init.outputs.metadata }}
 
     steps:
       - id: init
@@ -50,7 +55,7 @@ jobs:
         env:
           ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
           ECR_REPOSITORY: ${{ fromJson(needs.init.outputs.metadata).ecr.repository }}
-        run: docker build -t ${ECR_REGISTRY}/${ECR_REPOSITORY}:${{ needs.init.outputs.image-tag }} .
+        run: docker build -t ${ECR_REGISTRY}/${ECR_REPOSITORY}:${{ inputs.tag }} .
 
       - name: Push Image
         id: push-image
@@ -58,4 +63,4 @@ jobs:
           ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
           ECR_REPOSITORY: ${{ fromJson(needs.init.outputs.metadata).ecr.repository }}
         run: |
-          docker push ${ECR_REGISTRY}/${ECR_REPOSITORY}:${{ needs.init.outputs.image-tag }}
+          docker push ${ECR_REGISTRY}/${ECR_REPOSITORY}:${{ inputs.tag }}
