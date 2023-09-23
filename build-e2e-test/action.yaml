@@ -267,9 +267,9 @@ runs:
 
     - name: Upload Allure report to S3
       if: always()
-      uses: hawk-ai-aml/upload-s3-action@master
+      uses: hawk-ai-aml/github-actions/upload-to-s3@master
       with:
-        aws_key_id: ${{ inputs.aws-key-id }}
+        aws_access_key_id: ${{ inputs.aws-key-id }}
         aws_secret_access_key: ${{ inputs.aws-secret-access-key }}
         aws_bucket: github-actions-static-html-2
         source_dir: ${{ inputs.test }}/allure-report2
