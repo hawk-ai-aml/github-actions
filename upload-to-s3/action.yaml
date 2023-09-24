@@ -24,9 +24,12 @@ runs:
     - name: Install AWS CLI
       shell: bash -l -ET -eo pipefail {0}
       run: |
-        curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
-        unzip awscliv2.zip
-        sudo ./aws/install
+        aws --version
+        if [ $? -ne 0 ]; then
+          curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
+          unzip awscliv2.zip
+          sudo ./aws/install
+        fi
 
     - name: Upload to S3
       id: upload
