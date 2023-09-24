@@ -1,0 +1,54 @@
+name: upload-to-s3
+description: upload to s3
+
+inputs:
+  source_dir:
+    description: "Source directory from local"
+    required: true
+  destination_dir:
+    description: "Destination directory on S3 bucket"
+    required: true
+  aws_bucket:
+    description: "Name of S3 bucket"
+    required: true
+  aws_access_key_id:
+    description: "AWS access key id"
+    required: true
+  aws_secret_access_key:
+    description: "AWS secret access key"
+    required: true
+
+runs:
+  using: composite
+  steps:
+    - name: Install AWS CLI
+      shell: bash -l -ET -eo pipefail {0}
+      run: |
+        curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
+        unzip awscliv2.zip
+        sudo ./aws/install
+
+    - name: Upload to S3
+      id: upload
+      shell: bash -l -ET -eo pipefail {0}
+      env:
+        AWS_ACCESS_KEY_ID: ${{ inputs.aws_access_key_id }}
+        AWS_SECRET_ACCESS_KEY: ${{ inputs.aws_secret_access_key }}
+        BUCKET_NAME: ${{ inputs.aws_bucket }}
+        SOURCE_DIR: ${{ inputs.source_dir }}
+        DESTINATION_DIR: ${{ inputs.destination_dir }}
+      run: |
+        aws s3api put-object --bucket ${BUCKET_NAME} --key ${DESTINATION_DIR}/ --content-length 0
+        cd ${SOURCE_DIR}
+        aws s3 cp . s3://${BUCKET_NAME}/${DESTINATION_DIR}/ --recursive
+        HTML_FILES=$(aws s3 ls s3://${BUCKET_NAME}/${DESTINATION_DIR} --recursive | awk '{$1=$2=$3=""; print $0}' | sed 's/^[ \t]*//' | grep 'index.html\|main.html\|licenseReport.html')
+        
+        echo "### Test Reports" | tee -a ${GITHUB_STEP_SUMMARY}
+        REPORT_URL=https://${BUCKET_NAME}.s3.amazonaws.com/
+        REPLACER="$DESTINATION_DIR\/"
+        for file in $HTML_FILES; do
+          FULL_URL="${REPORT_URL}$file"
+          DISPLAY_TEXT=$(echo $file | sed "s/$REPLACER//")
+          echo "* [${DISPLAY_TEXT}](${FULL_URL})" | tee -a ${GITHUB_STEP_SUMMARY}
+        done
+# End of file
