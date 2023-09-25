@@ -41,50 +41,6 @@ jobs:
           ref: ${{ inputs.ref }}
 
     # +++++++++++++++++++++++++++++++++++++ START-SETUP +++++++++++++++++++++++++++++++++++++
-      - name: Set up JDK 17
-        uses: actions/setup-java@v3
-        with:
-          java-version: 17
-          distribution: 'temurin'
-
-      - name: Set up Node
-        uses: actions/setup-node@v3
-        with:
-          node-version: 18.x
-
-      - name: Install Allure
-        run: |
-          npm install -g allure-commandline --save-dev
-          allure --version
-
-      - name: Set up Wget
-        if: always()
-        run: |
-          sudo apt-get update
-          sudo apt-get install wget
-          wget --version
-
-      - name: Set up Chrome driver
-        if: always()
-        run: |
-          echo Installing Chrome
-          wget -O - https://dl-ssl.google.com/linux/linux_signing_key.pub | gpg --dearmor | sudo tee /etc/apt/trusted.gpg.d/spotify.gpg
-          echo "deb http://dl.google.com/linux/chrome/deb/ stable main" | sudo tee -a /etc/apt/sources.list.d/google-chrome.list
-          sudo apt-get update -qqy
-          sudo apt-get -qqy install google-chrome-stable
-          sudo rm /etc/apt/sources.list.d/google-chrome.list
-          
-          echo Installing Chrome driver
-          export CHROMEDRIVER_VERSION=`curl -s https://googlechromelabs.github.io/chrome-for-testing/last-known-good-versions-with-downloads.json | jq -r '.channels.Stable.version'`
-          curl -L -O "https://edgedl.me.gvt1.com/edgedl/chrome/chrome-for-testing/${CHROMEDRIVER_VERSION}/linux64/chromedriver-linux64.zip"
-          ls -ahl
-          unzip chromedriver-linux64.zip && chmod +x chromedriver-linux64/chromedriver && sudo mv chromedriver-linux64/chromedriver /usr/local/bin/chromedriver
-          
-          echo "chromeDriver version: $(chromedriver --version)"
-          echo "chromeDriver location: $(which chromedriver)"
-          echo "chromeBrowser version: $(google-chrome --version)"
-          echo "chromeBrowser location: $(which google-chrome)"
-
       - name: Generate cache ID
         run: |
           echo CACHE_ID=$(date +'%Y-%m-%dT%H:%M:%S') >> $GITHUB_ENV
