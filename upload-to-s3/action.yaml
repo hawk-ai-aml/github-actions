@@ -23,6 +23,7 @@ runs:
   steps:
     - name: Install AWS CLI
       shell: bash -l -ET -eo pipefail {0}
+      continue-on-error: true
       run: |
         aws --version
         if [ $? -ne 0 ]; then
