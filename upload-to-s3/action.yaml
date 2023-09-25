@@ -22,15 +22,9 @@ runs:
   using: composite
   steps:
     - name: Install AWS CLI
-      shell: bash -l -ET -eo pipefail {0}
-      continue-on-error: true
-      run: |
-        aws --version
-        if [ $? -ne 0 ]; then
-          curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
-          unzip awscliv2.zip
-          sudo ./aws/install
-        fi
+      uses: unfor19/install-aws-cli-action@v1
+      with:
+        version: 2
 
     - name: Upload to S3
       id: upload
