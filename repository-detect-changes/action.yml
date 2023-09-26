@@ -28,6 +28,10 @@ outputs:
     description: 'The list of modules has the code changes'
     value: ${{ steps.changes.outputs.updatedModules }}
 
+  updated-modules-string:
+    description: 'The list of modules has the code changes in string'
+    value: ${{ steps.changes.outputs.updatedModulesString }}
+
 runs:
   using: composite
   steps:
@@ -49,6 +53,8 @@ runs:
         WORKFLOW_TYPE: ${{ github.workflow }}
       run: |
         echo "WORKFLOW_TYPE: $WORKFLOW_TYPE"
+        SPACE=" "
+
         case $WORKFLOW_TYPE in
           "manual")
             CURRENT_BRANCH=${GITHUB_HEAD_REF:-${GITHUB_REF#refs/heads/}}
@@ -66,8 +72,10 @@ runs:
       
               for module in $REPOSITORY_MODULES; do
                 for file in $FILES; do
-                  if [[ $file == *"$module"* && $MODULES != *"$module"* ]];  then
+                  IFS='/' read -ra ADDR <<< "$file"
+                  if [[ ${ADDR[0]} == *"$module"* && $MODULES != *"$module"* ]];  then
                     MODULES="${MODULES}\"$module\","
+                    MODULE_LIST_STRING=${MODULE_LIST_STRING}${module}${SPACE}
                     break
                   fi
                 done
@@ -78,13 +86,14 @@ runs:
             PULL_NUMBER=$(jq --raw-output .pull_request.number "$GITHUB_EVENT_PATH")
             echo "PR: ${PULL_NUMBER}";
 
-            FILES=$(curl -s https://api.github.com/repos/$REPOSITORY/pulls/${PULL_NUMBER}/files -u "$USER:$TOKEN" | jq -r '[.[] | .filename] | join(" ")')          
-            echo "FILES: ${FILES}"
+            FILES=$(curl -s https://api.github.com/repos/$REPOSITORY/pulls/${PULL_NUMBER}/files -u "$USER:$TOKEN" | jq -r '[.[] | .filename] | join(" ")')
           
             for module in $REPOSITORY_MODULES; do
               for file in $FILES; do
-                if [[ $file == *"$module"* && $MODULES != *"$module"* ]];  then
+                IFS='/' read -ra ADDR <<< "$file"
+                if [[ ${ADDR[0]} == *"$module"* && $MODULES != *"$module"* ]];  then
                   MODULES="${MODULES}\"$module\","
+                  MODULE_LIST_STRING=${MODULE_LIST_STRING}${module}${SPACE}
                   break
                 fi
               done
@@ -93,10 +102,32 @@ runs:
           *)
             for module in $REPOSITORY_MODULES; do
               MODULES="${MODULES}\"$module\","
+              MODULE_LIST_STRING=${MODULE_LIST_STRING}${module}${SPACE}
             done
           ;;
         esac
 
+        echo "MODULES=${MODULES}"
+        echo "FILES=${FILES}"
+        
+        CORE_CHANGES=false
+
+        for file in $FILES; do
+          if [[ $file == *"core"* ]];  then
+            CORE_CHANGES=true
+            break
+          fi
+        done
+        
+        if [[ ((${MODULES} == "" || ${MODULES} == "\"core\",") && $(echo ${#FILES}) != 0) || ((${MODULES} == "" || ${MODULES} == "\"core\",") && $CORE_CHANGES == true) ]];  then
+          for module in $REPOSITORY_MODULES; do
+            if [[ $MODULES != *"$module"* ]];  then
+              MODULES="${MODULES}\"$module\","
+              MODULE_LIST_STRING=${MODULE_LIST_STRING}${module}${SPACE}
+            fi
+          done
+        fi
+        
         LENGTH_OF_MODULE_LIST=$(echo ${#MODULES})
         MODULES=${MODULES:0:${LENGTH_OF_MODULE_LIST}-1}
         MODULES="[${MODULES}]"
@@ -104,6 +135,7 @@ runs:
         # Workflow outputs
         cat <<EOF | tee -a ${GITHUB_STEP_SUMMARY} | tee -a ${GITHUB_OUTPUT}
         updatedModules=${MODULES}
+        updatedModulesString=${MODULE_LIST_STRING}
         EOF
 
 # End of file

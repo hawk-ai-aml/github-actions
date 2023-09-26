@@ -6,8 +6,12 @@ inputs:
     description: "Component name"
     required: true
 
-  overlay:
-    description: "Overlay to update"
+  overlays:
+    description: "List of overlay in string"
+    required: true
+
+  modules:
+    description: "List of module name in string"
     required: true
 
   component-tag:
@@ -30,10 +34,6 @@ inputs:
     description: "ECR region"
     required: true
 
-  module:
-    description: "Module to update"
-    required: true
-
   metadata:
     description: "Metadata for the module"
     required: true
@@ -53,38 +53,47 @@ runs:
       shell: bash -l -ET -eo pipefail {0}
       env:
         METADATA: ${{ inputs.metadata }}
+        MODULES: ${{ inputs.modules }}
+        OVERLAYS: ${{ inputs.overlays }}
+        TAG: ${{ inputs.component-tag }}
+        COMPONENT: ${{ inputs.component-name }}
       run: |
         ECR_REGION=${{ inputs.ecr-region }}
         ECR_REGISTRY=${{ inputs.ecr-registry-code }}
-        ECR_REPOSITORY=$(echo ${METADATA} | jq -cr --arg MODULE ${{ inputs.module }} '.modules[$MODULE].ecr.repository')
-        KUSTOMIZE_PATH=$(echo ${METADATA} | jq -cr --arg MODULE ${{ inputs.module }} '.modules[$MODULE].kustomize.path')
-        OVERLAY=${{ inputs.overlay }}
-        TAG=${{ inputs.component-tag }}
+        
+        for module in $MODULES; do
+          ECR_REPOSITORY=$(echo ${METADATA} | jq -cr --arg MODULE ${module} '.modules[$MODULE].ecr.repository')
 
-        IMAGE_NAME=${ECR_REGISTRY}.dkr.ecr.${ECR_REGION}.amazonaws.com/${ECR_REPOSITORY}
-        KUSTOMIZE_OVERLAY_PATH=${KUSTOMIZE_PATH}/overlays/${OVERLAY}
-
-        echo "ECR_REGISTRY: ${ECR_REGISTRY}"
-        echo "IMAGE_NAME: ${IMAGE_NAME}"
-        echo "KUSTOMIZE_OVERLAY_PATH: ${KUSTOMIZE_OVERLAY_PATH}"
-        echo "KUSTOMIZE_PATH: ${KUSTOMIZE_PATH}"
-
-        cd ${KUSTOMIZE_OVERLAY_PATH}
-        kustomize edit set image ${IMAGE_NAME}:${TAG}
+          if [[ $ECR_REPOSITORY != null ]]; then
+            KUSTOMIZE_PATH=$(echo ${METADATA} | jq -cr --arg MODULE ${module} '.modules[$MODULE].kustomize.path')
+            IMAGE_NAME=${ECR_REGISTRY}.dkr.ecr.${ECR_REGION}.amazonaws.com/${ECR_REPOSITORY}
+          
+            for overlay in $OVERLAYS; do
+              KUSTOMIZE_OVERLAY_PATH=${KUSTOMIZE_PATH}/overlays/${overlay}
+      
+              (
+                cd ${KUSTOMIZE_OVERLAY_PATH}
+                kustomize edit set image ${IMAGE_NAME}:${TAG}
+                echo "Update overlay ${overlay} of ${ECR_REPOSITORY} to ${TAG}"
+              )
+            done
+          fi
+        done
+        
         if ! git diff --quiet HEAD; then
           git config --global user.name "GitHub Actions"
           git config --global user.email "github-actions@hawk.ai"
 
           if [[ -z $(git status -s) ]]; then
-            echo "Tag: ${TAG} already existed for overlays ${OVERLAY}."
+            echo "Tag: ${TAG} already existed for overlays ${overlay}."
           else
             git add .
-            git commit -m "AUTOMATIC COMMIT: Update ${KUSTOMIZE_PATH}/overlays/${OVERLAY} for ${{ inputs.component-name }} to ${TAG}"
-            
+            git commit -m "AUTOMATIC COMMIT: Update tag for ${COMPONENT} to ${TAG}"
+
             REMOTE=${1:-origin}
             CURRENT_BRANCH=$(git rev-parse --abbrev-ref HEAD)
             PUSHED="false"
-          
+
             for interval in 0 1 2 5 10; do
               [[ ${interval} -gt 0 ]] && echo "Retrying in ${interval} seconds..."
               sleep ${interval}
@@ -94,9 +103,8 @@ runs:
                 break
               fi
             done
-        
+            
             [[ ${PUSHED} == "true" ]] || return 1
           fi
         fi
-
 # End of file

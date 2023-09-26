@@ -40,6 +40,7 @@ jobs:
       image-tag: ${{ steps.init.outputs.image-tag }}
       ecr-url: ${{ steps.init.outputs.ecr-url }}
       kustomize-modules: ${{ steps.init.outputs.kustomize-modules }}
+      kustomize-modules-string: ${{ steps.init.outputs.kustomize-modules-string }}
       ecr-images: ${{ steps.init.outputs.ecr-images }}
       ecr-registry-code: ${{ steps.init.outputs.ecr-registry-code }}
       ecr-region: ${{ steps.init.outputs.ecr-region }}
@@ -90,15 +91,16 @@ jobs:
       - name: Upload Reports to S3
         id: reports
         if: needs.init.outputs.skip-tests != 'true' && (success() || failure())
-        uses: hawk-ai-aml/upload-s3-action@master
+        uses: hawk-ai-aml/github-actions/upload-to-s3@master
         with:
-          aws_key_id: ${{ secrets.AWS_DEV_ACCESS_KEY_ID }}
+          aws_access_key_id: ${{ secrets.AWS_DEV_ACCESS_KEY_ID }}
           aws_secret_access_key: ${{ secrets.AWS_DEV_SECRET_ACCESS_KEY }}
           aws_bucket: github-actions-static-html-2
           source_dir: ./report-dir
           destination_dir: ${{ github.event.repository.name }}-${{ github.run_id }}
 
       - name: Configure AWS credentials
+        if: ${{ github.workflow != 'pr' }}
         uses: aws-actions/configure-aws-credentials@v1
         with:
           aws-access-key-id: ${{ secrets.AWS_ORG_ECR_ACCESS_KEY_ID }}
@@ -107,11 +109,13 @@ jobs:
 
       - name: Login to Amazon ECR
         id: login-ecr
+        if: ${{ github.workflow != 'pr' }}
         uses: aws-actions/amazon-ecr-login@v1
         with:
           registries: ${{ needs.init.outputs.ecr-registry-code }}
 
       - name: Build image
+        if: ${{ github.workflow != 'pr' }}
         env:
           ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
           ECR_REPOSITORY: ${{ fromJson(needs.init.outputs.metadata).ecr.repository }}
@@ -121,6 +125,7 @@ jobs:
 
       - name: Push Image
         id: push-image
+        if: ${{ github.workflow != 'pr' }}
         env:
           ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
           ECR_REPOSITORY: ${{ fromJson(needs.init.outputs.metadata).ecr.repository }}
@@ -154,24 +159,19 @@ jobs:
 
   update-overlays:
     needs: [ init, build ]
-    if: ${{ needs.init.outputs.update-kustomize == 'true' }}
+    if: ${{ needs.init.outputs.update-kustomize == 'true' && github.workflow != 'pr' }}
     runs-on: [ "self-hosted", "small-builder" ]
-    strategy:
-      max-parallel: 1
-      matrix:
-        overlay: ${{ fromJson(needs.init.outputs.overlays) }}
-        module: ${{ fromJson(needs.init.outputs.kustomize-modules) }}
 
     steps:
       - name: Update kustomize overlay
         uses: hawk-ai-aml/github-actions/kustomize-overlay@master
         with:
+          overlays: ${{ needs.init.outputs.overlays }}
+          modules: ${{ needs.init.outputs.kustomize-modules-string }}
           component-name: ${{ inputs.component }}
           component-tag: ${{ needs.init.outputs.image-tag }}
           kustomize-repo: hawk-ai-aml/kustomize.git
           kustomize-access-token: ${{ secrets.REPO_ACCESS_PAT }}
           ecr-region: ${{ needs.init.outputs.ecr-region }}
           ecr-registry-code: ${{ needs.init.outputs.ecr-registry-code }}
-          overlay: ${{ matrix.overlay }}
-          module: ${{ matrix.module }}
           metadata: ${{ needs.init.outputs.metadata }}

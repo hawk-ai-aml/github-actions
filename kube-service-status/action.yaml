@@ -1,0 +1,66 @@
+name: kube-service-status
+description: Check kubernetes service status
+
+inputs:
+  deployment:
+    description: "Name of the deployment"
+    required: true
+
+  tag:
+    description: "The expected image name or tag"
+    required: true
+
+outputs:
+  status:
+    description: "Status of the input image"
+    value: ${{ steps.check.outputs.status }}
+
+runs:
+  using: composite
+  steps:
+    - name: Check
+      id: check
+      shell: bash -l -ET -eo pipefail {0}
+      env:
+        TAG: ${{ inputs.tag }}
+      run: |
+        echo "Deploying '${{ inputs.deployment }}' with tag: $TAG"
+        sleep 60
+        TIMEOUT=5
+        SECONDS=0
+        RED='\033[0;31m'
+        
+        while true
+        do
+          READY_REPLICAS=$(kubectl get deployment ${{ inputs.deployment }} -n default -o=jsonpath='{.status.readyReplicas}')
+          echo "READY_REPLICAS=$READY_REPLICAS"
+          
+          REPLICAS=$(kubectl get deployment ${{ inputs.deployment }} -n default -o=jsonpath='{.status.replicas}')
+          echo "REPLICAS=$REPLICAS"
+          
+          IMAGE=$(kubectl get deployment ${{ inputs.deployment }} -n default -o=jsonpath='{$.spec.template.spec.containers[:1].image}')
+          echo "IMAGE=$IMAGE"
+          
+          IFS=':' read -ra ELS <<< "$IMAGE"
+          STATUS=false
+          if [[ ${ELS[1]} == "$TAG" && $READY_REPLICAS == $REPLICAS ]]; then
+            echo "Tag '$TAG' has been deployed successfully"
+            STATUS=true
+            break
+          fi
+        
+          ELAPSED=$(($SECONDS / 60))
+          
+          if [[ $ELAPSED -ge $TIMEOUT ]]; then
+            echo -e "${RED}Deploy process timeout (longer than 5 minutes). Please check the tag '$TAG' of '${{ inputs.deployment }}'"
+            exit 1
+          fi
+          sleep 5
+        done
+                
+        # Workflow outputs
+        cat <<EOF | tee -a ${GITHUB_STEP_SUMMARY} | tee -a ${GITHUB_OUTPUT}
+        status=$STATUS
+        tag=$TAG
+        EOF
+# End of file

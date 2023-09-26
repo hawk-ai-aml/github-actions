@@ -118,12 +118,19 @@ runs:
         # Build image tag
         BUILD_BRANCH=$(echo ${GITHUB_REF_NAME} | sed 's,\/,-,g; s,\#,,g')
         GIT_SHA_SHORT=${GITHUB_SHA:0:7}
-        if [[ ${GITHUB_REF_TYPE} == "tag" ]]; then
-          IMAGE_TAG=${BUILD_BRANCH}
-        else
-          IMAGE_TAG=${BUILD_BRANCH}-${GIT_SHA_SHORT}
-        fi
-        
+        case $GITHUB_WORKFLOW in
+          "tag")
+            IMAGE_TAG=${BUILD_BRANCH}
+          ;;
+          "pr")
+            BRANCH_NAME=$(echo ${GITHUB_HEAD_REF} | sed 's,\/,-,g; s,\#,,g')
+            IMAGE_TAG="pr-${BRANCH_NAME}-${GIT_SHA_SHORT}"
+          ;;
+          *)
+            IMAGE_TAG=${BUILD_BRANCH}-${GIT_SHA_SHORT}
+          ;;
+        esac
+                
         ECR_REGION=$(echo ${METADATA} | jq -r '.ecr.region')
         ECR_REGISTRY_CODE=$(echo ${METADATA} | jq -r '.ecr."registry-code"')
         ECR_URL=${ECR_REGISTRY_CODE}.dkr.ecr.${ECR_REGION}.amazonaws.com
@@ -131,14 +138,14 @@ runs:
         # Build kustomize modules and ECR images
         SPACE=" "
         for module in $(echo ${METADATA} | jq -cr '.modules | keys | join(" ")'); do
-          module_ecr=$(echo ${METADATA} | jq -cr --arg MODULE ${module} '.modules[$MODULE].ecr')
-          [[ "${module_ecr}" == "null" ]] && continue
-            
           MODULE_LIST="${MODULE_LIST}\"${module}\","
           MODULE_LIST_STRING=${MODULE_LIST_STRING}${module}${SPACE}
-        
-          MODULE_REPOSITORY=$(echo ${METADATA} | jq -cr --arg MODULE ${module} '.modules[$MODULE].ecr.repository')
-          IMAGE_LIST="${IMAGE_LIST}\"${ECR_URL}/${MODULE_REPOSITORY}\","
+          
+          MODULE_ECR=$(echo ${METADATA} | jq -cr --arg MODULE ${module} '.modules[$MODULE].ecr')
+          if [[ ${MODULE_ECR} != "null" ]]; then
+            MODULE_REPOSITORY=$(echo ${METADATA} | jq -cr --arg MODULE ${module} '.modules[$MODULE].ecr.repository')
+            IMAGE_LIST="${IMAGE_LIST}\"${ECR_URL}/${MODULE_REPOSITORY}\","
+          fi
         done
 
         LENGTH_OF_MODULE_LIST=$(echo ${#MODULE_LIST})
@@ -153,10 +160,12 @@ runs:
         if [[ ${KUSTOMIZE_OVERLAYS} != "null" ]]; then
           OVERLAYS_JSON=$(echo ${METADATA} | jq -cr --arg OVERLAYS ${KUSTOMIZE_OVERLAYS} '.overlays[$OVERLAYS]')
         fi
+        
+        OVERLAYS_STRING=$(echo ${OVERLAYS_JSON} | jq -r 'join(" ")')
 
         # Workflow outputs
         cat <<EOF | tee -a ${GITHUB_STEP_SUMMARY} | tee -a ${GITHUB_OUTPUT}
-        overlays=${OVERLAYS_JSON}
+        overlays=${OVERLAYS_STRING}
         update-kustomize=${UPDATE_KUSTOMIZE}
         skip-tests=${SKIP_TESTS}
         image-tag=${IMAGE_TAG}

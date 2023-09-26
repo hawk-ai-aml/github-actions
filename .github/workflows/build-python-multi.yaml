@@ -48,6 +48,7 @@ jobs:
       ecr-region: ${{ steps.init.outputs.ecr-region }}
       metadata: ${{ steps.init.outputs.metadata }}
       updated-modules: ${{ steps.detect-changes.outputs.updated-modules }}
+      updated-modules-string: ${{ steps.detect-changes.outputs.updated-modules-string }}
 
     steps:
       - id: init
@@ -89,13 +90,9 @@ jobs:
       - name: Install pipenv
         run: pip install pipenv==2023.6.18
 
-      - name: Install Requirements and Run Pytest
+      - name: Install Dependencies
         env:
           PY_UTILS_PAT: ${{ secrets.PY_UTILS_PAT }}
-          JENKINS: true
-          IS_JENKINS: true
-          AWS_ACCESS_KEY_ID: ${{ secrets.BACKEND_FILE_AWS_ACCESS_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.BACKEND_FILE_AWS_SECRET_ACCESS_KEY }}
         run: |
           pipenv install --dev
           pipenv requirements > pipenv-requirements.txt
@@ -106,24 +103,44 @@ jobs:
           else
              cat pipenv-requirements.txt > requirements.txt
           fi
-
           pipenv run pip install pip-licenses
-          pipenv run pytest tests --junitxml=report.xml
+
+      - name: Run Pytest
+        env:  
+          JENKINS: true
+          IS_JENKINS: true
+          AWS_ACCESS_KEY_ID: ${{ secrets.BACKEND_FILE_AWS_ACCESS_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.BACKEND_FILE_AWS_SECRET_ACCESS_KEY }}
+        run: |
+          pipenv run tests --junitxml=report.xml
+      
+      - name: Generate Reports
+        run: |
           pipenv run junit2html report.xml report.html
           mkdir report-dir && mv report.html ./report-dir/report.html
 
       - name: Upload Test Reports to S3
         id: reports
         if: inputs.skipTests != 'true' && (success() || failure())
-        uses: hawk-ai-aml/upload-s3-action@master
+        uses: hawk-ai-aml/github-actions/upload-to-s3@master
         with:
-          aws_key_id: ${{ secrets.AWS_DEV_ACCESS_KEY_ID }}
+          aws_access_key_id: ${{ secrets.AWS_DEV_ACCESS_KEY_ID }}
           aws_secret_access_key: ${{ secrets.AWS_DEV_SECRET_ACCESS_KEY }}
           aws_bucket: github-actions-static-html-2
           source_dir: ./report-dir
           destination_dir: ${{ github.event.repository.name }}-${{ github.run_id }}
 
+      - name: Get ECR info
+        id: ecr-info
+        env:
+          METADATA: ${{ needs.init.outputs.metadata }}
+        run: |
+          MODULE_ECR=$(echo ${METADATA} | jq -cr --arg MODULE ${{ matrix.module }} '.modules[$MODULE].ecr')
+          echo "ECR=$MODULE_ECR"
+          echo "module_ecr=$MODULE_ECR" >> $GITHUB_OUTPUT
+
       - name: Configure AWS credentials
+        if: ${{ github.workflow != 'pr' && steps.ecr-info.outputs.module_ecr != 'null' }}
         uses: aws-actions/configure-aws-credentials@v1
         with:
           aws-access-key-id: ${{ secrets.AWS_ORG_ECR_ACCESS_KEY_ID }}
@@ -132,12 +149,13 @@ jobs:
 
       - name: Login to Amazon ECR
         id: login-ecr
+        if: ${{ github.workflow != 'pr' && steps.ecr-info.outputs.module_ecr != 'null' }}
         uses: aws-actions/amazon-ecr-login@v1
         with:
           registries: ${{ needs.init.outputs.ecr-registry-code }}
 
       - name: Build and tag images
-        id: build-and-tag
+        if: ${{ github.workflow != 'pr' && steps.ecr-info.outputs.module_ecr != 'null' }}
         env:
           IMAGE_TAG: ${{ needs.init.outputs.image-tag }}
           ECR_PREFIX: ${{ inputs.ecr-prefix }}
@@ -178,24 +196,19 @@ jobs:
 
   update-overlays:
     needs: [ init, build ]
-    if: ${{ needs.init.outputs.update-kustomize == 'true' }}
+    if: ${{ needs.init.outputs.update-kustomize == 'true' && github.workflow != 'pr' }}
     runs-on: [ "self-hosted", "small-builder" ]
-    strategy:
-      max-parallel: 1
-      matrix:
-        overlay: ${{ fromJson(needs.init.outputs.overlays) }}
-        module: ${{ fromJson(needs.init.outputs.updated-modules) }}
 
     steps:
       - name: Update kustomize overlay
         uses: hawk-ai-aml/github-actions/kustomize-overlay@master
         with:
+          overlays: ${{ needs.init.outputs.overlays }}
+          modules: ${{ needs.init.outputs.updated-modules-string }}
           component-name: ${{ inputs.component }}
           component-tag: ${{ needs.init.outputs.image-tag }}
           kustomize-repo: hawk-ai-aml/kustomize.git
           kustomize-access-token: ${{ secrets.REPO_ACCESS_PAT }}
           ecr-region: ${{ needs.init.outputs.ecr-region }}
           ecr-registry-code: ${{ needs.init.outputs.ecr-registry-code }}
-          overlay: ${{ matrix.overlay }}
-          module: ${{ matrix.module }}
           metadata: ${{ needs.init.outputs.metadata }}

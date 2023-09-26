@@ -14,6 +14,10 @@ on:
         type: string
         description: Tag or branch name
         required: true
+      metadata:
+        description: The metadata for the test
+        type: string
+        required: false
 
 defaults:
   run:
@@ -63,20 +67,23 @@ jobs:
       - name: Set up Chrome driver
         if: always()
         run: |
+          echo Installing Chrome
           wget -O - https://dl-ssl.google.com/linux/linux_signing_key.pub | gpg --dearmor | sudo tee /etc/apt/trusted.gpg.d/spotify.gpg
           echo "deb http://dl.google.com/linux/chrome/deb/ stable main" | sudo tee -a /etc/apt/sources.list.d/google-chrome.list
           sudo apt-get update -qqy
           sudo apt-get -qqy install google-chrome-stable
-          CHROME_VERSION=$(google-chrome-stable --version)
-          CHROME_FULL_VERSION=${CHROME_VERSION%%.*}
-          CHROME_MAJOR_VERSION=${CHROME_FULL_VERSION//[!0-9]}
           sudo rm /etc/apt/sources.list.d/google-chrome.list
-          export CHROMEDRIVER_VERSION=`curl -s https://chromedriver.storage.googleapis.com/LATEST_RELEASE_${CHROME_MAJOR_VERSION%%.*}`
-          curl -L -O "https://chromedriver.storage.googleapis.com/${CHROMEDRIVER_VERSION}/chromedriver_linux64.zip"
-          unzip chromedriver_linux64.zip && chmod +x chromedriver && sudo mv chromedriver /usr/local/bin
-          chromedriver -version
-          which chromedriver
-          which google-chrome
+          
+          echo Installing Chrome driver
+          export CHROMEDRIVER_VERSION=`curl -s https://googlechromelabs.github.io/chrome-for-testing/last-known-good-versions-with-downloads.json | jq -r '.channels.Stable.version'`
+          curl -L -O "https://edgedl.me.gvt1.com/edgedl/chrome/chrome-for-testing/${CHROMEDRIVER_VERSION}/linux64/chromedriver-linux64.zip"
+          ls -ahl
+          unzip chromedriver-linux64.zip && chmod +x chromedriver-linux64/chromedriver && sudo mv chromedriver-linux64/chromedriver /usr/local/bin/chromedriver
+          
+          echo "chromeDriver version: $(chromedriver --version)"
+          echo "chromeDriver location: $(which chromedriver)"
+          echo "chromeBrowser version: $(google-chrome --version)"
+          echo "chromeBrowser location: $(which google-chrome)"
 
       - name: Generate cache ID
         run: |
@@ -129,10 +136,13 @@ jobs:
           AUTH0_PROD_AP_SOUTHEAST_API_CLIENT_SECRET: ${{ secrets.AUTH0_PROD_AP_SOUTHEAST_API_CLIENT_SECRET }}
           AUTH0_NAB_QA_API_CLIENT_SECRET: ${{ secrets.AUTH0_PROD_US_EAST_API_CLIENT_SECRET }}
           AUTH0_NAB_PROD_API_CLIENT_SECRET: ${{ secrets.AUTH0_PROD_US_EAST_API_CLIENT_SECRET }}
-          
+          AUTH0_PROD_CH_API_CLIENT_SECRET: ${{ secrets.AUTH0_PROD_CH_API_CLIENT_SECRET }}
+
           ARTIFACTORY_CONTEXT_URL: ${{ secrets.ARTIFACTORY_CONTEXT_URL }}
           ARTIFACTORY_USERNAME: ${{ secrets.ARTIFACTORY_USERNAME }}
           ARTIFACTORY_PASSWORD: ${{ secrets.ARTIFACTORY_PASSWORD }}
+          GRADLE_CACHE_USERNAME: ${{ secrets.GRADLE_CACHE_USERNAME }}
+          GRADLE_CACHE_PASSWORD: ${{ secrets.GRADLE_CACHE_PASSWORD }}
 
           DEV_REDIS_HOST: ${{ secrets.DEV_REDIS_HOST }}
           DEV_REDIS_PORT: ${{ secrets.DEV_REDIS_PORT }}
@@ -152,6 +162,10 @@ jobs:
           pwd
           mkdir github-artifact
           mv ${{ inputs.test }}/build/reports/tests/* github-artifact
+          METADATA=$(echo "${{ inputs.metadata }}" | sed s/\'/\"/g)
+          echo "METADATA: $METADATA"
+          echo "$METADATA" > github-artifact/metadata.json
+      
 
     # -------------------------------------- END-TEST --------------------------------------
     # ++++++++++++++++++++++++++++++++++++ START-REPORT ++++++++++++++++++++++++++++++++++++
@@ -208,9 +222,9 @@ jobs:
 
       - name: Upload reports to S3
         if: always()
-        uses: hawk-ai-aml/upload-s3-action@master
+        uses: hawk-ai-aml/github-actions/upload-to-s3@master
         with:
-          aws_key_id: ${{ secrets.AWS_DEV_ACCESS_KEY_ID }}
+          aws_access_key_id: ${{ secrets.AWS_DEV_ACCESS_KEY_ID }}
           aws_secret_access_key: ${{ secrets.AWS_DEV_SECRET_ACCESS_KEY }}
           aws_bucket: github-actions-static-html-2
           source_dir: ${{ inputs.test }}/allure-report2

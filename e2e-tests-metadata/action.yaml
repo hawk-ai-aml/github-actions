@@ -1,0 +1,59 @@
+name: e2e-tests-metadata
+description: Generate metadata for e2e tests
+
+inputs:
+  repository-access-token:
+    description: "Repository access token"
+    required: true
+
+outputs:
+  metadata:
+    description: 'Metadata in json'
+    value: ${{ steps.metadata.outputs.metadata }}
+
+runs:
+  using: composite
+  steps:
+    - name: Checkout Kustomize
+      uses: actions/checkout@v3
+      with:
+        repository: hawk-ai-aml/kustomize.git
+        ref: master
+        token: ${{ inputs.repository-access-token }}
+
+    - name: Load Kustomize profile
+      id: profile
+      shell: bash -l -ET -eo pipefail {0}
+      run: |
+        METADATA_JSON=$(yj -y < .github/workflows/profile.json)
+        echo "metadata=${METADATA_JSON}" >> $GITHUB_OUTPUT
+
+    - name: Generate metadata
+      id: metadata
+      shell: bash -l -ET -eo pipefail {0}
+      env:
+        METADATA: ${{ steps.profile.outputs.metadata }}
+      run: |
+        SERVICES=$(echo ${METADATA} | jq -cr '.services | keys | join(" ")')
+        echo "SERVICES=${SERVICES}"
+        
+        E2E_METADATA="{'user': '${{ github.actor }}', 'head_ref': '${{ github.head_ref }}', 'services': {"
+        for service in $SERVICES; do
+          KUSTOMIZATION_PATH=$(echo ${METADATA} | jq -cr --arg SERVICE ${service} '.services[$SERVICE].overlays.test.kustomization')
+          KUSTOMIZATION_FULL_PATH="plattform/${KUSTOMIZATION_PATH}/overlays/test/kustomization.yaml"
+          TAG=$(yq '.images[0].newTag' < $KUSTOMIZATION_FULL_PATH)
+        
+          NODE=" '$service': { 'tag': '$TAG' }"
+          E2E_METADATA="$E2E_METADATA$NODE,"
+        done
+        
+        LENGTH_OF_E2E_METADATA=$(echo ${#E2E_METADATA})
+        E2E_METADATA=${E2E_METADATA:0:${LENGTH_OF_E2E_METADATA}-1}
+        
+        E2E_METADATA="$E2E_METADATA}}"
+
+        # Workflow outputs
+        cat <<EOF | tee -a ${GITHUB_STEP_SUMMARY} | tee -a ${GITHUB_OUTPUT}
+        metadata=$E2E_METADATA
+        EOF
+# End of file
