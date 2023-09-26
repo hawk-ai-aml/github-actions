@@ -115,7 +115,7 @@ jobs:
           GRADLE_CACHE_PASSWORD: ${{ secrets.GRADLE_CACHE_PASSWORD }}
         run: |
           ./gradlew check -isS
-          ./gradlew aggregateJacocoExecutions
+          ./gradlew jacocoTestReport
 
       - name: License Report
         env:
@@ -135,6 +135,10 @@ jobs:
             mkdir -p reports/${module}/build
             if [[ -d ${module}/build/reports ]]; then
               cp -r ${module}/build/reports reports/${module}/build/reports
+            fi
+          
+            if [[ -d ${module}/build/jacocoHtml ]]; then
+              cp -r ${module}/build/jacocoHtml reports/${module}/build/jacocoHtml
             fi
           done
 
