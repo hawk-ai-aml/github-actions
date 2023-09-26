@@ -57,6 +57,18 @@ jobs:
         test: [ "amlcheck", "amnis" ]
 
     steps:
+      - uses: actions/checkout@v3
+        with:
+          ref: sre-test
+
+      - name: Wait for tests to succeed
+        uses: lewagon/wait-on-check-action@v1.3.1
+        with:
+          ref: sre-test
+          check-name: e2e-tests
+          repo-token: ${{ secrets.REPO_ACCESS_PAT }}
+          wait-interval: 10
+
       - name: Run ${{ matrix.test }} test
         id: test
         uses: hawk-ai-aml/github-actions/build-e2e-test@1468-test
@@ -89,18 +101,6 @@ jobs:
     runs-on: [ "self-hosted", "builder" ]
 
     steps:
-      - uses: actions/checkout@v3
-        with:
-          ref: sre-test
-
-      - name: Wait for tests to succeed
-        uses: lewagon/wait-on-check-action@v1.3.1
-        with:
-          ref: sre-test
-          check-name: e2e-tests
-          repo-token: ${{ secrets.REPO_ACCESS_PAT }}
-          wait-interval: 10
-
       - name: Deploy
         run: |
           echo "Deploying {{ inputs.component }}"
