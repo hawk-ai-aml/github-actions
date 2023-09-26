@@ -35,12 +35,13 @@ runs:
         BUCKET_NAME: ${{ inputs.aws_bucket }}
         SOURCE_DIR: ${{ inputs.source_dir }}
         DESTINATION_DIR: ${{ inputs.destination_dir }}
+        AWS_DEFAULT_REGION: eu-central-1
       run: |
         cd ${SOURCE_DIR}
         aws s3api put-object --bucket ${BUCKET_NAME} --key ${DESTINATION_DIR}/ --content-length 0
         aws s3 cp . s3://${BUCKET_NAME}/${DESTINATION_DIR}/ --recursive
         
-        HTML_FILES=$(aws s3 ls s3://${BUCKET_NAME}/${DESTINATION_DIR} --recursive | awk '{$1=$2=$3=""; print $0}' | sed 's/^[ \t]*//' | grep 'index.html\|main.html\|licenseReport.html')
+        HTML_FILES=$(aws s3 ls s3://${BUCKET_NAME}/${DESTINATION_DIR} --recursive | awk '{$1=$2=$3=""; print $0}' | sed 's/^[ \t]*//' | grep 'index.html\|main.html\|licenseReport.html\|report.html')
         REPORT_URL=https://${BUCKET_NAME}.s3.amazonaws.com/
         REPLACER="$DESTINATION_DIR\/"
         
