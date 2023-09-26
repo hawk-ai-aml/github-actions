@@ -30,218 +30,41 @@ defaults:
     shell: bash -l -ET -eo pipefail {0}
 
 jobs:
-  init:
+  ci:
     runs-on: [ "self-hosted", "small-builder" ]
-    outputs:
-      overlays: ${{ steps.init.outputs.overlays }}
-      update-kustomize: ${{ steps.init.outputs.update-kustomize }}
-      skip-tests: ${{ steps.init.outputs.skip-tests }}
-      image-tag: ${{ steps.init.outputs.image-tag }}
-      ecr-url: ${{ steps.init.outputs.ecr-url }}
-      kustomize-modules: ${{ steps.init.outputs.kustomize-modules }}
-      kustomize-modules-string: ${{ steps.init.outputs.kustomize-modules-string }}
-      ecr-images: ${{ steps.init.outputs.ecr-images }}
-      ecr-registry-code: ${{ steps.init.outputs.ecr-registry-code }}
-      ecr-region: ${{ steps.init.outputs.ecr-region }}
-      metadata: ${{ steps.init.outputs.metadata }}
-
-    steps:
-      - id: init
-        name: Init Workflow
-        uses: hawk-ai-aml/github-actions/workflow-init@master
-        with:
-          skip-tests: ${{ inputs.skipTests }}
-          update-kustomize: ${{ inputs.updateKustomize }}
-          overlays: ${{ inputs.kustomizeOverlays }}
-          repository-name: hawk-ai-aml/${{ inputs.component }}
-          repository-ref: ${{ env.GITHUB_REF_NAME }}
-          repository-access-token: ${{ secrets.REPO_ACCESS_PAT }}
-
-  build:
-    needs: [ init ]
-    runs-on: [ "self-hosted", "builder" ]
-
-    steps:
-      - uses: actions/checkout@v3
-
-      - name: Login to Docker Hub
-        uses: docker/login-action@v2
-        with:
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
-
-      - name: Set up JDK
-        uses: actions/setup-java@v3
-        with:
-          java-version: ${{ fromJson(needs.init.outputs.metadata).java-version }}
-          distribution: temurin
-          cache: gradle
-
-      - name: Set up Gradle
-        uses: gradle/gradle-build-action@v2
-        env:
-          GRADLE_BUILD_ACTION_CACHE_DEBUG_ENABLED: true
-
-      - name: Gradle Assemble
-        env:
-          ARTIFACTORY_CONTEXT_URL: ${{ secrets.ARTIFACTORY_CONTEXT_URL }}
-          ARTIFACTORY_USERNAME: ${{ secrets.ARTIFACTORY_USERNAME }}
-          ARTIFACTORY_PASSWORD: ${{ secrets.ARTIFACTORY_PASSWORD }}
-          GRADLE_CACHE_USERNAME: ${{ secrets.GRADLE_CACHE_USERNAME }}
-          GRADLE_CACHE_PASSWORD: ${{ secrets.GRADLE_CACHE_PASSWORD }}
-        run: ./gradlew clean assemble testClasses -isS
-
-      - name: Check Quality
-        env:
-          ARTIFACTORY_CONTEXT_URL: ${{ secrets.ARTIFACTORY_CONTEXT_URL }}
-          ARTIFACTORY_USERNAME: ${{ secrets.ARTIFACTORY_USERNAME }}
-          ARTIFACTORY_PASSWORD: ${{ secrets.ARTIFACTORY_PASSWORD }}
-          GRADLE_CACHE_USERNAME: ${{ secrets.GRADLE_CACHE_USERNAME }}
-          GRADLE_CACHE_PASSWORD: ${{ secrets.GRADLE_CACHE_PASSWORD }}
-        run: ./gradlew checkQualityMain
-
-      - name: Run Tests
-        if: ${{ needs.init.outputs.skip-tests != 'true' }}
-        env:
-          ARTIFACTORY_CONTEXT_URL: ${{ secrets.ARTIFACTORY_CONTEXT_URL }}
-          ARTIFACTORY_USERNAME: ${{ secrets.ARTIFACTORY_USERNAME }}
-          ARTIFACTORY_PASSWORD: ${{ secrets.ARTIFACTORY_PASSWORD }}
-          GRADLE_CACHE_USERNAME: ${{ secrets.GRADLE_CACHE_USERNAME }}
-          GRADLE_CACHE_PASSWORD: ${{ secrets.GRADLE_CACHE_PASSWORD }}
-        run: |
-          ./gradlew check -isS
-          ./gradlew aggregateJacocoExecutions
-
-      - name: License Report
-        env:
-          ARTIFACTORY_CONTEXT_URL: ${{ secrets.ARTIFACTORY_CONTEXT_URL }}
-          ARTIFACTORY_USERNAME: ${{ secrets.ARTIFACTORY_USERNAME }}
-          ARTIFACTORY_PASSWORD: ${{ secrets.ARTIFACTORY_PASSWORD }}
-          GRADLE_CACHE_USERNAME: ${{ secrets.GRADLE_CACHE_USERNAME }}
-          GRADLE_CACHE_PASSWORD: ${{ secrets.GRADLE_CACHE_PASSWORD }}
-        run: ./gradlew licenseReport
-
-      - name: Aggregate reports for upload
-        if: needs.init.outputs.skip-tests != 'true' && (success() || failure())
-        env:
-          METADATA: ${{ needs.init.outputs.metadata }}
-        run: |
-          for module in $(echo ${METADATA} | jq -r '.modules | keys | join(" ")'); do
-            mkdir -p reports/${module}/build
-            if [[ -d ${module}/build/reports ]]; then
-              cp -r ${module}/build/reports reports/${module}/build/reports
-            fi
-          done
-
-      - name: Upload Reports to S3
-        id: reports
-        if: needs.init.outputs.skip-tests != 'true' && (success() || failure())
-        uses: hawk-ai-aml/github-actions/upload-to-s3@master
-        with:
-          aws_access_key_id: ${{ secrets.AWS_DEV_ACCESS_KEY_ID }}
-          aws_secret_access_key: ${{ secrets.AWS_DEV_SECRET_ACCESS_KEY }}
-          aws_bucket: github-actions-static-html-2
-          source_dir: reports
-          destination_dir: ${{ github.event.repository.name }}-${{ github.run_id }}
-
-      - name: Configure AWS credentials
-        if: ${{ github.workflow != 'pr' }}
-        uses: aws-actions/configure-aws-credentials@v1
-        with:
-          aws-access-key-id: ${{ secrets.AWS_ORG_ECR_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_ORG_ECR_SECRET_ACCESS_KEY }}
-          aws-region: ${{ needs.init.outputs.ecr-region }}
-
-      - name: Login to Amazon ECR
-        id: login-ecr
-        if: ${{ github.workflow != 'pr' }}
-        uses: aws-actions/amazon-ecr-login@v1
-        with:
-          registries: ${{ needs.init.outputs.ecr-registry-code }}
-
-      - name: Build Docker image
-        if: ${{ github.workflow != 'pr' }}
-        env:
-          ARTIFACTORY_CONTEXT_URL: ${{ secrets.ARTIFACTORY_CONTEXT_URL }}
-          ARTIFACTORY_USERNAME: ${{ secrets.ARTIFACTORY_USERNAME }}
-          ARTIFACTORY_PASSWORD: ${{ secrets.ARTIFACTORY_PASSWORD }}
-          GRADLE_CACHE_USERNAME: ${{ secrets.GRADLE_CACHE_USERNAME }}
-          GRADLE_CACHE_PASSWORD: ${{ secrets.GRADLE_CACHE_PASSWORD }}
-          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
-          ECR_REPOSITORY: ${{ fromJson(needs.init.outputs.metadata).ecr.repository }}
-          BASE_TAG: ${{ inputs.base-tag }}
-          IMAGE_TAG: ${{ needs.init.outputs.image-tag }}
-        run: |
-          ./gradlew jib -DIMAGE_NAME="${ECR_REGISTRY}/${ECR_REPOSITORY}" -DTAG_COMMIT=${IMAGE_TAG}
-
-  update-overlays:
-    needs: [ init, build ]
-    if: ${{ needs.init.outputs.update-kustomize == 'true' && github.workflow != 'pr' }}
-    runs-on: [ "self-hosted", "small-builder" ]
-
-    steps:
-      - name: Update kustomize overlay
-        uses: hawk-ai-aml/github-actions/kustomize-overlay@master
-        with:
-          overlays: ${{ needs.init.outputs.overlays }}
-          modules: ${{ needs.init.outputs.kustomize-modules-string }}
-          component-name: ${{ inputs.component }}
-          component-tag: ${{ needs.init.outputs.image-tag }}
-          kustomize-repo: hawk-ai-aml/kustomize.git
-          kustomize-access-token: ${{ secrets.REPO_ACCESS_PAT }}
-          ecr-region: ${{ needs.init.outputs.ecr-region }}
-          ecr-registry-code: ${{ needs.init.outputs.ecr-registry-code }}
-          metadata: ${{ needs.init.outputs.metadata }}
-
-  service-image-status:
-    needs: [ init, update-overlays ]
-    if: ${{ needs.init.outputs.update-kustomize == 'true' }}
-    runs-on: [ "self-hosted", "small-builder" ]
-
-    outputs:
-      status: ${{ steps.image-status.outputs.status }}
-
-    steps:
-      - name: Image status
-        id: image-status
-        uses: hawk-ai-aml/github-actions/kube-service-status@master
-        with:
-          deployment: ${{ inputs.component }}
-          tag: ${{ needs.init.outputs.image-tag }}
-
-  e2e-metadata:
-    needs: service-image-status
-    if: ${{ needs.init.outputs.update-kustomize == 'true' && needs.service-image-status.outputs.status == 'true' }}
-    runs-on: [ "self-hosted", "small-builder" ]
-
-    outputs:
-      metadata: ${{ steps.e2e-metadata.outputs.metadata }}
 
     steps:
       - name: Generate e2e tests metadata
         id: e2e-metadata
-        uses: hawk-ai-aml/github-actions/e2e-tests-metadata@master
+        uses: hawk-ai-aml/github-actions/e2e-tests-metadata@1468-test
         with:
           repository-access-token: ${{ secrets.REPO_ACCESS_PAT }}
 
+      - name: Generate correlation id
+        id: correlationId
+        shell: bash -l -ET -eo pipefail {0}
+        run: |
+          RUN_ID=`date "+%Y%m%d-%H%M%S"`
+          CORRELATION_ID="${{ github.actor }}-${RUN_ID}"
+          echo "id=${CORRELATION_ID}" >> $GITHUB_OUTPUT
+
   e2e-tests:
-    needs: [ e2e-metadata, service-image-status ]
-    if: ${{ needs.init.outputs.update-kustomize == 'true' && needs.service-image-status.outputs.status == 'true' }}
+    needs: ci
     runs-on: [ "self-hosted", "builder" ]
     strategy:
       fail-fast: false
       matrix:
-        test: [ "amlcheck", "amnis", "bbamericas", "blacklist", "config", "configui", "countryvolumerules", "crosscard", "crr", "devportal", "dockfinancial", "effortful", "frontend", "grouping", "machineintelligence", "mapfintech", "passthrough", "pepsanction", "ratepay", "riskywords", "unusualfrequency", "volumechanges", "volumerisk", "worldline" ]
+        test: [ "amlcheck", "amnis" ]
 
     steps:
       - name: Run ${{ matrix.test }} test
         id: test
-        uses: hawk-ai-aml/github-actions/build-e2e-test@master
+        uses: hawk-ai-aml/github-actions/build-e2e-test@1468-test
         with:
           environment: "test"
           test: ${{ matrix.test }}
           ref: "master"
-          metadata: ${{ needs.e2e-metadata.outputs.metadata }}
+          metadata: ${{ inputs.metadata }}
           repository-access-token: ${{ secrets.REPO_ACCESS_PAT }}
           auth0-dev-api-client-secret: ${{ secrets.AUTH0_DEV_API_CLIENT_SECRET }}
           auth0-prod-api-client-secret: ${{ secrets.AUTH0_PROD_API_CLIENT_SECRET }}
@@ -261,24 +84,23 @@ jobs:
           aws-key-id: ${{ secrets.AWS_DEV_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_DEV_SECRET_ACCESS_KEY }}
 
-      - name: Test status
-        run: |
-          TEST_STATUS=${{ steps.test.outputs.test-status }}
-          if [[ $TEST_STATUS == "failures" ]]; then
-            exit 1
-          fi
-
-  tagging:
+  deploy:
     needs: e2e-tests
-    runs-on: [ "self-hosted", "small-builder" ]
-    if: always()
+    runs-on: [ "self-hosted", "builder" ]
+
     steps:
-      - name: Tagging
+      - uses: actions/checkout@v3
+        with:
+          ref: sre-test
+
+      - name: Wait for tests to succeed
+        uses: lewagon/wait-on-check-action@v1.3.1
+        with:
+          ref: sre-test
+          check-name: e2e-tests
+          repo-token: ${{ secrets.REPO_ACCESS_PAT }}
+          wait-interval: 10
+
+      - name: Deploy
         run: |
-          echo "Conclusion: ${{ needs.e2e-tests.result }}"
-          if [[ ${{ needs.e2e-tests.result }} != "success" ]]; then
-            echo "Some mandatory tests failed."
-            exit 1
-          fi
-          
-          echo "Start tagging process ..."
+          echo "Deploying {{ inputs.component }}"
