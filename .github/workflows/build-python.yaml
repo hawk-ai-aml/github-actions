@@ -81,6 +81,7 @@ jobs:
           APP_CONFIG_YAML_PATH: "tests"
           PY_UTILS_PAT: ${{ secrets.PY_UTILS_PAT}}
         run: |
+          pipenv --clear
           pipenv install --dev
           pipenv lock --keep-outdated > pipenv-requirements.txt
           pipenv requirements > requirements.txt
