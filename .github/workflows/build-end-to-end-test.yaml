@@ -43,7 +43,6 @@ jobs:
       # +++++++++++++++++++++++++++++++++++++ START-SETUP +++++++++++++++++++++++++++++++++++++
       - name: Set up JAVA_HOME
         run: |
-#          export JAVA_HOME=`sudo update-java-alternatives -l | awk ‘{print $3}’'
           export JAVA_HOME="$(dirname $(dirname $(readlink -f $(which java))))"
 
       - name: Generate cache ID
