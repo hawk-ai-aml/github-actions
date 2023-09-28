@@ -43,9 +43,12 @@ jobs:
       # +++++++++++++++++++++++++++++++++++++ START-SETUP +++++++++++++++++++++++++++++++++++++
       - name: Set up JAVA_HOME
         run: |
-          export JAVA_HOME="$(dirname $(dirname $(readlink -f $(which java))))"
+          export JAVA_HOME="$(update-java-alternatives -l | awk '{print $3}')"
           echo JAVA_HOME="$JAVA_HOME" >> $GITHUB_ENV
           echo PATH=$PATH:$JAVA_HOME >> $GITHUB_ENV
+          
+          echo "JAVA_HOME=$JAVA_HOME"
+          echo "PATH=$PATH"
 
       - name: Generate cache ID
         run: |
