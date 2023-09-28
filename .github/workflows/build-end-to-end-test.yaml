@@ -43,7 +43,7 @@ jobs:
       # +++++++++++++++++++++++++++++++++++++ START-SETUP +++++++++++++++++++++++++++++++++++++
       - name: Set up JAVA_HOME
         run: |
-          export JAVA_HOME="$(update-alternatives --list java)"
+          export JAVA_HOME="$(which java | xargs readlink -f | sed 's/\/bin\/java//')"
           echo JAVA_HOME="$JAVA_HOME" >> $GITHUB_ENV
           echo PATH=$PATH:$JAVA_HOME >> $GITHUB_ENV
           
