@@ -46,61 +46,42 @@ jobs:
         run: |
           RUN_ID=`date "+%Y%m%d-%H%M%S"`
           CORRELATION_ID="${{ github.actor }}-${RUN_ID}"
-          echo "id=${CORRELATION_ID}" >> $GITHUB_OUTPUT
+          echo "id=ci-test" >> $GITHUB_OUTPUT
 
-  e2e-tests:
-    needs: ci
-    runs-on: [ "self-hosted", "builder" ]
-    strategy:
-      fail-fast: false
-      matrix:
-        test: [ "amlcheck", "amnis" ]
-
-    steps:
-      - uses: actions/checkout@v3
-        with:
-          ref: sre-test
-
-      - name: Wait for tests to succeed
-        uses: lewagon/wait-on-check-action@v1.3.1
-        with:
-          ref: sre-test
-          check-name: e2e-tests
-          repo-token: ${{ secrets.REPO_ACCESS_PAT }}
-          wait-interval: 10
-
-      - name: Run ${{ matrix.test }} test
-        id: test
-        uses: hawk-ai-aml/github-actions/build-e2e-test@1468-test
-        with:
-          environment: "test"
-          test: ${{ matrix.test }}
-          ref: "master"
-          metadata: ${{ inputs.metadata }}
-          repository-access-token: ${{ secrets.REPO_ACCESS_PAT }}
-          auth0-dev-api-client-secret: ${{ secrets.AUTH0_DEV_API_CLIENT_SECRET }}
-          auth0-prod-api-client-secret: ${{ secrets.AUTH0_PROD_API_CLIENT_SECRET }}
-          auth0-prod-us-east-api-client-secret: ${{ secrets.AUTH0_PROD_US_EAST_API_CLIENT_SECRET }}
-          auth0-prod-ap-southeast-api-client-secret: ${{ secrets.AUTH0_PROD_AP_SOUTHEAST_API_CLIENT_SECRET }}
-          auth0-nab-qa-api-client-secret: ${{ secrets.AUTH0_PROD_US_EAST_API_CLIENT_SECRET }}
-          auth0-nab-prod-api-client-secret: ${{ secrets.AUTH0_PROD_US_EAST_API_CLIENT_SECRET }}
-          auth0-prod-ch-api-client-secret: ${{ secrets.AUTH0_PROD_CH_API_CLIENT_SECRET }}
-          artifactory-context-url: ${{ secrets.ARTIFACTORY_CONTEXT_URL }}
-          artifactory-username: ${{ secrets.ARTIFACTORY_USERNAME }}
-          artifactory-password: ${{ secrets.ARTIFACTORY_PASSWORD }}
-          gradle-cache-username: ${{ secrets.GRADLE_CACHE_USERNAME }}
-          gradle-cache-password: ${{ secrets.GRADLE_CACHE_PASSWORD }}
-          dev-redis-host: ${{ secrets.DEV_REDIS_HOST }}
-          dev-redis-port: ${{ secrets.DEV_REDIS_PORT }}
-          dev-redis-auth-token: ${{ secrets.DEV_REDIS_AUTH_TOKEN }}
-          aws-key-id: ${{ secrets.AWS_DEV_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_DEV_SECRET_ACCESS_KEY }}
-
-  deploy:
-    needs: e2e-tests
-    runs-on: [ "self-hosted", "builder" ]
-
-    steps:
-      - name: Deploy
+      - name: Run e2e tests
+        shell: bash -l -ET -eo pipefail {0}
+        env:
+          USER: ${{ secrets.RECREATE_DEVELOP_GITHUB_USER }}
+          TOKEN: ${{ secrets.REPO_ACCESS_PAT }}
+          METADATA: ${{ steps.e2e-metadata.outputs.metadata }}
+          CORRELATION_ID: ${{ steps.correlationId.outputs.id }}
         run: |
-          echo "Deploying {{ inputs.component }}"
+          curl --silent -X POST "https://api.github.com/repos/hawk-ai-aml/end-to-end-tests/actions/workflows/test-e2e-demo-v2-tests.yaml/dispatches" -d "{\"ref\":\"feature/sre-1468\", \"inputs\": {\"metadata\": \"${METADATA}\", \"run-name\": \"${CORRELATION_ID}\"}}" -u "$USER:$TOKEN"
+
+      - name: Check test results
+        shell: bash -l -ET -eo pipefail {0}
+        env:
+          USER: ${{ secrets.RECREATE_DEVELOP_GITHUB_USER }}
+          TOKEN: ${{ secrets.REPO_ACCESS_PAT }}
+          CORRELATION_ID: ${{ steps.correlationId.outputs.id }}
+        run: |
+          sleep 60
+          while true
+          do
+            echo "CORRELATION_ID=${CORRELATION_ID}"
+            RUNS=$(curl -s "https://api.github.com/repos/hawk-ai-aml/end-to-end-tests/actions/runs?status=completed&per_page=100" -u "$USER:$TOKEN" | jq -r '.workflow_runs | [.[] | select(.name | contains('\"${CORRELATION_ID}\"')) | .name] | join(" ")')
+          
+            if [[ "$RUNS" != "" ]]; then
+              break
+            fi
+          
+            sleep 10
+          done
+          
+          SUCCESS_TESTS=$(curl -s "https://api.github.com/repos/hawk-ai-aml/end-to-end-tests/actions/runs?per_page=100" -u "$USER:$TOKEN" | jq -r '.workflow_runs | [.[] | select(.name | contains('\"${CORRELATION_ID}\"')) | select(.status == "completed") | select(.conclusion == "success") | .name] | join(" ")')
+          
+          if [[ "$SUCCESS_TESTS" != "" ]]; then
+            echo "All tests are green!"
+          else
+            echo "There are some failed tests. Please check."
+          fi
