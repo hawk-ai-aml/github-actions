@@ -43,9 +43,7 @@ jobs:
       # +++++++++++++++++++++++++++++++++++++ START-SETUP +++++++++++++++++++++++++++++++++++++
       - name: Set up JAVA_HOME
         run: |
-          java --version
-          which java
-          pwd
+          sudo update-alternatives --config java
           echo JAVA_HOME="$JAVA_HOME" >> $GITHUB_ENV
           echo PATH=$PATH:$JAVA_HOME >> $GITHUB_ENV
           
