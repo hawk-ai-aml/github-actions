@@ -43,6 +43,7 @@ jobs:
       # +++++++++++++++++++++++++++++++++++++ START-SETUP +++++++++++++++++++++++++++++++++++++
       - name: Set up JAVA_HOME
         run: |
+          which java
           export JAVA_HOME="$(which java)"
           echo JAVA_HOME="$JAVA_HOME" >> $GITHUB_ENV
           echo PATH=$PATH:$JAVA_HOME >> $GITHUB_ENV
