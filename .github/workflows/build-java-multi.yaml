@@ -137,7 +137,9 @@ jobs:
           GRADLE_CACHE_PASSWORD: ${{ secrets.GRADLE_CACHE_PASSWORD }}
           DISABLE_SLACK: true
         run: |
-          ./gradlew :${{ matrix.module }}:check :${{ matrix.module }}:jacocoTestReport :${{ matrix.module }}:jacocoTestCoverageVerification -isS
+          ./gradlew :${{ matrix.module }}:check -isS
+          ./gradlew :${{ matrix.module }}:jacocoTestReport
+          ./gradlew :${{ matrix.module }}:jacocoTestCoverageVerification
 
       - name: License Report
         env:
@@ -159,16 +161,21 @@ jobs:
           if [[ -d ${{ matrix.module }}/build/reports ]]; then
             cp -r ${{ matrix.module }}/build/reports reports/${{ matrix.module }}/build/reports
           fi
+          
+          if [[ -d ${{ matrix.module }}/build/jacocoHtml ]]; then
+            cp -r ${{ matrix.module }}/build/jacocoHtml reports/${{ matrix.module }}/build/reports
+          fi
 
       - name: Upload Reports to S3
         id: reports
         if: needs.init.outputs.skip-tests != 'true' && (success() || failure())
         uses: hawk-ai-aml/github-actions/upload-to-s3@master
         with:
+          module: ${{ matrix.module }}
           aws_access_key_id: ${{ secrets.AWS_DEV_ACCESS_KEY_ID }}
           aws_secret_access_key: ${{ secrets.AWS_DEV_SECRET_ACCESS_KEY }}
           aws_bucket: github-actions-static-html-2
-          source_dir: reports
+          source_dir: reports/${{ matrix.module }}/build
           destination_dir: ${{ github.event.repository.name }}-${{ github.run_id }}
 
       - name: Get ECR info
@@ -191,7 +198,7 @@ jobs:
       - name: Login to Amazon ECR
         id: login-ecr
         if: ${{ github.workflow != 'pr' && steps.ecr-info.outputs.module_ecr != 'null' }}
-        uses: aws-actions/amazon-ecr-login@v1
+        uses: aws-actions/amazon-ecr-login@v2
         with:
           registries: ${{ needs.init.outputs.ecr-registry-code }}
 

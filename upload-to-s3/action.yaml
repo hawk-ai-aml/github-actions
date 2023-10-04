@@ -2,6 +2,9 @@ name: upload-to-s3
 description: upload to s3
 
 inputs:
+  module:
+    description: "Name of module"
+    required: false
   source_dir:
     description: "Source directory from local"
     required: true
@@ -32,18 +35,32 @@ runs:
       env:
         AWS_ACCESS_KEY_ID: ${{ inputs.aws_access_key_id }}
         AWS_SECRET_ACCESS_KEY: ${{ inputs.aws_secret_access_key }}
+        MODULE: ${{ inputs.module }}
         BUCKET_NAME: ${{ inputs.aws_bucket }}
         SOURCE_DIR: ${{ inputs.source_dir }}
         DESTINATION_DIR: ${{ inputs.destination_dir }}
         AWS_DEFAULT_REGION: eu-central-1
       run: |
         cd ${SOURCE_DIR}
-        aws s3api put-object --bucket ${BUCKET_NAME} --key ${DESTINATION_DIR}/ --content-length 0
-        aws s3 cp . s3://${BUCKET_NAME}/${DESTINATION_DIR}/ --recursive
+        S3_DESTINATION_DIR=${DESTINATION_DIR}
+        if [[ ${MODULE} != null ]]; then
+          S3_DESTINATION_DIR=${DESTINATION_DIR}/${MODULE}
+        fi
         
-        HTML_FILES=$(aws s3 ls s3://${BUCKET_NAME}/${DESTINATION_DIR} --recursive | awk '{$1=$2=$3=""; print $0}' | sed 's/^[ \t]*//' | grep 'index.html\|main.html\|licenseReport.html\|report.html')
+        aws s3api put-object --bucket ${BUCKET_NAME} --key ${S3_DESTINATION_DIR}/ --content-length 0
+        aws s3 cp . s3://${BUCKET_NAME}/${S3_DESTINATION_DIR}/ --recursive
+        
+        if [[ ${MODULE} != null ]]; then
+          HTML_FILES=$(aws s3 ls s3://${BUCKET_NAME}/${S3_DESTINATION_DIR} --recursive | awk '{$1=$2=$3=""; print $0}' | sed 's/^[ \t]*//' | grep "${MODULE}" | grep "index.html\|main.html\|licenseReport.html\|report.html")
+        else
+          HTML_FILES=$(aws s3 ls s3://${BUCKET_NAME}/${S3_DESTINATION_DIR} --recursive | awk '{$1=$2=$3=""; print $0}' | sed 's/^[ \t]*//' | grep "index.html\|main.html\|licenseReport.html\|report.html")
+        fi
+        
         REPORT_URL=https://${BUCKET_NAME}.s3.amazonaws.com/
         REPLACER="$DESTINATION_DIR\/"
+        if [[ ${MODULE} != null ]]; then
+          REPLACER="$DESTINATION_DIR\/$MODULE"
+        fi
         
         echo "### Test Reports" | tee -a ${GITHUB_STEP_SUMMARY}
         for file in $HTML_FILES; do
