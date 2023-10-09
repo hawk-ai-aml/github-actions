@@ -155,7 +155,7 @@ jobs:
       - name: Login to Amazon ECR
         id: login-ecr
         if: ${{ github.workflow != 'pr' }}
-        uses: aws-actions/amazon-ecr-login@v1
+        uses: aws-actions/amazon-ecr-login@v2
         with:
           registries: ${{ needs.init.outputs.ecr-registry-code }}
 
