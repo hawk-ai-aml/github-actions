@@ -55,7 +55,7 @@ runs:
 
         echo "Previous tag: $PRE_TAG"
 
-        TAG_COMMITS=$(curl -s "https://api.github.com/repos/hawk-ai-aml/kustomize/compare/$PRE_TAG...$TAG" -u "$USER:$TOKEN" | jq -r '.commits | [.[] | select(.commit.message | test("Update tag for.* [0-9]+\\.[0-9]+\\.[0-9]+")) | .commit)]')
+        TAG_COMMITS=$(curl -s "https://api.github.com/repos/hawk-ai-aml/kustomize/compare/$PRE_TAG...$TAG" -u "$USER:$TOKEN" | jq -r '.commits | [.[] | select(.commit.message | test("Update tag for.* [0-9]+\\.[0-9]+\\.[0-9]+")) | .commit]')
         echo "Commits:"
         echo "$TAG_COMMITS"
 # End of file
