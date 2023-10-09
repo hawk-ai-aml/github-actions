@@ -55,14 +55,7 @@ runs:
 
         echo "Previous tag: $PRE_TAG"
 
-        TAG_COMMITS=$(curl -s "https://api.github.com/repos/hawk-ai-aml/kustomize/compare/$PRE_TAG...$TAG" -u "$USER:$TOKEN" | jq -r '.commits | [.[] | select(.commit.message | test("Update tag for.* [0-9]+\\.[0-9]+\\.[0-9]+")) | (.commit.message | tojson)] | join(" ")')
+        TAG_COMMITS=$(curl -s "https://api.github.com/repos/hawk-ai-aml/kustomize/compare/$PRE_TAG...$TAG" -u "$USER:$TOKEN" | jq -r '.commits | [.[] | select(.commit.message | test("Update tag for.* [0-9]+\\.[0-9]+\\.[0-9]+"))')
         echo "Commits:"
         echo "$TAG_COMMITS"
-        SERVICES=$(echo "${TAG_COMMITS}" | sed s/"AUTOMATIC COMMIT: Update tag for "/""/g)
-        SERVICES=$(echo "${SERVICES}" | sed s/" to "/"@"/g)
-
-        # Workflow outputs
-        cat <<EOF | tee -a ${GITHUB_STEP_SUMMARY} | tee -a ${GITHUB_OUTPUT}
-        services=$SERVICES
-        EOF
 # End of file
