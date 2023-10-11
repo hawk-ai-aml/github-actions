@@ -8,6 +8,9 @@ inputs:
   jira-token:
     description: "used for jira api"
     required: true
+  default-labels:
+    description: "Jira default labels. format: label1;label2;"
+    required: true
 
 runs:
   using: composite
@@ -15,8 +18,7 @@ runs:
     - name: Checkout code
       uses: actions/checkout@v3
 
-
-    - name: Extract Jira ticket from PR title
+    - name: Get Jira ticket from PR title
       shell: bash
       id: extract_ticket
       run: |
@@ -30,16 +32,22 @@ runs:
           exit 1
         fi
 
-    - name: Add labels to Jira ticket
+    - name: Add PR labels to Jira ticket ${{ steps.extract_ticket.outputs.ticket }}
       shell: bash
       env:
         JIRA_USER: ${{ inputs.jira-user }}
         JIRA_TOKEN: ${{ inputs.jira-token }}
+        JIRA_DEFAULT_LABELS: ${{ inputs.default-labels }}
       run: |
         echo "adding labels to https://hawkai.atlassian.net/browse/${{ steps.extract_ticket.outputs.ticket }}"
 
+        # Convert default labels from semicolon separated to array
+        IFS=';' read -ra default_labels <<< "$JIRA_DEFAULT_LABELS"
+
+        all_labels=("${existing_labels[@]}" "${default_labels[@]}" "NewLabel1" "NewLabel3")
+        unique_labels=($(echo "${all_labels[@]}" | tr ' ' '\n' | sort -u | tr '\n' ' '))
+
         curl -u $JIRA_USER:$JIRA_TOKEN -X PUT \
             -H "Content-Type: application/json" \
-            -d '{"fields": {"labels":["NewLabel1", "NewLabel3"]}}' \
+            -d "{\"fields\": {\"labels\":${unique_labels[@]}}}" \
             "https://hawkai.atlassian.net/rest/api/3/issue/${{ steps.extract_ticket.outputs.ticket }}"
-
