@@ -32,27 +32,26 @@ runs:
           exit 1
         fi
 
-    - name: Merge GitHub and Default Labels
-      shell: bash
-      id: merge_labels
-      env:
-        JIRA_DEFAULT_LABELS: ${{ inputs.default-labels }}
-      run: |
-        GITHUB_LABELS="${{ github.event.pull_request.labels.*.name }}"
-        IFS=';' read -ra default_labels <<< "$JIRA_DEFAULT_LABELS"
-        all_labels=("${GITHUB_LABELS[@]}" "${default_labels[@]}")
-        unique_labels=($(echo "${all_labels[@]}" | tr ' ' '\n' | sort -u | tr '\n' ' '))
-        echo "::set-output name=final_labels::${unique_labels[@]}"
-
-    - name: Add labels to Jira ticket ${{ steps.extract_ticket.outputs.ticket }}
+    - name: Add PR labels to Jira ticket ${{ steps.extract_ticket.outputs.ticket }}
       shell: bash
       env:
         JIRA_USER: ${{ inputs.jira-user }}
         JIRA_TOKEN: ${{ inputs.jira-token }}
+        JIRA_DEFAULT_LABELS: ${{ inputs.default-labels }}
       run: |
-        echo "Adding labels to https://hawkai.atlassian.net/browse/${{ steps.extract_ticket.outputs.ticket }}"
-        echo "${{ steps.merge_labels.outputs.final_labels }}"
+        echo "adding labels to https://hawkai.atlassian.net/browse/${{ steps.extract_ticket.outputs.ticket }}"
+
+        echo "${{ github.event.pull_request.labels.*.name }}"
+
+        # Convert default labels from semicolon separated to array
+        IFS=';' read -ra default_labels <<< "$JIRA_DEFAULT_LABELS"
+
+        all_labels=("${existing_labels[@]}" "${default_labels[@]}" "NewLabel1" "NewLabel3")
+        unique_labels=($(echo "${all_labels[@]}" | tr ' ' '\n' | sort -u | tr '\n' ' '))
+
+        payload=$(printf '%s\n' "${unique_labels[@]}" | jq -R . | jq -s .)
+
         curl -u $JIRA_USER:$JIRA_TOKEN -X PUT \
             -H "Content-Type: application/json" \
-            -d "{\"fields\": {\"labels\":${{ steps.merge_labels.outputs.final_labels }}}}" \
+            -d '{"fields": {"labels":$payload}}' \
             "https://hawkai.atlassian.net/rest/api/3/issue/${{ steps.extract_ticket.outputs.ticket }}"
