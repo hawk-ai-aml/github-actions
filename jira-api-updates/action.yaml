@@ -2,12 +2,23 @@ name: update-jira-labels
 description: Checks if new labels should be added to the jira ticket for this PR
 
 inputs:
+  repository-ref:
+    description: "Repository ref"
+    required: false
+    default: master
+
+  repository-access-token:
+    description: "Repository access token"
+    required: true
+
   jira-user:
     description: "used for jira api"
     required: true
+
   jira-token:
     description: "used for jira api"
     required: true
+
   default-labels:
     description: "Jira default labels. format: label1;label2;"
     required: true
@@ -38,22 +49,39 @@ runs:
         JIRA_USER: ${{ inputs.jira-user }}
         JIRA_TOKEN: ${{ inputs.jira-token }}
         JIRA_DEFAULT_LABELS: ${{ inputs.default-labels }}
+        GITHUB_TOKEN: ${{ inputs.repository-access-token }}
+        GITHUB_REF: ${{ inputs.repository-ref }}
       run: |
+        get_pr_labels() {
+            local repo=$1
+            local token=$2
+
+            local number=$(echo $repo | awk 'BEGIN { FS = "/" } ; { print $3 }')
+            curl -s -H "Authorization: token $token" \
+                -H "Accept: application/vnd.github.v3+json" \
+                "https://api.github.com/repos/$repo/issues/$number/labels" | jq -r '.[].name'
+        }
+
+        pr_labels=$(get_pr_labels "$GITHUB_REPOSITORY" "$GITHUB_TOKEN")
+
         echo "adding labels to https://hawkai.atlassian.net/browse/${{ steps.extract_ticket.outputs.ticket }}"
 
-        echo "${{ github.event.pull_request.labels }}"
+        echo "Labels: $pr_labels"
 
         # Convert default labels from semicolon separated to array
         IFS=';' read -ra default_labels <<< "$JIRA_DEFAULT_LABELS"
 
         all_labels=("${existing_labels[@]}" "${default_labels[@]}" "NewLabel1" "NewLabel3")
         unique_labels=($(echo "${all_labels[@]}" | tr ' ' '\n' | sort -u | tr '\n' ' '))
-
-        payload=$(printf '%s\n' "${unique_labels[@]}" | jq -R . | jq -s .)
+        
+        # Convert Bash array to JSON array
+        payload=$(jq -n --args "${unique_labels[@]}")
 
         echo $payload
 
-        # curl -u $JIRA_USER:$JIRA_TOKEN -X PUT \
-        #     -H "Content-Type: application/json" \
-        #     -d '{"fields": {"labels":$payload}}' \
-        #     "https://hawkai.atlassian.net/rest/api/3/issue/${{ steps.extract_ticket.outputs.ticket }}"
+        # Use the payload in the curl request
+        curl -u $JIRA_USER:$JIRA_TOKEN -X PUT \
+            -H "Content-Type: application/json" \
+            -d "{\"fields\": {\"labels\":$payload}}" \
+            "https://hawkai.atlassian.net/rest/api/3/issue/${{ steps.extract_ticket.outputs.ticket }}"
+
