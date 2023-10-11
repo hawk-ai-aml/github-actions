@@ -47,8 +47,8 @@ runs:
           S3_DESTINATION_DIR=${DESTINATION_DIR}/${MODULE}
         fi
         
-        aws s3api put-object --bucket ${BUCKET_NAME} --key ${S3_DESTINATION_DIR} --content-length 0
-        aws s3 cp . s3://${BUCKET_NAME}/${S3_DESTINATION_DIR} --recursive
+        aws s3api put-object --bucket ${BUCKET_NAME} --key ${S3_DESTINATION_DIR}/ --content-length 0
+        aws s3 cp . s3://${BUCKET_NAME}/${S3_DESTINATION_DIR}/ --recursive
         
         if [[ ${MODULE} != null ]]; then
           HTML_FILES=$(aws s3 ls s3://${BUCKET_NAME}/${S3_DESTINATION_DIR} --recursive | awk '{$1=$2=$3=""; print $0}' | sed 's/^[ \t]*//' | grep "${MODULE}" | grep "index.html\|main.html\|licenseReport.html\|report.html")
