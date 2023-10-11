@@ -1,0 +1,45 @@
+name: update-jira-labels
+description: Checks if new labels should be added to the jira ticket for this PR
+
+inputs:
+  jira-user:
+    description: "used for jira api"
+    required: true
+  jira-token:
+    description: "used for jira api"
+    required: true
+
+runs:
+  using: composite
+  steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+
+
+    - name: Extract Jira ticket from PR title
+      shell: bash
+      id: extract_ticket
+      run: |
+        PR_TITLE="${{ github.event.pull_request.title }}"
+        TICKET_NUMBER=$(echo $PR_TITLE | grep -oE '[A-Z]+-[0-9]+')
+        if [[ -n "$TICKET_NUMBER" ]]; then
+          echo "Found Jira ticket number: $TICKET_NUMBER"
+          echo "::set-output name=ticket::${TICKET_NUMBER}"
+        else
+          echo "No Jira ticket number found in PR title"
+          exit 1
+        fi
+
+    - name: Add labels to Jira ticket
+      shell: bash
+      env:
+        JIRA_USER: ${{ inputs.jira-user }}
+        JIRA_TOKEN: ${{ inputs.jira-token }}
+      run: |
+        echo "adding labels to https://hawkai.atlassian.net/rest/api/2/issue/${{ steps.extract_ticket.outputs.ticket }}"
+        curl -X PUT \
+            -H "Authorization: Bearer ${{ $JIRA_TOKEN }}" \
+            -H "Content-Type: application/json" \
+            -d '{"fields": {"labels":["NewLabel1", "NewLabel2"]}}' \
+            "https://hawkai.atlassian.net/rest/api/2/issue/${{ steps.extract_ticket.outputs.ticket }}"
+
