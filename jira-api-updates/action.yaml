@@ -40,6 +40,6 @@ runs:
 
         curl -u $JIRA_USER:$JIRA_TOKEN -X PUT \
             -H "Content-Type: application/json" \
-            -d '{"fields": {"labels":["NewLabel1", "NewLabel2"]}}' \
+            -d '{"fields": {"labels":["NewLabel1", "NewLabel3"]}}' \
             "https://hawkai.atlassian.net/rest/api/3/issue/${{ steps.extract_ticket.outputs.ticket }}"
 
