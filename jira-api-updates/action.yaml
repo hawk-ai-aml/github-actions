@@ -41,7 +41,7 @@ runs:
       run: |
         echo "adding labels to https://hawkai.atlassian.net/browse/${{ steps.extract_ticket.outputs.ticket }}"
 
-        echo "${{ github.event.pull_request.labels.*.name }}"
+        echo "${{ github.event.pull_request.labels }}"
 
         # Convert default labels from semicolon separated to array
         IFS=';' read -ra default_labels <<< "$JIRA_DEFAULT_LABELS"
@@ -51,7 +51,9 @@ runs:
 
         payload=$(printf '%s\n' "${unique_labels[@]}" | jq -R . | jq -s .)
 
-        curl -u $JIRA_USER:$JIRA_TOKEN -X PUT \
-            -H "Content-Type: application/json" \
-            -d '{"fields": {"labels":$payload}}' \
-            "https://hawkai.atlassian.net/rest/api/3/issue/${{ steps.extract_ticket.outputs.ticket }}"
+        echo $payload
+
+        # curl -u $JIRA_USER:$JIRA_TOKEN -X PUT \
+        #     -H "Content-Type: application/json" \
+        #     -d '{"fields": {"labels":$payload}}' \
+        #     "https://hawkai.atlassian.net/rest/api/3/issue/${{ steps.extract_ticket.outputs.ticket }}"
