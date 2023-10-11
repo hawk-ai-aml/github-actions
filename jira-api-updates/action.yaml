@@ -51,6 +51,7 @@ runs:
         JIRA_TOKEN: ${{ inputs.jira-token }}
       run: |
         echo "Adding labels to https://hawkai.atlassian.net/browse/${{ steps.extract_ticket.outputs.ticket }}"
+        echo "${{ steps.merge_labels.outputs.final_labels }}"
         curl -u $JIRA_USER:$JIRA_TOKEN -X PUT \
             -H "Content-Type: application/json" \
             -d "{\"fields\": {\"labels\":${{ steps.merge_labels.outputs.final_labels }}}}" \
