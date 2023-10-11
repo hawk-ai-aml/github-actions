@@ -38,7 +38,7 @@ runs:
       run: |
         echo "adding labels to https://hawkai.atlassian.net/rest/api/2/issue/${{ steps.extract_ticket.outputs.ticket }}"
         curl -X PUT \
-            -H "Authorization: Bearer ${{ $JIRA_TOKEN }}" \
+            -H "Authorization: Bearer ${{ JIRA_TOKEN }}" \
             -H "Content-Type: application/json" \
             -d '{"fields": {"labels":["NewLabel1", "NewLabel2"]}}' \
             "https://hawkai.atlassian.net/rest/api/2/issue/${{ steps.extract_ticket.outputs.ticket }}"
