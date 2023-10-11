@@ -73,9 +73,8 @@ runs:
 
         all_labels=("${existing_labels[@]}" "${default_labels[@]}" "NewLabel1" "NewLabel3")
         unique_labels=($(echo "${all_labels[@]}" | tr ' ' '\n' | sort -u | tr '\n' ' '))
-        
-        # Convert Bash array to JSON array
-        payload=$(jq -n --args "${unique_labels[@]}")
+
+        payload=$(printf '%s\n' "${unique_labels[@]}" | jq -R . | jq -s .)
 
         echo $payload
 
