@@ -1,0 +1,76 @@
+name: jira-issue-labels
+description: Get list of labels from Jira issues
+
+inputs:
+  jira-issues:
+    description: "List of Jira issues"
+    required: true
+
+  jira-user:
+    description: "Jira user"
+    required: true
+
+  jira-token:
+    description: "Jira access token"
+    required: true
+
+outputs:
+  labels:
+    description: 'List of labels from Jira issues'
+    value: ${{ steps.labels.outputs.labels }}
+
+runs:
+  using: composite
+  steps:
+    - name: Collect labels
+      id: labels
+      shell: bash -l -ET -eo pipefail {0}
+      env:
+        JIRA_ISSUES: ${{ inputs.jira-issues }}
+        JIRA_USER: ${{ inputs.jira-user }}
+        JIRA_TOKEN: ${{ inputs.jira-token }}
+      run: |
+        check_label() {
+            local ALL_LABELS=$1
+            local LABEL=$2
+        
+            local FOUND="false"        
+            IFS=' ' read -ra LABELS_ARR <<< "$ALL_LABELS"
+            for i in "${!LABELS_ARR[@]}"; do
+              if [[ "${LABELS_ARR[i]}" == "$LABEL" ]]; then
+                FOUND="true"
+                break
+              fi
+            done
+        
+            echo "$FOUND"
+        }
+        
+        ALL_LABELS=""
+        for number in $JIRA_ISSUES; do
+          LABELS=$(curl -s "https://hawkai.atlassian.net/rest/api/3/issue/$number" -u "$JIRA_USER:$JIRA_TOKEN" | jq -r '[.fields.labels | .[]] | join(" ")')
+          echo "Labels of issue '$number'"
+          echo "$LABELS"
+        
+          if [[ ! -z "$LABELS" ]]; then
+            for label in $LABELS; do
+              if [[ "$label" == "patch"* || "$label" == "minor"* || "$label" == "major"* ]]; then
+                continue
+              fi
+        
+              FOUND=$(check_label "$ALL_LABELS" "$label")
+              if [[ $FOUND == "false" ]]; then
+                ALL_LABELS=$ALL_LABELS"$label "
+              fi
+            done
+          fi
+        done
+        
+        LENGTH_OF_LABELS=$(echo ${#ALL_LABELS})
+        ALL_LABELS=${ALL_LABELS:0:${LENGTH_OF_LABELS}-1}
+        
+        # Workflow outputs
+        cat <<EOF | tee -a ${GITHUB_STEP_SUMMARY} | tee -a ${GITHUB_OUTPUT}
+        labels=$ALL_LABELS
+        EOF
+# End of file

@@ -22,13 +22,6 @@ outputs:
 runs:
   using: composite
   steps:
-    - name: Checkout Kustomize
-      uses: actions/checkout@v3
-      with:
-        repository: hawk-ai-aml/kustomize.git
-        ref: master
-        token: ${{ inputs.repository-access-token }}
-
     - name: Get services tagged with the platform tag
       id: collect-services
       shell: bash -l -ET -eo pipefail {0}
@@ -42,7 +35,7 @@ runs:
         echo "$TAGS"
 
         FOUND=false
-        for t in $TAGS}; do
+        for t in ${TAGS}; do
           if [[ $FOUND == true ]]; then
             PRE_TAG=$t
             break
@@ -53,6 +46,12 @@ runs:
           fi
         done
 
+        if [[ $$PRE_TAG == null ]]; then
+          RED='\033[0;31m'
+          echo -e "${RED}Error : Cannot find the previous tag with tag number '${TAG}'. Make sure the input tag is correct."
+          exit 1
+        fi
+        
         echo "Previous tag: $PRE_TAG"
 
         TAG_COMMITS=$(curl -s "https://api.github.com/repos/hawk-ai-aml/kustomize/compare/$PRE_TAG...$TAG" -u "$USER:$TOKEN" | jq -r '.commits | [.[] | select(.commit.message | test("Update tag for.* [0-9]+\\.[0-9]+\\.[0-9]+")) | (.commit.message | tojson)] | join(" ")')
