@@ -75,7 +75,7 @@ runs:
         fi
 
         # Create the new tag and push it
-        NEW_TAG="v$NEW_MAJOR_VERSION.$NEW_MINOR_VERSION.$NEW_PATCH_VERSION"
+        NEW_TAG="$NEW_MAJOR_VERSION.$NEW_MINOR_VERSION.$NEW_PATCH_VERSION"
 
 
         # git tag "$NEW_TAG"
