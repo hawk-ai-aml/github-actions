@@ -41,19 +41,13 @@ runs:
                 "https://api.github.com/repos/$repo/issues/$number/labels" | jq -r '.[].name'
         }
 
-        echo "PR is merged into master."
-
         # Get labels for the pull request using the GitHub REST API
         PR_NUMBER=$(get_pr_number "$GITHUB_REF")
 
         PR_LABELS=$(get_pr_labels "$GITHUB_REPOSITORY" "$PR_NUMBER" "$GITHUB_TOKEN")
 
-        echo "what the fuck $PR_LABELS"
-
         # Get the latest available tag
         LATEST_TAG=$(git describe --tags --abbrev=0)
-
-        echo "what the fuck $PR_LABELS"
 
         # Extract major, minor, and patch versions from the latest tag
         MAJOR_VERSION=$(echo "$LATEST_TAG" | awk -F. '{print $1}')
@@ -80,19 +74,17 @@ runs:
           exit 0
         fi
 
-        echo "what the fuck $PR_LABELS"
-
         # Create the new tag and push it
         NEW_TAG="v$NEW_MAJOR_VERSION.$NEW_MINOR_VERSION.$NEW_PATCH_VERSION"
 
-        echo "what the fuck $NEW_TAG"
 
         # git tag "$NEW_TAG"
         # git push origin --tags
 
         echo "new_tag=$NEW_TAG" >> $GITHUB_OUTPUT
 
-        echo "Created and pushed tag $NEW_TAG."
+        echo "Detected label: $PR_LABELS"
+        echo "Old tag: $LATEST_TAG | Proposing tag: $NEW_TAG."
 
     - name: Create tag
       uses: actions/github-script@v5
@@ -107,21 +99,9 @@ runs:
 
           console.log(`Creating tag ${newTag} in repository ${repo}`);
 
-
-    # - name: Create tag
-    #   uses: actions/github-script@v5
-    #   with:
-    #     github-token: ${{ inputs.repository-access-token }}
-    #     script: |
-
-    #       const repo = process.env.GITHUB_REPOSITORY;
-    #       const newTag = '${{ steps.generate-tag.outputs.new_tag }}';
-
-    #       console.log(`Creating tag ${newTag} in repository ${repo}`);
-
-    #       github.rest.git.createRef({
-    #         owner: context.repo.owner,
-    #         repo: context.repo.repo,
-    #         ref: 'refs/tags/${{ needs.tag.outputs.newTag }}',
-    #         sha: context.sha
-    #       })
+          github.git.createRef({
+            owner: repo.split('/')[0],
+            repo: repo.split('/')[1],
+            ref: `refs/tags/${newTag}`,
+            sha: context.sha
+          })
