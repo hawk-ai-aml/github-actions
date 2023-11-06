@@ -106,10 +106,3 @@ runs:
           const newTag = '${{ steps.generate-tag.outputs.new_tag }}';
 
           console.log(`Creating tag ${newTag} in repository ${repo}`);
-
-          # github.rest.git.createRef({
-          #   owner: context.repo.owner,
-          #   repo: context.repo.repo,
-          #   ref: 'refs/tags/${{ needs.tag.outputs.newTag }}',
-          #   sha: context.sha
-          # })
