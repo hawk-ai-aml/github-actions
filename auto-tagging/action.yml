@@ -27,11 +27,6 @@ runs:
         GITHUB_REF: ${{ inputs.repository-ref }}
         PR_NUMBER: ${{ github.event.number }}
       run: |
-        get_pr_number() {
-          local ref=$1
-          echo $ref | awk 'BEGIN { FS = "/" } ; { print $3 }'
-        }
-
         get_pr_labels() {
             local repo=$1
             local number=$2
@@ -40,15 +35,7 @@ runs:
                 -H "Accept: application/vnd.github.v3+json" \
                 "https://api.github.com/repos/$repo/issues/$number/labels" | jq -r '.[].name'
         }
-
-        echo "lol: $PR_NUMBER"
-        echo "what: $GITHUB_REF"
-
-        # Get labels for the pull request using the GitHub REST API
-        PR_NUMBER=$(get_pr_number "$GITHUB_REF")
-
-        echo "what: $PR_NUMBER"
-
+        
         PR_LABELS=$(get_pr_labels "$GITHUB_REPOSITORY" "$PR_NUMBER" "$GITHUB_TOKEN")
 
         echo "what: $PR_LABELS"
