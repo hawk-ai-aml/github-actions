@@ -97,7 +97,8 @@ runs:
     - name: Create tag
       uses: actions/github-script@v5
       with:
-        github-token: ${{ inputs.repository-access-token }}
+        env:
+          github-token: ${{ inputs.repository-access-token }}
         script: |
 
           # const repo = process.env.GITHUB_REPOSITORY;
