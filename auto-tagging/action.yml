@@ -93,14 +93,13 @@ runs:
         echo "new_tag=$NEW_TAG" >> $GITHUB_OUTPUT
 
         echo "Created and pushed tag $NEW_TAG."
-        echo "$context.repo.owner"
 
     - name: Create tag
       uses: actions/github-script@v5
       with:
         github-token: ${{ inputs.repository-access-token }}
         script: |
-          echo "$context.repo.owner"
+          # echo "$context.repo.owner"
 
           const repo = process.env.GITHUB_REPOSITORY;
           const newTag = '${{ steps.generate-tag.outputs.new_tag }}';
