@@ -102,7 +102,6 @@ runs:
         github-token: ${{ inputs.repository-access-token }}
         script: |
 
-          # const repo = process.env.GITHUB_REPOSITORY;
           const newTag = `${ process.env.NEW_TAG || ""}`;
 
           console.log(`Creating tag ${newTag} in repository XXX`);
