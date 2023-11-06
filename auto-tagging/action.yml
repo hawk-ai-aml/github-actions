@@ -98,7 +98,7 @@ runs:
     - name: Create tag
       uses: actions/github-script@v5
       with:
-        github-token: ${{ secrets.REPO_ACCESS_PAT }}
+        github-token: ${{ inputs.repository-access-token }}
         script: |
           echo "$context.repo.owner"
 
