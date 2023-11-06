@@ -25,6 +25,7 @@ runs:
       env:
         GITHUB_TOKEN: ${{ inputs.repository-access-token }}
         GITHUB_REF: ${{ inputs.repository-ref }}
+        PR_NUMBER: ${{ github.event.number }}
       run: |
         get_pr_number() {
           local ref=$1
@@ -40,6 +41,7 @@ runs:
                 "https://api.github.com/repos/$repo/issues/$number/labels" | jq -r '.[].name'
         }
 
+        echo "lol: $PR_NUMBER"
         echo "what: $GITHUB_REF"
 
         # Get labels for the pull request using the GitHub REST API
