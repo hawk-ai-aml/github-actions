@@ -21,7 +21,6 @@ runs:
 
     - name: Check if PR is merged into master. U
       shell: bash -l -ET -eo pipefail {0}
-      # if: github.event.pull_request.merged == true && github.event.pull_request.base.ref == 'master'
       id: generate-tag
       env:
         GITHUB_TOKEN: ${{ inputs.repository-access-token }}
@@ -41,10 +40,16 @@ runs:
                 "https://api.github.com/repos/$repo/issues/$number/labels" | jq -r '.[].name'
         }
 
+        echo "what: $GITHUB_REF"
+
         # Get labels for the pull request using the GitHub REST API
         PR_NUMBER=$(get_pr_number "$GITHUB_REF")
 
+        echo "what: $PR_NUMBER"
+
         PR_LABELS=$(get_pr_labels "$GITHUB_REPOSITORY" "$PR_NUMBER" "$GITHUB_TOKEN")
+
+        echo "what: $PR_LABELS"
 
         # Get the latest available tag
         LATEST_TAG=$(git describe --tags --abbrev=0)
