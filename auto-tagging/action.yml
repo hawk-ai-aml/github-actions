@@ -99,9 +99,27 @@ runs:
       with:
         github-token: ${{ inputs.repository-access-token }}
         script: |
-          # echo "$context.repo.owner"
 
-          const repo = process.env.GITHUB_REPOSITORY;
+          # const repo = process.env.GITHUB_REPOSITORY;
           const newTag = '${{ steps.generate-tag.outputs.new_tag }}';
 
           console.log(`Creating tag ${newTag} in repository ${repo}`);
+
+
+    # - name: Create tag
+    #   uses: actions/github-script@v5
+    #   with:
+    #     github-token: ${{ inputs.repository-access-token }}
+    #     script: |
+
+    #       const repo = process.env.GITHUB_REPOSITORY;
+    #       const newTag = '${{ steps.generate-tag.outputs.new_tag }}';
+
+    #       console.log(`Creating tag ${newTag} in repository ${repo}`);
+
+    #       github.rest.git.createRef({
+    #         owner: context.repo.owner,
+    #         repo: context.repo.repo,
+    #         ref: 'refs/tags/${{ needs.tag.outputs.newTag }}',
+    #         sha: context.sha
+    #       })
