@@ -1,0 +1,105 @@
+name: enforce-labels
+description: Enforce labels for pull request
+
+inputs:
+  repository-ref:
+    description: "Repository ref"
+    required: false
+    default: master
+
+  repository-access-token:
+    description: "Repository access token"
+    required: true
+
+runs:
+  using: composite
+  steps:
+    - name: Check out code
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0 # Ensure all tags are fetched
+
+    - name: Check if PR is merged into master. U
+      shell: bash -l -ET -eo pipefail {0}
+      # if: github.event.pull_request.merged == true && github.event.pull_request.base.ref == 'master'
+      id: tag
+      env:
+        GITHUB_TOKEN: ${{ inputs.repository-access-token }}
+        GITHUB_REF: ${{ inputs.repository-ref }}
+      run: |
+        get_pr_number() {
+          local ref=$1
+          echo $ref | awk 'BEGIN { FS = "/" } ; { print $3 }'
+        }
+
+        get_pr_labels() {
+            local repo=$1
+            local number=$2
+            local token=$3
+            curl -s -H "Authorization: token $token" \
+                -H "Accept: application/vnd.github.v3+json" \
+                "https://api.github.com/repos/$repo/issues/$number/labels" | jq -r '.[].name'
+        }
+
+        echo "PR is merged into master."
+
+        # Get labels for the pull request using the GitHub REST API
+        PR_NUMBER=$(get_pr_number "$GITHUB_REF")
+
+        PR_LABELS=$(get_pr_labels "$GITHUB_REPOSITORY" "$PR_NUMBER" "$GITHUB_TOKEN")
+
+        echo "what the fuck $PR_LABELS"
+
+        # Get the latest available tag
+        LATEST_TAG=$(git describe --tags --abbrev=0)
+
+        echo "what the fuck $PR_LABELS"
+
+        # Extract major, minor, and patch versions from the latest tag
+        MAJOR_VERSION=$(echo "$LATEST_TAG" | awk -F. '{print $1}')
+        MINOR_VERSION=$(echo "$LATEST_TAG" | awk -F. '{print $2}')
+        PATCH_VERSION=$(echo "$LATEST_TAG" | awk -F. '{print $3}')
+
+        # Initialize variables for the new version
+        NEW_MAJOR_VERSION=$MAJOR_VERSION
+        NEW_MINOR_VERSION=$MINOR_VERSION
+        NEW_PATCH_VERSION=$PATCH_VERSION
+
+        # Check for labels and increment the appropriate version
+        if [[ "$PR_LABELS" == *"major-version"* ]]; then
+          NEW_MAJOR_VERSION=$((MAJOR_VERSION + 1))
+          NEW_MINOR_VERSION=0
+          NEW_PATCH_VERSION=0
+        elif [[ "$PR_LABELS" == *"minor-version"* ]]; then
+          NEW_MINOR_VERSION=$((MINOR_VERSION + 1))
+          NEW_PATCH_VERSION=0
+        elif [[ "$PR_LABELS" == *"patch-version"* ]]; then
+          NEW_PATCH_VERSION=$((PATCH_VERSION + 1))
+        else
+          echo "No version labels found. No tag created."
+          exit 0
+        fi
+
+        echo "what the fuck $PR_LABELS"
+
+        # Create the new tag and push it
+        NEW_TAG="v$NEW_MAJOR_VERSION.$NEW_MINOR_VERSION.$NEW_PATCH_VERSION"
+
+        echo "what the fuck $NEW_TAG"
+
+        # git tag "$NEW_TAG"
+        # git push origin --tags
+
+        echo "Created and pushed tag $NEW_TAG."
+
+    # - name: Create tag
+    #   uses: actions/github-script@v5
+    #   with:
+    #     github-token: ${{ secrets.REPO_ACCESS_PAT }}
+    #     script: |
+    #       github.rest.git.createRef({
+    #         owner: context.repo.owner,
+    #         repo: context.repo.repo,
+    #         ref: 'refs/tags/${{ needs.tag.outputs.newTag }}',
+    #         sha: context.sha
+    #       })
