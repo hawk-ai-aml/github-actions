@@ -2,11 +2,6 @@ name: enforce-labels
 description: Enforce labels for pull request
 
 inputs:
-  repository-ref:
-    description: "Repository ref"
-    required: false
-    default: master
-
   repository-access-token:
     description: "Repository access token"
     required: true
