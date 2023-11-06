@@ -96,15 +96,16 @@ runs:
 
     - name: Create tag
       uses: actions/github-script@v5
+      env:
+        NEW_TAG: '${{ steps.generate-tag.outputs.new_tag }}'
       with:
-        env:
-          github-token: ${{ inputs.repository-access-token }}
+        github-token: ${{ inputs.repository-access-token }}
         script: |
 
           # const repo = process.env.GITHUB_REPOSITORY;
-          const newTag = '${{ steps.generate-tag.outputs.new_tag }}';
+          const newTag = `${ process.env.NEW_TAG || ""}`;
 
-          console.log(`Creating tag ${newTag} in repository ${repo}`);
+          console.log(`Creating tag ${newTag} in repository XXX`);
 
 
     # - name: Create tag
