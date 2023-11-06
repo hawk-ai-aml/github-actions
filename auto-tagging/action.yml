@@ -99,7 +99,7 @@ runs:
 
           console.log(`Creating tag ${newTag} in repository ${repo}`);
 
-          github.git.createRef({
+          github.rest.git.createRef({
             owner: repo.split('/')[0],
             repo: repo.split('/')[1],
             ref: `refs/tags/${newTag}`,
