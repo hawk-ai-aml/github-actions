@@ -221,6 +221,7 @@ jobs:
             -DTAG_COMMIT=${IMAGE_TAG}
 
   check-builds:
+    if: always()
     needs: [ init, build ]
     runs-on: [ "self-hosted", "small-builder" ]
     steps:
