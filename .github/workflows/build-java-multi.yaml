@@ -220,6 +220,19 @@ jobs:
             -DIMAGE_NAME="${ECR_REGISTRY}/${ECR_REPOSITORY_PREFIX}" \
             -DTAG_COMMIT=${IMAGE_TAG}
 
+  check-if-all-builds-passed:
+    if: always()
+    needs: [ build ]
+    runs-on: [ "self-hosted", "small-builder" ]
+    steps:
+      - name: Check Build Job Failure
+        if: ${{ needs.build.result == 'failure' }}
+        run: exit 1
+
+      - name: Check Build Job Success
+        if: ${{ needs.build.result == 'success' }}
+        run: exit 0
+
   vulnerability-check-run:
     if: ${{ inputs.vulnerabilityCheck == true }}
     needs: [ init, build ]
