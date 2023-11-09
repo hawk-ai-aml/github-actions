@@ -65,10 +65,13 @@ runs:
         # Create the new tag and push it
         NEW_TAG="$NEW_MAJOR_VERSION.$NEW_MINOR_VERSION.$NEW_PATCH_VERSION"
 
-        echo "new_tag=$NEW_TAG" >> $GITHUB_OUTPUT
-
         echo "Detected label: $PR_LABELS"
         echo "Old tag: $LATEST_TAG | Proposing tag: $NEW_TAG."
+
+        # Workflow outputs
+        cat <<EOF | tee -a ${GITHUB_STEP_SUMMARY} | tee -a ${GITHUB_OUTPUT}
+        new_tag=$NEW_TAG
+        EOF
 
     - name: Create tag
       uses: actions/github-script@v5
