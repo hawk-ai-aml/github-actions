@@ -184,7 +184,7 @@ jobs:
 
       - name: Upload reports to S3
         if: always()
-        uses: hawk-ai-aml/github-actions/upload-to-s3@master
+        uses: hawk-ai-aml/github-actions/upload-to-s3@SRE-2488-graviton-test
         with:
           aws_access_key_id: ${{ secrets.AWS_DEV_ACCESS_KEY_ID }}
           aws_secret_access_key: ${{ secrets.AWS_DEV_SECRET_ACCESS_KEY }}
