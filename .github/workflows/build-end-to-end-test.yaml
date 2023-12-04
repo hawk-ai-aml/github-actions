@@ -25,7 +25,7 @@ defaults:
 
 jobs:
   test:
-    runs-on: [ "self-hosted", "tester" ]
+    runs-on: [ "self-hosted", "tester-graviton" ]
 
     outputs:
       url: ${{ steps.report-url.outputs.url }}
