@@ -202,8 +202,26 @@ jobs:
         with:
           registries: ${{ needs.init.outputs.ecr-registry-code }}
 
-      - name: Build Docker Image
+      - name: Check if Docker image tag exists
         if: ${{ github.workflow != 'pr' && steps.ecr-info.outputs.module_ecr != 'null' }}
+        id: check-tag
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          ECR_REPOSITORY_PREFIX: ${{ fromJson(needs.init.outputs.metadata).ecr.repository-prefix }}
+          IMAGE_TAG: ${{ needs.init.outputs.image-tag }}
+        run: |
+          # Extract the repository name using jq
+          repository_name=$(echo '${{ steps.ecr-info.outputs.module_ecr }}' | jq -r '.repository')
+
+          docker_pull_output=$(docker pull "${ECR_REGISTRY}/${repository_name}:${IMAGE_TAG}" 2>&1 || echo "")
+
+          echo $docker_pull_output
+
+          # Pull the Docker image
+          echo "tag_exists=$(echo $docker_pull_output | grep -q 'not found' && echo 'false' || echo 'true')" >> $GITHUB_OUTPUT
+
+      - name: Build Docker Image
+        if: ${{ github.workflow != 'pr' && steps.ecr-info.outputs.module_ecr != 'null' && steps.check-tag.outputs.tag_exists != 'false' }}
         env:
           CI_BUILD: true
           GRADLE_CACHE_CI_PASSWORD: ${{ secrets.GRADLE_CACHE_CI_PASSWORD }}
