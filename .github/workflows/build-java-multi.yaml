@@ -207,14 +207,13 @@ jobs:
         id: check-tag
         env:
           ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
-          ECR_REPOSITORY_PREFIX: ${{ fromJson(needs.init.outputs.metadata).ecr.repository-prefix }}
           IMAGE_TAG: ${{ needs.init.outputs.image-tag }}
         run: |
           # Extract the repository name using jq
           repository_name=$(echo '${{ steps.ecr-info.outputs.module_ecr }}' | jq -r '.repository')
 
+          # Check if docker tag already exists
           docker_pull_output=$(docker pull "${ECR_REGISTRY}/${repository_name}:${IMAGE_TAG}" 2>&1 || echo "")
-
           echo $docker_pull_output
 
           # Pull the Docker image
