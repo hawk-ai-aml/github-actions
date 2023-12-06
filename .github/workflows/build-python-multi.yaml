@@ -157,7 +157,7 @@ jobs:
 
       - id: check-tag
         name: check if docker image tag exists in ECR
-        uses: hawk-ai-aml/github-actions/check-docker-tag-exists@OPX-1105-fix-develop-workflow-to-prevent-building-the-same-docker-image-tag-on-very-old-master-branch-commits
+        uses: hawk-ai-aml/github-actions/check-docker-tag-exists@master
         with:
           ecr-registry: ${{ steps.login-ecr.outputs.registry }}
           ecr-repository: ${{ steps.ecr-info.outputs.module_ecr }}
