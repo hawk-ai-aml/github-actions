@@ -132,6 +132,8 @@ jobs:
           IMAGE_TAG: ${{ needs.init.outputs.image-tag }}
         run: |
           echo ${{ steps.check-tag.outputs.tag_exists }}
+
+          echo ${{ steps.check-tag.outputs.updatedModules }}
           ./gradlew :${{ matrix.module }}:jib \
             -DIMAGE_NAME="${ECR_REGISTRY}/${ECR_REPOSITORY_PREFIX}" \
             -DTAG_COMMIT=${IMAGE_TAG}

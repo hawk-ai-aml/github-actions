@@ -12,10 +12,20 @@ inputs:
     description: "Repository access token"
     required: true
 
+outputs:
+  updatedModules:
+    description: 'The list of modules has the code changes'
+    value: ${{ steps.check-tag.outputs.updatedModules }}
+
+  tag_exists:
+    description: 'The list of modules has the code changes in string'
+    value: ${{ steps.check-tag.outputs.updatedModulesString }}
+
 runs:
   using: composite
   steps:
     - shell: bash -l -ET -eo pipefail {0}
+      id: check-tag
       env:
         ECR_REGISTRY: ${{ inputs.ecr-registry }}
         IMAGE_TAG: ${{ inputs.image-tag }}
@@ -30,3 +40,8 @@ runs:
 
         # Pull the Docker image
         echo "tag_exists=$(echo $docker_pull_output | grep -q 'not found' && echo 'false' || echo 'true')" >> $GITHUB_OUTPUT
+
+        # Workflow outputs
+        cat <<EOF | tee -a ${GITHUB_STEP_SUMMARY} | tee -a ${GITHUB_OUTPUT}
+        updatedModules="whatup"
+        EOF
