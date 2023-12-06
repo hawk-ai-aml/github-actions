@@ -2,6 +2,12 @@ name: enforce-labels
 description: Enforce labels for pull request
 
 inputs:
+  aws-access-key-id:
+    description: "URI of the ecr registry"
+  aws-secret-access-key:
+    description: "URI of the ecr registry"
+  aws-region:
+    description: "URI of the ecr registry"
   ecr-registry:
     description: "URI of the ecr registry"
     required: true
@@ -18,11 +24,19 @@ inputs:
 runs:
   using: composite
   steps:
-    - name: Login to Amazon ECR
-      id: login-ecr
-      uses: aws-actions/amazon-ecr-login@v2
-      with:
-        registries: ${{ inputs.ecr-registry-code }}
+
+    # - name: Configure AWS credentials
+    #   uses: aws-actions/configure-aws-credentials@v1-node16
+    #   with:
+    #     aws-access-key-id: ${{ secrets.AWS_ORG_ECR_ACCESS_KEY_ID }}
+    #     aws-secret-access-key: ${{ secrets.AWS_ORG_ECR_SECRET_ACCESS_KEY }}
+    #     aws-region: ${{ needs.init.outputs.ecr-region }}
+
+    # - name: Login to Amazon ECR
+    #   id: login-ecr
+    #   uses: aws-actions/amazon-ecr-login@v2
+    #   with:
+    #     registries: ${{ inputs.ecr-registry-code }}
 
     - name: Check if Docker image tag exists
       shell: bash -l -ET -eo pipefail {0}
