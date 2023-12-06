@@ -4,6 +4,9 @@ Usage
         name: Create tag
         uses: hawk-ai-aml/github-actions/check-docker-tag-exists@master
         with:
+          aws-access-key-id: ${{ secrets.AWS_ORG_ECR_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_ORG_ECR_SECRET_ACCESS_KEY }}
+          aws-region: ${{ needs.init.outputs.ecr-region }}
           ecr-registry: ${{ steps.login-ecr.outputs.registry }}
           ecr-repository: ${{ steps.ecr-info.outputs.module_ecr }}
           image-tag: ${{ needs.init.outputs.image-tag }}
