@@ -211,7 +211,7 @@ jobs:
           image-tag: ${{ needs.init.outputs.image-tag }}
 
       - name: Build Docker Image
-        if: ${{ steps.check-tag.outputs.tag_already_exists != 'true' }}
+        if: ${{ github.workflow != 'pr' && steps.ecr-info.outputs.module_ecr != 'null' && steps.check-tag.outputs.tag_already_exists != 'true' }}
         env:
           CI_BUILD: true
           GRADLE_CACHE_CI_PASSWORD: ${{ secrets.GRADLE_CACHE_CI_PASSWORD }}
