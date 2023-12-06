@@ -19,7 +19,7 @@ outputs:
 
   tag_exists:
     description: 'The list of modules has the code changes in string'
-    value: ${{ steps.check-tag.outputs.updatedModulesString }}
+    value: ${{ steps.check-tag.outputs.tag_exists }}
 
 runs:
   using: composite
