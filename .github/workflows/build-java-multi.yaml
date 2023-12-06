@@ -113,13 +113,9 @@ jobs:
         name: check if docker image tag exists in ECR
         uses: hawk-ai-aml/github-actions/check-docker-tag-exists@OPX-1105-fix-develop-workflow-to-prevent-building-the-same-docker-image-tag-on-very-old-master-branch-commits
         with:
-          aws-access-key-id: ${{ secrets.AWS_ORG_ECR_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_ORG_ECR_SECRET_ACCESS_KEY }}
-          aws-region: ${{ needs.init.outputs.ecr-region }}
           ecr-registry: ${{ steps.login-ecr.outputs.registry }}
           ecr-repository: ${{ steps.ecr-info.outputs.module_ecr }}
           image-tag: ${{ needs.init.outputs.image-tag }}
-          ecr-registry-code: ${{ needs.init.outputs.ecr-registry-code }}
 
       - name: Build Docker Image
         if: ${{ steps.check-tag.outputs.tag_exists != 'false' }}
@@ -135,6 +131,7 @@ jobs:
           ECR_REPOSITORY_PREFIX: ${{ fromJson(needs.init.outputs.metadata).ecr.repository-prefix }}
           IMAGE_TAG: ${{ needs.init.outputs.image-tag }}
         run: |
+          echo ${{ steps.check-tag.outputs.tag_exists }}
           ./gradlew :${{ matrix.module }}:jib \
             -DIMAGE_NAME="${ECR_REGISTRY}/${ECR_REPOSITORY_PREFIX}" \
             -DTAG_COMMIT=${IMAGE_TAG}
