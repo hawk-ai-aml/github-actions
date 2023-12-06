@@ -1,13 +1,7 @@
-name: enforce-labels
-description: Enforce labels for pull request
+name: check-docker-tag-exists
+description: Check if the docker tag exists or not
 
 inputs:
-  aws-access-key-id:
-    description: "URI of the ecr registry"
-  aws-secret-access-key:
-    description: "URI of the ecr registry"
-  aws-region:
-    description: "URI of the ecr registry"
   ecr-registry:
     description: "URI of the ecr registry"
     required: true
@@ -17,30 +11,11 @@ inputs:
   image-tag:
     description: "Repository access token"
     required: true
-  ecr-registry-code:
-    description: "ECR registry code"
-    required: true
 
 runs:
   using: composite
   steps:
-
-    # - name: Configure AWS credentials
-    #   uses: aws-actions/configure-aws-credentials@v1-node16
-    #   with:
-    #     aws-access-key-id: ${{ secrets.AWS_ORG_ECR_ACCESS_KEY_ID }}
-    #     aws-secret-access-key: ${{ secrets.AWS_ORG_ECR_SECRET_ACCESS_KEY }}
-    #     aws-region: ${{ needs.init.outputs.ecr-region }}
-
-    # - name: Login to Amazon ECR
-    #   id: login-ecr
-    #   uses: aws-actions/amazon-ecr-login@v2
-    #   with:
-    #     registries: ${{ inputs.ecr-registry-code }}
-
-    - name: Check if Docker image tag exists
-      shell: bash -l -ET -eo pipefail {0}
-      id: check-tag
+    - shell: bash -l -ET -eo pipefail {0}
       env:
         ECR_REGISTRY: ${{ inputs.ecr-registry }}
         IMAGE_TAG: ${{ inputs.image-tag }}
