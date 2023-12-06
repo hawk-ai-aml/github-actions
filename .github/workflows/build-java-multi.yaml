@@ -202,22 +202,14 @@ jobs:
         with:
           registries: ${{ needs.init.outputs.ecr-registry-code }}
 
-      - name: Check if Docker image tag exists
-        if: ${{ github.workflow != 'pr' && steps.ecr-info.outputs.module_ecr != 'null' }}
-        id: check-tag
-        env:
-          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
-          IMAGE_TAG: ${{ needs.init.outputs.image-tag }}
-        run: |
-          # Extract the repository name using jq
-          repository_name=$(echo '${{ steps.ecr-info.outputs.module_ecr }}' | jq -r '.repository')
-
-          # Check if docker tag already exists
-          docker_pull_output=$(docker pull "${ECR_REGISTRY}/${repository_name}:${IMAGE_TAG}" 2>&1 || echo "")
-          echo $docker_pull_output
-
-          # Pull the Docker image
-          echo "tag_exists=$(echo $docker_pull_output | grep -q 'not found' && echo 'false' || echo 'true')" >> $GITHUB_OUTPUT
+      - id: check-tag
+        name: check if docker image tag exists in ECR
+        uses: hawk-ai-aml/github-actions/check-docker-tag-exists@OPX-1105-fix-develop-workflow-to-prevent-building-the-same-docker-image-tag-on-very-old-master-branch-commits
+        with:
+          ecr-registry: ${{ steps.login-ecr.outputs.registry }}
+          ecr-repository: ${{ steps.ecr-info.outputs.module_ecr }}
+          image-tag: ${{ needs.init.outputs.image-tag }}
+          ecr-registry-code: ${{ needs.init.outputs.ecr-registry-code }}
 
       - name: Build Docker Image
         if: ${{ github.workflow != 'pr' && steps.ecr-info.outputs.module_ecr != 'null' && steps.check-tag.outputs.tag_exists != 'false' }}

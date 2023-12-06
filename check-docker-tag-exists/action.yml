@@ -1,0 +1,43 @@
+name: enforce-labels
+description: Enforce labels for pull request
+
+inputs:
+  ecr-registry:
+    description: "URI of the ecr registry"
+    required: true
+  ecr-repository:
+    description: "Name of the ECR repository"
+    required: true
+  image-tag:
+    description: "Repository access token"
+    required: true
+  ecr-registry-code:
+    description: "ECR registry code"
+    required: true
+
+runs:
+  using: composite
+  steps:
+    - name: Login to Amazon ECR
+      id: login-ecr
+      uses: aws-actions/amazon-ecr-login@v2
+      with:
+        registries: ${{ inputs.ecr-registry-code }}
+
+    - name: Check if Docker image tag exists
+      shell: bash -l -ET -eo pipefail {0}
+      id: check-tag
+      env:
+        ECR_REGISTRY: ${{ inputs.ecr-registry }}
+        IMAGE_TAG: ${{ inputs.image-tag }}
+      run: |
+
+        # Extract the repository name using jq
+        ECR_REPOSITORY=$(echo '${{ inputs.ecr-repository }}' | jq -r '.repository')
+
+        # Check if docker tag already exists
+        docker_pull_output=$(docker pull "${ECR_REGISTRY}/${ECR_REPOSITORY}:${IMAGE_TAG}" 2>&1 || echo "")
+        echo $docker_pull_output
+
+        # Pull the Docker image
+        echo "tag_exists=$(echo $docker_pull_output | grep -q 'not found' && echo 'false' || echo 'true')" >> $GITHUB_OUTPUT
