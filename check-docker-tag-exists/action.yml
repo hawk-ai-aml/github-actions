@@ -13,13 +13,9 @@ inputs:
     required: true
 
 outputs:
-  updatedModules:
-    description: 'The list of modules has the code changes'
-    value: ${{ steps.check-tag.outputs.updatedModules }}
-
-  tag_exists:
-    description: 'The list of modules has the code changes in string'
-    value: ${{ steps.check-tag.outputs.tag_exists }}
+  tag_already_exists:
+    description: 'Boolean value indicating if the docker image already exists in given ECR registry'
+    value: ${{ steps.check-tag.outputs.tag_already_exists }}
 
 runs:
   using: composite
@@ -39,9 +35,9 @@ runs:
         echo $docker_pull_output
 
         # Pull the Docker image
-        echo "tag_exists=$(echo $docker_pull_output | grep -q 'not found' && echo 'false' || echo 'true')" >> $GITHUB_OUTPUT
+        # echo "tag_already_exists=$(echo $docker_pull_output | grep -q 'not found' && echo 'false' || echo 'true')" >> $GITHUB_OUTPUT
 
         # Workflow outputs
         cat <<EOF | tee -a ${GITHUB_STEP_SUMMARY} | tee -a ${GITHUB_OUTPUT}
-        updatedModules="whatup"
+        tag_already_exists=$(echo $docker_pull_output | grep -q 'not found' && echo 'false' || echo 'true')
         EOF

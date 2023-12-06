@@ -118,7 +118,6 @@ jobs:
           image-tag: ${{ needs.init.outputs.image-tag }}
 
       - name: Build Docker Image
-        if: ${{ steps.check-tag.outputs.tag_exists != 'false' }}
         env:
           CI_BUILD: true
           GRADLE_CACHE_CI_PASSWORD: ${{ secrets.GRADLE_CACHE_CI_PASSWORD }}
@@ -131,9 +130,8 @@ jobs:
           ECR_REPOSITORY_PREFIX: ${{ fromJson(needs.init.outputs.metadata).ecr.repository-prefix }}
           IMAGE_TAG: ${{ needs.init.outputs.image-tag }}
         run: |
-          echo ${{ steps.check-tag.outputs.tag_exists }}
+          echo ${{ steps.check-tag.outputs.tag_already_exists }}
 
-          echo ${{ steps.check-tag.outputs.updatedModules }}
           ./gradlew :${{ matrix.module }}:jib \
             -DIMAGE_NAME="${ECR_REGISTRY}/${ECR_REPOSITORY_PREFIX}" \
             -DTAG_COMMIT=${IMAGE_TAG}
