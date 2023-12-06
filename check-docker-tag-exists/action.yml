@@ -34,9 +34,6 @@ runs:
         docker_pull_output=$(docker pull "${ECR_REGISTRY}/${ECR_REPOSITORY}:${IMAGE_TAG}" 2>&1 || echo "")
         echo $docker_pull_output
 
-        # Pull the Docker image
-        # echo "tag_already_exists=$(echo $docker_pull_output | grep -q 'not found' && echo 'false' || echo 'true')" >> $GITHUB_OUTPUT
-
         # Workflow outputs
         cat <<EOF | tee -a ${GITHUB_STEP_SUMMARY} | tee -a ${GITHUB_OUTPUT}
         tag_already_exists=$(echo $docker_pull_output | grep -q 'not found' && echo 'false' || echo 'true')
