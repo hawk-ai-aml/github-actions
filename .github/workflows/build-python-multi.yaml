@@ -155,8 +155,16 @@ jobs:
         with:
           registries: ${{ needs.init.outputs.ecr-registry-code }}
 
+      - id: check-tag
+        name: check if docker image tag exists in ECR
+        uses: hawk-ai-aml/github-actions/check-docker-tag-exists@master
+        with:
+          ecr-registry: ${{ steps.login-ecr.outputs.registry }}
+          ecr-repository: ${{ steps.ecr-info.outputs.module_ecr }}
+          image-tag: ${{ needs.init.outputs.image-tag }}
+
       - name: Build and tag images
-        if: ${{ github.workflow != 'pr' && steps.ecr-info.outputs.module_ecr != 'null' }}
+        if: ${{ github.workflow != 'pr' && steps.ecr-info.outputs.module_ecr != 'null' && steps.check-tag.outputs.tag_already_exists != 'true' }}
         env:
           IMAGE_TAG: ${{ needs.init.outputs.image-tag }}
           ECR_PREFIX: ${{ inputs.ecr-prefix }}
