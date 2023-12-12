@@ -75,84 +75,6 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      - name: Set up JDK
-        uses: actions/setup-java@v3
-        with:
-          java-version: ${{ fromJson(needs.init.outputs.metadata).java-version }}
-          distribution: temurin
-          cache: gradle
-
-      - name: Set up Gradle
-        uses: gradle/gradle-build-action@v2
-        env:
-          GRADLE_BUILD_ACTION_CACHE_DEBUG_ENABLED: true
-
-      - name: Gradle Assemble
-        env:
-          ARTIFACTORY_CONTEXT_URL: ${{ secrets.ARTIFACTORY_CONTEXT_URL }}
-          ARTIFACTORY_USERNAME: ${{ secrets.ARTIFACTORY_USERNAME }}
-          ARTIFACTORY_PASSWORD: ${{ secrets.ARTIFACTORY_PASSWORD }}
-          GRADLE_CACHE_USERNAME: ${{ secrets.GRADLE_CACHE_USERNAME }}
-          GRADLE_CACHE_PASSWORD: ${{ secrets.GRADLE_CACHE_PASSWORD }}
-        run: ./gradlew clean assemble testClasses -isS
-
-      - name: Check Quality
-        env:
-          ARTIFACTORY_CONTEXT_URL: ${{ secrets.ARTIFACTORY_CONTEXT_URL }}
-          ARTIFACTORY_USERNAME: ${{ secrets.ARTIFACTORY_USERNAME }}
-          ARTIFACTORY_PASSWORD: ${{ secrets.ARTIFACTORY_PASSWORD }}
-          GRADLE_CACHE_USERNAME: ${{ secrets.GRADLE_CACHE_USERNAME }}
-          GRADLE_CACHE_PASSWORD: ${{ secrets.GRADLE_CACHE_PASSWORD }}
-        run: ./gradlew checkQualityMain
-
-      - name: Run Tests
-        if: ${{ needs.init.outputs.skip-tests != 'true' }}
-        env:
-          ARTIFACTORY_CONTEXT_URL: ${{ secrets.ARTIFACTORY_CONTEXT_URL }}
-          ARTIFACTORY_USERNAME: ${{ secrets.ARTIFACTORY_USERNAME }}
-          ARTIFACTORY_PASSWORD: ${{ secrets.ARTIFACTORY_PASSWORD }}
-          GRADLE_CACHE_USERNAME: ${{ secrets.GRADLE_CACHE_USERNAME }}
-          GRADLE_CACHE_PASSWORD: ${{ secrets.GRADLE_CACHE_PASSWORD }}
-        run: |
-          ./gradlew check -isS
-          ./gradlew jacocoTestReport
-
-      - name: License Report
-        env:
-          ARTIFACTORY_CONTEXT_URL: ${{ secrets.ARTIFACTORY_CONTEXT_URL }}
-          ARTIFACTORY_USERNAME: ${{ secrets.ARTIFACTORY_USERNAME }}
-          ARTIFACTORY_PASSWORD: ${{ secrets.ARTIFACTORY_PASSWORD }}
-          GRADLE_CACHE_USERNAME: ${{ secrets.GRADLE_CACHE_USERNAME }}
-          GRADLE_CACHE_PASSWORD: ${{ secrets.GRADLE_CACHE_PASSWORD }}
-        run: ./gradlew licenseReport
-
-      - name: Aggregate reports for upload
-        if: needs.init.outputs.skip-tests != 'true' && (success() || failure())
-        env:
-          METADATA: ${{ needs.init.outputs.metadata }}
-        run: |
-          for module in $(echo ${METADATA} | jq -r '.modules | keys | join(" ")'); do
-            mkdir -p reports/${module}/build
-            if [[ -d ${module}/build/reports ]]; then
-              cp -r ${module}/build/reports reports/${module}/build/reports
-            fi
-          
-            if [[ -d ${module}/build/jacocoHtml ]]; then
-              cp -r ${module}/build/jacocoHtml reports/${module}/build/jacocoHtml
-            fi
-          done
-
-      - name: Upload Reports to S3
-        id: reports
-        if: needs.init.outputs.skip-tests != 'true' && (success() || failure())
-        uses: hawk-ai-aml/github-actions/upload-to-s3@master
-        with:
-          aws_access_key_id: ${{ secrets.AWS_DEV_ACCESS_KEY_ID }}
-          aws_secret_access_key: ${{ secrets.AWS_DEV_SECRET_ACCESS_KEY }}
-          aws_bucket: github-actions-static-html-2
-          source_dir: reports
-          destination_dir: ${{ github.event.repository.name }}-${{ github.run_id }}
-
       - name: Configure AWS credentials
         if: ${{ github.workflow != 'pr' }}
         uses: aws-actions/configure-aws-credentials@v1
@@ -167,6 +89,15 @@ jobs:
         uses: aws-actions/amazon-ecr-login@v2
         with:
           registries: ${{ needs.init.outputs.ecr-registry-code }}
+
+      - name: check if docker image tag exists in ECR
+        id: check-tag
+        if: ${{ github.workflow != 'pr' }}
+        uses: hawk-ai-aml/github-actions/check-docker-tag-exists@master
+        with:
+          ecr-registry: ${{ steps.login-ecr.outputs.registry }}
+          ecr-repository: ${{ fromJson(needs.init.outputs.metadata).ecr.repository }}
+          image-tag: ${{ needs.init.outputs.image-tag }}
 
       - name: Build Docker image
         if: ${{ github.workflow != 'pr' }}
