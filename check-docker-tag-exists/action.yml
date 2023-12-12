@@ -27,8 +27,15 @@ runs:
         IMAGE_TAG: ${{ inputs.image-tag }}
       run: |
 
-        # Extract the repository name using jq
-        ECR_REPOSITORY=$(echo '${{ inputs.ecr-repository }}' | jq -r '.repository')
+        # Check if 'repository' field exists in the JSON data
+        if [ "$(echo '${{ inputs.ecr-repository }}' | jq -e 'has("repository")' 2>/dev/null)" == "true" ]; then
+            # If 'repository' exists, assign it to ECR_REPOSITORY
+            # Extract the repository name using jq
+            ECR_REPOSITORY=$(echo '${{ inputs.ecr-repository }}' | jq -r '.repository')
+        else
+            # If 'repository' doesn't exist, do nothing
+            ECR_REPOSITORY=$(echo '${{ inputs.ecr-repository }}')
+        fi
 
         # Check if docker tag already exists
         docker_pull_output=$(docker pull "${ECR_REGISTRY}/${ECR_REPOSITORY}:${IMAGE_TAG}" 2>&1 || echo "")
