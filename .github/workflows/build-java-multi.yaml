@@ -202,8 +202,9 @@ jobs:
         with:
           registries: ${{ needs.init.outputs.ecr-registry-code }}
 
-      - id: check-tag
-        name: check if docker image tag exists in ECR
+      - name: check if docker image tag exists in ECR
+        id: check-tag
+        if: ${{ github.workflow != 'pr' && steps.ecr-info.outputs.module_ecr != 'null' }}
         uses: hawk-ai-aml/github-actions/check-docker-tag-exists@master
         with:
           ecr-registry: ${{ steps.login-ecr.outputs.registry }}
