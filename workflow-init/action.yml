@@ -24,6 +24,10 @@ inputs:
   repository-access-token:
     description: "Access token to repository"
     required: true
+  use-sonarcloud:
+    description: "Hint to use SonarCloud"
+    required: false
+    default: "false"
 
 outputs:
   overlays:
@@ -69,6 +73,10 @@ outputs:
   metadata:
     description: 'The metadata of the current repository'
     value: ${{ steps.vars.outputs.metadata }}
+
+  use-sonarcloud:
+    description: 'Hint to use SonarCloud'
+    value: ${{ steps.vars.outputs.use-sonarcloud }}
 
 runs:
   using: composite
@@ -162,6 +170,8 @@ runs:
         fi
         
         OVERLAYS_STRING=$(echo ${OVERLAYS_JSON} | jq -r 'join(" ")')
+        
+        USE_SONARCLOUD=${{ inputs.use-sonarcloud }}
 
         # Workflow outputs
         cat <<EOF | tee -a ${GITHUB_STEP_SUMMARY} | tee -a ${GITHUB_OUTPUT}
@@ -176,6 +186,7 @@ runs:
         ecr-registry-code=${ECR_REGISTRY_CODE}
         ecr-region=${ECR_REGION}
         metadata=${METADATA}
+        use-sonarcloud=${USE_SONARCLOUD}
         EOF
 
         cat <<EOF | tee -a ${GITHUB_STEP_SUMMARY}
