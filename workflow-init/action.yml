@@ -86,10 +86,17 @@ runs:
       run: echo "HAWK_WORKFLOW_ID=${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}" >> ${GITHUB_ENV}
 
     - name: Checkout current repository
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
       with:
         repository: ${{ inputs.repository-name }}
         ref: ${{ inputs.repository-ref }}
+        token: ${{ inputs.repository-access-token }}
+
+    - name: Checkout current repository
+      uses: actions/checkout@v4
+      with:
+        repository: ${{ inputs.repository-name }}
+        ref: master
         token: ${{ inputs.repository-access-token }}
 
     - name: Load profile
