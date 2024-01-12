@@ -29,6 +29,11 @@ on:
         type: boolean
         required: false
         default: false
+      useSonarCloud:
+        description: "Use SonarCloud for code quality checks"
+        type: boolean
+        required: false
+        default: false
 
 defaults:
   run:
@@ -49,6 +54,7 @@ jobs:
       ecr-registry-code: ${{ steps.init.outputs.ecr-registry-code }}
       ecr-region: ${{ steps.init.outputs.ecr-region }}
       metadata: ${{ steps.init.outputs.metadata }}
+      use-sonarcloud: ${{ steps.init.outputs.use-sonarcloud }}
 
     steps:
       - id: init
@@ -61,13 +67,24 @@ jobs:
           repository-name: hawk-ai-aml/${{ inputs.component }}
           repository-ref: ${{ env.GITHUB_REF_NAME }}
           repository-access-token: ${{ secrets.REPO_ACCESS_PAT }}
+          use-sonarcloud: ${{ inputs.useSonarCloud }}
 
   build:
     needs: [ init ]
     runs-on: [ "self-hosted", "builder" ]
 
     steps:
-      - uses: actions/checkout@v3
+      - name: Checkout master
+        uses: actions/checkout@v4
+        with:
+          ref: master
+          fetch-depth: 1000
+
+      - name: Checkout current branch
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ env.GITHUB_REF_NAME }}
+          fetch-depth: 1000
 
       - name: Login to Docker Hub
         uses: docker/login-action@v2
@@ -106,7 +123,7 @@ jobs:
         run: ./gradlew checkQualityMain
 
       - name: Run Tests
-        if: ${{ needs.init.outputs.skip-tests != 'true' }}
+        if: ${{ needs.init.outputs.skip-tests != 'true' && needs.init.outputs.use-sonarcloud != 'true'}}
         env:
           ARTIFACTORY_CONTEXT_URL: ${{ secrets.ARTIFACTORY_CONTEXT_URL }}
           ARTIFACTORY_USERNAME: ${{ secrets.ARTIFACTORY_USERNAME }}
@@ -116,6 +133,19 @@ jobs:
         run: |
           ./gradlew check -isS
           ./gradlew jacocoTestReport
+
+      - name: Run Tests With Sonar
+        if: ${{ needs.init.outputs.skip-tests != 'true' && needs.init.outputs.use-sonarcloud == 'true'}}
+        env:
+          ARTIFACTORY_CONTEXT_URL: ${{ secrets.ARTIFACTORY_CONTEXT_URL }}
+          ARTIFACTORY_USERNAME: ${{ secrets.ARTIFACTORY_USERNAME }}
+          ARTIFACTORY_PASSWORD: ${{ secrets.ARTIFACTORY_PASSWORD }}
+          GRADLE_CACHE_USERNAME: ${{ secrets.GRADLE_CACHE_USERNAME }}
+          GRADLE_CACHE_PASSWORD: ${{ secrets.GRADLE_CACHE_PASSWORD }}
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        run: |
+          ./gradlew check -isS
+          ./gradlew jacocoTestReport sonar
 
       - name: License Report
         env:
