@@ -1,0 +1,59 @@
+name: check-pr-exist
+
+on:
+  workflow_call:
+    inputs:
+      repo:
+        description: "Repository name"
+        type: string
+        required: true
+      base:
+        description: "Base (default: 'master')"
+        type: string
+        required: false
+        default: "master"
+      branch-name:
+        description: "Branch name"
+        type: string
+        required: true
+    outputs:
+      pr-found:
+        description: "PR found"
+        value: ${{ jobs.check-pr.outputs.pr-found }}
+
+jobs:
+  check-pr:
+    runs-on: [ "self-hosted", "small-builder" ]
+    outputs:
+      pr-found: ${{ steps.check-existing-pr.outputs.result }}
+    
+    steps:
+      - name: Check existing PR
+        id: check-existing-pr
+        uses: actions/github-script@v7
+        env:
+          REPO: ${{ inputs.repo }}
+          BASE: ${{ inputs.base }}
+          BRANCH_NAME: ${{ inputs.branch-name }}
+        with:
+          github-token: ${{ secrets.REPO_ACCESS_PAT }}
+          result-encoding: string
+          script: |
+            const { repo, owner } = context.repo;
+            const pr_list = await github.rest.pulls.list({
+              owner,
+              repo,
+              head: `${owner}:${ process.env.BRANCH_NAME }`,
+              base: `${ process.env.BASE }`,
+              state: 'open',
+            });
+
+            console.log(pr_list)
+
+            if (pr_list.data.length === 0) {
+              console.log("No PR found")
+              return false
+            }
+
+            return true
+
