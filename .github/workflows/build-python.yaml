@@ -71,6 +71,10 @@ jobs:
       - name: Install pipenv
         run: pip install pipenv==2023.6.18
 
+      - uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCP_CLOUD_STORAGE_SERVICE_ACCOUNT_KEY }}
+
       - name: Run Pytest
         env:
           SCHEMA_REGISTRY_URL: "http://internal-aed0c439480b011ea821006d55bdfaa3-2040159056.eu-central-1.elb.amazonaws.com:8081"
