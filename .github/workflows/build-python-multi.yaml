@@ -105,6 +105,10 @@ jobs:
           fi
           pipenv run pip install pip-licenses
 
+      - uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCP_CLOUD_STORAGE_SERVICE_ACCOUNT_KEY }}
+
       - name: Run Pytest
         env:  
           JENKINS: true
@@ -124,6 +128,7 @@ jobs:
         if: inputs.skipTests != 'true' && (success() || failure())
         uses: hawk-ai-aml/github-actions/upload-to-s3@master
         with:
+          module: ${{ matrix.module }}
           aws_access_key_id: ${{ secrets.AWS_DEV_ACCESS_KEY_ID }}
           aws_secret_access_key: ${{ secrets.AWS_DEV_SECRET_ACCESS_KEY }}
           aws_bucket: github-actions-static-html-2
@@ -150,12 +155,21 @@ jobs:
       - name: Login to Amazon ECR
         id: login-ecr
         if: ${{ github.workflow != 'pr' && steps.ecr-info.outputs.module_ecr != 'null' }}
-        uses: aws-actions/amazon-ecr-login@v1
+        uses: aws-actions/amazon-ecr-login@v2
         with:
           registries: ${{ needs.init.outputs.ecr-registry-code }}
 
-      - name: Build and tag images
+      - name: check if docker image tag exists in ECR
+        id: check-tag
         if: ${{ github.workflow != 'pr' && steps.ecr-info.outputs.module_ecr != 'null' }}
+        uses: hawk-ai-aml/github-actions/check-docker-tag-exists@master
+        with:
+          ecr-registry: ${{ steps.login-ecr.outputs.registry }}
+          ecr-repository: ${{ steps.ecr-info.outputs.module_ecr }}
+          image-tag: ${{ needs.init.outputs.image-tag }}
+
+      - name: Build and tag images
+        if: ${{ github.workflow != 'pr' && steps.ecr-info.outputs.module_ecr != 'null' && steps.check-tag.outputs.tag_already_exists != 'true' }}
         env:
           IMAGE_TAG: ${{ needs.init.outputs.image-tag }}
           ECR_PREFIX: ${{ inputs.ecr-prefix }}
@@ -168,6 +182,19 @@ jobs:
           echo "${REPOSITORY_FULL_NAME} is building..."
           DOCKER_BUILDKIT=1 docker build --build-arg SERVICE=${MODULE} --build-arg PY_UTILS_PAT=${PY_UTILS_PAT} -t ${REPOSITORY_FULL_NAME}:${IMAGE_TAG} .
           docker push ${REPOSITORY_FULL_NAME}:${IMAGE_TAG}
+
+  check-if-all-builds-passed:
+    if: always()
+    needs: [ build ]
+    runs-on: [ "self-hosted", "small-builder" ]
+    steps:
+      - name: Check Build Job Failure
+        if: ${{ needs.build.result == 'failure' }}
+        run: exit 1
+
+      - name: Check Build Job Success
+        if: ${{ needs.build.result == 'success' }}
+        run: exit 0
 
   vulnerability-check-run:
     if: ${{ inputs.vulnerabilityCheck == true }}

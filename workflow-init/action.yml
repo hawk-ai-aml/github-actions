@@ -24,6 +24,10 @@ inputs:
   repository-access-token:
     description: "Access token to repository"
     required: true
+  use-sonarcloud:
+    description: "Hint to use SonarCloud"
+    required: false
+    default: "false"
 
 outputs:
   overlays:
@@ -70,6 +74,10 @@ outputs:
     description: 'The metadata of the current repository'
     value: ${{ steps.vars.outputs.metadata }}
 
+  use-sonarcloud:
+    description: 'Hint to use SonarCloud'
+    value: ${{ steps.vars.outputs.use-sonarcloud }}
+
 runs:
   using: composite
   steps:
@@ -78,7 +86,7 @@ runs:
       run: echo "HAWK_WORKFLOW_ID=${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}" >> ${GITHUB_ENV}
 
     - name: Checkout current repository
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
       with:
         repository: ${{ inputs.repository-name }}
         ref: ${{ inputs.repository-ref }}
@@ -162,6 +170,8 @@ runs:
         fi
         
         OVERLAYS_STRING=$(echo ${OVERLAYS_JSON} | jq -r 'join(" ")')
+        
+        USE_SONARCLOUD=${{ inputs.use-sonarcloud }}
 
         # Workflow outputs
         cat <<EOF | tee -a ${GITHUB_STEP_SUMMARY} | tee -a ${GITHUB_OUTPUT}
@@ -176,6 +186,7 @@ runs:
         ecr-registry-code=${ECR_REGISTRY_CODE}
         ecr-region=${ECR_REGION}
         metadata=${METADATA}
+        use-sonarcloud=${USE_SONARCLOUD}
         EOF
 
         cat <<EOF | tee -a ${GITHUB_STEP_SUMMARY}

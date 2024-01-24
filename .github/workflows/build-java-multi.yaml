@@ -137,7 +137,9 @@ jobs:
           GRADLE_CACHE_PASSWORD: ${{ secrets.GRADLE_CACHE_PASSWORD }}
           DISABLE_SLACK: true
         run: |
-          ./gradlew :${{ matrix.module }}:check :${{ matrix.module }}:jacocoTestReport :${{ matrix.module }}:jacocoTestCoverageVerification -isS
+          ./gradlew :${{ matrix.module }}:check -isS
+          ./gradlew :${{ matrix.module }}:jacocoTestReport
+          ./gradlew :${{ matrix.module }}:jacocoTestCoverageVerification
 
       - name: License Report
         env:
@@ -159,16 +161,21 @@ jobs:
           if [[ -d ${{ matrix.module }}/build/reports ]]; then
             cp -r ${{ matrix.module }}/build/reports reports/${{ matrix.module }}/build/reports
           fi
+          
+          if [[ -d ${{ matrix.module }}/build/jacocoHtml ]]; then
+            cp -r ${{ matrix.module }}/build/jacocoHtml reports/${{ matrix.module }}/build/reports
+          fi
 
       - name: Upload Reports to S3
         id: reports
         if: needs.init.outputs.skip-tests != 'true' && (success() || failure())
         uses: hawk-ai-aml/github-actions/upload-to-s3@master
         with:
+          module: ${{ matrix.module }}
           aws_access_key_id: ${{ secrets.AWS_DEV_ACCESS_KEY_ID }}
           aws_secret_access_key: ${{ secrets.AWS_DEV_SECRET_ACCESS_KEY }}
           aws_bucket: github-actions-static-html-2
-          source_dir: reports
+          source_dir: reports/${{ matrix.module }}/build
           destination_dir: ${{ github.event.repository.name }}-${{ github.run_id }}
 
       - name: Get ECR info
@@ -191,12 +198,21 @@ jobs:
       - name: Login to Amazon ECR
         id: login-ecr
         if: ${{ github.workflow != 'pr' && steps.ecr-info.outputs.module_ecr != 'null' }}
-        uses: aws-actions/amazon-ecr-login@v1
+        uses: aws-actions/amazon-ecr-login@v2
         with:
           registries: ${{ needs.init.outputs.ecr-registry-code }}
 
-      - name: Build Docker Image
+      - name: check if docker image tag exists in ECR
+        id: check-tag
         if: ${{ github.workflow != 'pr' && steps.ecr-info.outputs.module_ecr != 'null' }}
+        uses: hawk-ai-aml/github-actions/check-docker-tag-exists@master
+        with:
+          ecr-registry: ${{ steps.login-ecr.outputs.registry }}
+          ecr-repository: ${{ steps.ecr-info.outputs.module_ecr }}
+          image-tag: ${{ needs.init.outputs.image-tag }}
+
+      - name: Build Docker Image
+        if: ${{ github.workflow != 'pr' && steps.ecr-info.outputs.module_ecr != 'null' && steps.check-tag.outputs.tag_already_exists != 'true' }}
         env:
           CI_BUILD: true
           GRADLE_CACHE_CI_PASSWORD: ${{ secrets.GRADLE_CACHE_CI_PASSWORD }}
@@ -212,6 +228,19 @@ jobs:
           ./gradlew :${{ matrix.module }}:jib \
             -DIMAGE_NAME="${ECR_REGISTRY}/${ECR_REPOSITORY_PREFIX}" \
             -DTAG_COMMIT=${IMAGE_TAG}
+
+  check-if-all-builds-passed:
+    if: always()
+    needs: [ build ]
+    runs-on: [ "self-hosted", "small-builder" ]
+    steps:
+      - name: Check Build Job Failure
+        if: ${{ needs.build.result == 'failure' }}
+        run: exit 1
+
+      - name: Check Build Job Success
+        if: ${{ needs.build.result == 'success' }}
+        run: exit 0
 
   vulnerability-check-run:
     if: ${{ inputs.vulnerabilityCheck == true }}

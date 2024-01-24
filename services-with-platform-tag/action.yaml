@@ -1,0 +1,67 @@
+name: services-with-platform-tag
+description: Services are tagged with the platform tag
+
+inputs:
+  platform-tag:
+    description: "The tag number"
+    required: true
+
+  repository-access-user:
+    description: "Repository access user"
+    required: true
+
+  repository-access-token:
+    description: "Repository access token"
+    required: true
+
+outputs:
+  services:
+    description: 'List of the service names'
+    value: ${{ steps.collect-services.outputs.services }}
+
+runs:
+  using: composite
+  steps:
+    - name: Get services tagged with the platform tag
+      id: collect-services
+      shell: bash -l -ET -eo pipefail {0}
+      env:
+        TAG: ${{ inputs.platform-tag }}
+        USER: ${{ inputs.repository-access-user }}
+        TOKEN: ${{ inputs.repository-access-token }}
+      run: |
+        TAGS=$(curl -s "https://api.github.com/repos/hawk-ai-aml/kustomize/tags" -u "$USER:$TOKEN" | jq -r '[.[] | .name] | join(" ")')
+        echo "Tags:"
+        echo "$TAGS"
+
+        FOUND=false
+        for t in ${TAGS}; do
+          if [[ $FOUND == true ]]; then
+            PRE_TAG=$t
+            break
+          fi
+
+          if [[ $t == "$TAG" ]]; then
+            FOUND=true
+          fi
+        done
+
+        if [[ $$PRE_TAG == null ]]; then
+          RED='\033[0;31m'
+          echo -e "${RED}Error : Cannot find the previous tag with tag number '${TAG}'. Make sure the input tag is correct."
+          exit 1
+        fi
+        
+        echo "Previous tag: $PRE_TAG"
+
+        TAG_COMMITS=$(curl -s "https://api.github.com/repos/hawk-ai-aml/kustomize/compare/$PRE_TAG...$TAG" -u "$USER:$TOKEN" | jq -r '.commits | [.[] | select(.commit.message | test("Update tag for.* [0-9]+\\.[0-9]+\\.[0-9]+")) | (.commit.message | tojson)] | join(" ")')
+        echo "Commits:"
+        echo "$TAG_COMMITS"
+        SERVICES=$(echo "${TAG_COMMITS}" | sed s/"AUTOMATIC COMMIT: Update tag for "/""/g)
+        SERVICES=$(echo "${SERVICES}" | sed s/" to "/"@"/g)
+
+        # Workflow outputs
+        cat <<EOF | tee -a ${GITHUB_STEP_SUMMARY} | tee -a ${GITHUB_OUTPUT}
+        services=$SERVICES
+        EOF
+# End of file

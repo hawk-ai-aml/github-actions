@@ -1,0 +1,94 @@
+name: enforce-labels
+description: Enforce labels for pull request
+
+inputs:
+  repository-access-token:
+    description: "Repository access token"
+    required: true
+
+runs:
+  using: composite
+  steps:
+    - name: Check out code
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0 # Ensure all tags are fetched
+
+    - name: Check if PR is merged into master. U
+      shell: bash -l -ET -eo pipefail {0}
+      id: generate-tag
+      env:
+        GITHUB_TOKEN: ${{ inputs.repository-access-token }}
+        PR_NUMBER: ${{ github.event.number }}
+      run: |
+        get_pr_labels() {
+            local repo=$1
+            local number=$2
+            local token=$3
+            curl -s -H "Authorization: token $token" \
+                -H "Accept: application/vnd.github.v3+json" \
+                "https://api.github.com/repos/$repo/issues/$number/labels" | jq -r '.[].name'
+        }
+
+        PR_LABELS=$(get_pr_labels "$GITHUB_REPOSITORY" "$PR_NUMBER" "$GITHUB_TOKEN")
+
+        # Get the latest available tag
+        LATEST_TAG=$(git describe --tags --abbrev=0)
+
+        echo "latest!: $LATEST_TAG"
+
+        # Extract major, minor, and patch versions from the latest tag
+        MAJOR_VERSION=$(echo "$LATEST_TAG" | awk -F. '{print $1}')
+        MINOR_VERSION=$(echo "$LATEST_TAG" | awk -F. '{print $2}')
+        PATCH_VERSION=$(echo "$LATEST_TAG" | awk -F. '{print $3}')
+
+        # Initialize variables for the new version
+        NEW_MAJOR_VERSION=$MAJOR_VERSION
+        NEW_MINOR_VERSION=$MINOR_VERSION
+        NEW_PATCH_VERSION=$PATCH_VERSION
+
+        # Check for labels and increment the appropriate version
+        if [[ "$PR_LABELS" == *"major-version"* ]]; then
+          NEW_MAJOR_VERSION=$((MAJOR_VERSION + 1))
+          NEW_MINOR_VERSION=0
+          NEW_PATCH_VERSION=0
+        elif [[ "$PR_LABELS" == *"minor-version"* ]]; then
+          NEW_MINOR_VERSION=$((MINOR_VERSION + 1))
+          NEW_PATCH_VERSION=0
+        elif [[ "$PR_LABELS" == *"patch-version"* ]]; then
+          NEW_PATCH_VERSION=$((PATCH_VERSION + 1))
+        else
+          echo "No version labels found. No tag created."
+          exit 0
+        fi
+
+        # Create the new tag and push it
+        NEW_TAG="$NEW_MAJOR_VERSION.$NEW_MINOR_VERSION.$NEW_PATCH_VERSION"
+
+        echo "Detected label: $PR_LABELS"
+        echo "Old tag: $LATEST_TAG | Proposing tag: $NEW_TAG."
+
+        # Workflow outputs
+        cat <<EOF | tee -a ${GITHUB_STEP_SUMMARY} | tee -a ${GITHUB_OUTPUT}
+        new_tag=$NEW_TAG
+        EOF
+
+    - name: Create tag
+      uses: actions/github-script@v5
+      env:
+        NEW_TAG: '${{ steps.generate-tag.outputs.new_tag }}'
+      with:
+        github-token: ${{ inputs.repository-access-token }}
+        script: |
+
+          const repo = process.env.GITHUB_REPOSITORY;
+          const newTag = `${ process.env.NEW_TAG || ""}`;
+
+          console.log(`Creating tag ${newTag} in repository ${repo}`);
+
+          github.rest.git.createRef({
+            owner: repo.split('/')[0],
+            repo: repo.split('/')[1],
+            ref: `refs/tags/${newTag}`,
+            sha: context.sha
+          })

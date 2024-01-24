@@ -1,0 +1,117 @@
+name: enforce-labels
+description: Enforce labels for pull request
+
+inputs:
+  repository-ref:
+    description: "Repository ref"
+    required: false
+    default: master
+
+  repository-access-token:
+    description: "Repository access token"
+    required: true
+
+  required-labels-any-opt1:
+    description: "List of required labels separated by ;"
+    default: "impact 1 * likelyhood 1 = risk 1;impact 1 * likelyhood 2 = risk 2;impact 2 * likelyhood 1 = risk 2;impact 1 * likelyhood 3 = risk 3;impact 3 * likelyhood 1 = risk 3;impact 2 * likelyhood 2 = risk 4;impact 2 * likelyhood 3 = risk 6;impact 3 * likelyhood 2 = risk 6;impact 3 * likelyhood 3 = risk 9"
+    required: true
+
+  required-labels-any-opt2:
+    description: "List of required labels separated by ;"
+    default: "patch-version;minor-version;major-version"
+    required: false
+
+  banned-labels:
+    description: "List of required labels separated by ;"
+    default: "impact 2 * likelyhood 2 = risk 4;impact 2 * likelyhood 3 = risk 6;impact 3 * likelyhood 2 = risk 6;impact 3 * likelyhood 3 = risk 9"
+    required: false
+
+runs:
+  using: composite
+  steps:
+    - name: Check required labels
+      shell: bash -l -ET -eo pipefail {0}
+      env:
+        WORKFLOW_TYPE: ${{ github.workflow }}
+        REQUIRED_LABELS_ANY_OPT1: ${{ inputs.required-labels-any-opt1 }}
+        REQUIRED_LABELS_ANY_OPT2: ${{ inputs.required-labels-any-opt2 }}
+        BANNED_LABELS: ${{ inputs.banned-labels }}
+        GITHUB_TOKEN: ${{ inputs.repository-access-token }}
+        GITHUB_REF: ${{ inputs.repository-ref }}
+      run: |
+        get_pr_number() {
+            local ref=$1
+            echo $ref | awk 'BEGIN { FS = "/" } ; { print $3 }'
+        }
+
+        get_pr_labels() {
+            local repo=$1
+            local number=$2
+            local token=$3
+            curl -s -H "Authorization: token $token" \
+                -H "Accept: application/vnd.github.v3+json" \
+                "https://api.github.com/repos/$repo/issues/$number/labels" | jq -r '.[].name'
+        }
+
+        check_banned_labels() {
+            local labels=$1
+            local banned=$2
+            IFS=$'\n'
+            for label in $labels; do
+                if [[ $banned == *"$label"* ]]; then
+                    echo "Label $label found and identified as risk. Please consult your tech lead. PR is blocked!"
+                    exit 1
+                fi
+            done
+        }
+
+        check_required_labels() {
+            local labels=$1
+            local required=$2
+
+            IFS=';' read -ra required_array <<< "$required"
+            
+            local count=0
+            local found_label=""
+            for required_label in "${required_array[@]}"; do
+                IFS=$'\n'
+                for label in $labels; do
+                    if [[ "$label" == "$required_label" ]]; then
+                        count=$((count + 1))
+                        found_label=$required_label
+                    fi
+                done
+            done
+
+            if [[ $count -eq 1 ]]; then
+                echo "Required label $found_label found!" >&1
+                return 0
+            else
+                echo "Select exactly one label [$required]" >&1
+                return 1
+            fi
+        }
+
+        pr_number=$(get_pr_number "$GITHUB_REF")
+        pr_labels=$(get_pr_labels "$GITHUB_REPOSITORY" "$pr_number" "$GITHUB_TOKEN")
+
+        check_banned_labels "$pr_labels" "$BANNED_LABELS"
+
+        failed=0
+        label_sets=("$REQUIRED_LABELS_ANY_OPT1" "$REQUIRED_LABELS_ANY_OPT2")
+        
+        for required_labels in "${label_sets[@]}"; do
+            check_required_labels "$pr_labels" "$required_labels"
+            
+            if [[ $? -eq 1 ]]; then
+                failed=$((failed + 1))
+            fi
+        done
+
+        if [[ $failed -gt 0 ]]; then
+            echo "One or more label sets failed the check."
+            exit 1
+        else
+            echo "All label sets passed the check."
+        fi
+
