@@ -25,9 +25,12 @@ runs:
             local repo=$1
             local number=$2
             local token=$3
-            curl -s -H "Authorization: token $token" \
-                -H "Accept: application/vnd.github.v3+json" \
-                "https://api.github.com/repos/$repo/issues/$number/labels" | jq -r '.[].name'
+
+            response=$(curl -s -H "Authorization: token $token" \
+                              -H "Accept: application/vnd.github.v3+json" \
+                              "https://api.github.com/repos/$repo/issues/$number/labels")
+
+            echo "$response" | jq -r '.[].name' || echo "Failed to parse JSON with jq. Response was: $response"
         }
 
         PR_LABELS=$(get_pr_labels "$GITHUB_REPOSITORY" "$PR_NUMBER" "$GITHUB_TOKEN")

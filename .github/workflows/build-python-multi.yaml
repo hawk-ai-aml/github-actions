@@ -105,6 +105,10 @@ jobs:
           fi
           pipenv run pip install pip-licenses
 
+      - uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCP_CLOUD_STORAGE_SERVICE_ACCOUNT_KEY }}
+
       - name: Run Pytest
         env:  
           JENKINS: true
