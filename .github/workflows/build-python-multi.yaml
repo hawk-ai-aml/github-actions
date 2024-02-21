@@ -119,6 +119,7 @@ jobs:
           pipenv run tests --junitxml=report.xml
       
       - name: Generate Reports
+        if: inputs.skipTests != 'true' && (success() || failure())
         run: |
           pipenv run junit2html report.xml report.html
           mkdir report-dir && mv report.html ./report-dir/report.html
