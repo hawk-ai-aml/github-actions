@@ -118,11 +118,11 @@ jobs:
         run: |
           pipenv run tests --junitxml=report.xml
       
-      - name: Generate Reports
-        if: inputs.skipTests != 'true' && (success() || failure())
-        run: |
-          pipenv run junit2html report.xml report.html
-          mkdir report-dir && mv report.html ./report-dir/report.html
+      # - name: Generate Reports
+      #   if: inputs.skipTests != 'true' && (success() || failure())
+      #   run: |
+      #     pipenv run junit2html report.xml report.html
+      #     mkdir report-dir && mv report.html ./report-dir/report.html
 
       - name: Upload Test Reports to S3
         id: reports
@@ -133,7 +133,7 @@ jobs:
           aws_access_key_id: ${{ secrets.AWS_DEV_ACCESS_KEY_ID }}
           aws_secret_access_key: ${{ secrets.AWS_DEV_SECRET_ACCESS_KEY }}
           aws_bucket: github-actions-static-html-2
-          source_dir: ./report-dir
+          source_dir: ./reports
           destination_dir: ${{ github.event.repository.name }}-${{ github.run_id }}
 
       - name: Get ECR info
