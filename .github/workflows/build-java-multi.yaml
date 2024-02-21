@@ -25,6 +25,11 @@ on:
         type: boolean
         required: false
         default: false
+      useSonarCloud:
+        description: "Use SonarCloud for code quality checks"
+        type: boolean
+        required: false
+        default: false
 
 defaults:
   run:
@@ -47,6 +52,7 @@ jobs:
       metadata: ${{ steps.init.outputs.metadata }}
       updated-modules: ${{ steps.detect-changes.outputs.updated-modules }}
       updated-modules-string: ${{ steps.detect-changes.outputs.updated-modules-string }}
+      use-sonarcloud: ${{ steps.init.outputs.use-sonarcloud }}
 
     steps:
       - id: init
@@ -59,6 +65,7 @@ jobs:
           repository-name: hawk-ai-aml/${{ inputs.component }}
           repository-ref: ${{ env.GITHUB_REF_NAME }}
           repository-access-token: ${{ secrets.REPO_ACCESS_PAT }}
+          use-sonarcloud: ${{ inputs.useSonarCloud }}
 
       - id: detect-changes
         name: Detect changes
@@ -126,7 +133,7 @@ jobs:
           ./gradlew :${{ matrix.module }}:checkQualityMain
 
       - name: Run Tests
-        if: ${{ needs.init.outputs.skip-tests != 'true' }}
+        if: ${{ needs.init.outputs.skip-tests != 'true' && needs.init.outputs.use-sonarcloud != 'true'}}
         env:
           CI_BUILD: true
           GRADLE_CACHE_CI_PASSWORD: ${{ secrets.GRADLE_CACHE_CI_PASSWORD }}
@@ -140,6 +147,24 @@ jobs:
           ./gradlew :${{ matrix.module }}:check -isS
           ./gradlew :${{ matrix.module }}:jacocoTestReport
           ./gradlew :${{ matrix.module }}:jacocoTestCoverageVerification
+
+      - name: Run Tests With Sonar
+        if: ${{ needs.init.outputs.skip-tests != 'true' && needs.init.outputs.use-sonarcloud == 'true'}}
+        env:
+          CI_BUILD: true
+          GRADLE_CACHE_CI_PASSWORD: ${{ secrets.GRADLE_CACHE_CI_PASSWORD }}
+          ARTIFACTORY_CONTEXT_URL: ${{ secrets.ARTIFACTORY_CONTEXT_URL }}
+          ARTIFACTORY_USERNAME: ${{ secrets.ARTIFACTORY_USERNAME }}
+          ARTIFACTORY_PASSWORD: ${{ secrets.ARTIFACTORY_PASSWORD }}
+          GRADLE_CACHE_USERNAME: ${{ secrets.GRADLE_CACHE_USERNAME }}
+          GRADLE_CACHE_PASSWORD: ${{ secrets.GRADLE_CACHE_PASSWORD }}
+          DISABLE_SLACK: true
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
+          SONAR_ORGANIZATION: ${{ secrets.SONAR_ORGANIZATION }}
+        run: |
+          ./gradlew :${{ matrix.module }}:check -isS
+          ./gradlew :${{ matrix.module }}:jacocoTestReport sonar
 
       - name: License Report
         env:
