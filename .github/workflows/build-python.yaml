@@ -75,6 +75,11 @@ jobs:
         with:
           credentials_json: ${{ secrets.GCP_CLOUD_STORAGE_SERVICE_ACCOUNT_KEY }}
 
+      - name: Check Disk Space
+        run: |
+          df -h
+          docker images
+
       - name: Run Pytest
         env:
           SCHEMA_REGISTRY_URL: "http://internal-aed0c439480b011ea821006d55bdfaa3-2040159056.eu-central-1.elb.amazonaws.com:8081"
@@ -128,23 +133,27 @@ jobs:
           ecr-repository: ${{ fromJson(needs.init.outputs.metadata).ecr.repository }}
           image-tag: ${{ needs.init.outputs.image-tag }}
 
-      - name: Build image
-        if: ${{ github.workflow != 'pr' && steps.check-tag.outputs.tag_already_exists != 'true' }}
-        env:
-          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
-          ECR_REPOSITORY: ${{ fromJson(needs.init.outputs.metadata).ecr.repository }}
-          PY_UTILS_PAT: ${{ secrets.PY_UTILS_PAT}}
+      - name: Check Disk Space
         run: |
-          DOCKER_BUILDKIT=1 docker build --build-arg PY_UTILS_PAT=${PY_UTILS_PAT} -t ${ECR_REGISTRY}/${ECR_REPOSITORY}:${{ needs.init.outputs.image-tag }} .
+          df -h
 
-      - name: Push Image
-        id: push-image
-        if: ${{ github.workflow != 'pr' && steps.check-tag.outputs.tag_already_exists != 'true' }}
-        env:
-          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
-          ECR_REPOSITORY: ${{ fromJson(needs.init.outputs.metadata).ecr.repository }}
-        run: |
-          docker push ${ECR_REGISTRY}/${ECR_REPOSITORY}:${{ needs.init.outputs.image-tag }}
+      # - name: Build image
+      #   if: ${{ github.workflow != 'pr' && steps.check-tag.outputs.tag_already_exists != 'true' }}
+      #   env:
+      #     ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+      #     ECR_REPOSITORY: ${{ fromJson(needs.init.outputs.metadata).ecr.repository }}
+      #     PY_UTILS_PAT: ${{ secrets.PY_UTILS_PAT}}
+      #   run: |
+      #     DOCKER_BUILDKIT=1 docker build --build-arg PY_UTILS_PAT=${PY_UTILS_PAT} -t ${ECR_REGISTRY}/${ECR_REPOSITORY}:${{ needs.init.outputs.image-tag }} .
+
+      # - name: Push Image
+      #   id: push-image
+      #   if: ${{ github.workflow != 'pr' && steps.check-tag.outputs.tag_already_exists != 'true' }}
+      #   env:
+      #     ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+      #     ECR_REPOSITORY: ${{ fromJson(needs.init.outputs.metadata).ecr.repository }}
+      #   run: |
+      #     docker push ${ECR_REGISTRY}/${ECR_REPOSITORY}:${{ needs.init.outputs.image-tag }}
 
   vulnerability-check-run:
     if: ${{ inputs.vulnerabilityCheck == true }}
