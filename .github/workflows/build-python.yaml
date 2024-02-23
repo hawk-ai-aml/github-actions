@@ -61,6 +61,8 @@ jobs:
   build:
     needs: init
     runs-on: ubuntu-latest
+    outputs:
+      requirements: ${{ steps.run_tests.outputs.requirements }}
     steps:
       - uses: actions/checkout@v3
 
@@ -77,10 +79,10 @@ jobs:
 
       - name: Check Disk Space
         run: |
-          df -h
-          docker images
+          df -h /
 
-      - name: Run Pytest
+      - id: run_tests
+        name: Run Pytest
         env:
           SCHEMA_REGISTRY_URL: "http://internal-aed0c439480b011ea821006d55bdfaa3-2040159056.eu-central-1.elb.amazonaws.com:8081"
           KAFKA_SERVICE: "kafka-service:9092"
@@ -94,6 +96,9 @@ jobs:
           pipenv install --dev
           pipenv lock --keep-outdated > pipenv-requirements.txt
           pipenv requirements > requirements.txt
+          # Debug
+          echo "requirements=$(cat requirements.txt)" >> "$GITHUB_OUTPUT"
+          # /Debug
           pipenv run tests --junitxml=report.xml
           pipenv run junit2html report.xml report.html
           mkdir report-dir && mv report.html ./report-dir/report.html
@@ -109,33 +114,46 @@ jobs:
           source_dir: ./report-dir
           destination_dir: ${{ github.event.repository.name }}-${{ github.run_id }}
 
-      - name: Configure AWS credentials
-        if: ${{ github.workflow != 'pr' }}
-        uses: aws-actions/configure-aws-credentials@v1
-        with:
-          aws-access-key-id: ${{ secrets.AWS_ORG_ECR_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_ORG_ECR_SECRET_ACCESS_KEY }}
-          aws-region: ${{ needs.init.outputs.ecr-region }}
-
-      - name: Login to Amazon ECR
-        id: login-ecr
-        if: ${{ github.workflow != 'pr' }}
-        uses: aws-actions/amazon-ecr-login@v2
-        with:
-          registries: ${{ needs.init.outputs.ecr-registry-code }}
-
-      - name: check if docker image tag exists in ECR
-        id: check-tag
-        if: ${{ github.workflow != 'pr' }}
-        uses: hawk-ai-aml/github-actions/check-docker-tag-exists@master
-        with:
-          ecr-registry: ${{ steps.login-ecr.outputs.registry }}
-          ecr-repository: ${{ fromJson(needs.init.outputs.metadata).ecr.repository }}
-          image-tag: ${{ needs.init.outputs.image-tag }}
-
       - name: Check Disk Space
         run: |
           df -h
+          ls -lh
+          du -hcs ${PWD}
+
+  debug_job:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+    - env:
+        REQUIREMENTS: ${{ needs.build.outputs.requirements }}
+      name: check output variable
+      run: |
+        echo "GH var: ${{ needs.build.outputs.requirements }}"
+        echo "ENV var: $REQUIREMENTS"
+
+      # - name: Configure AWS credentials
+      #   if: ${{ github.workflow != 'pr' }}
+      #   uses: aws-actions/configure-aws-credentials@v1
+      #   with:
+      #     aws-access-key-id: ${{ secrets.AWS_ORG_ECR_ACCESS_KEY_ID }}
+      #     aws-secret-access-key: ${{ secrets.AWS_ORG_ECR_SECRET_ACCESS_KEY }}
+      #     aws-region: ${{ needs.init.outputs.ecr-region }}
+
+      # - name: Login to Amazon ECR
+      #   id: login-ecr
+      #   if: ${{ github.workflow != 'pr' }}
+      #   uses: aws-actions/amazon-ecr-login@v2
+      #   with:
+      #     registries: ${{ needs.init.outputs.ecr-registry-code }}
+
+      # - name: check if docker image tag exists in ECR
+      #   id: check-tag
+      #   if: ${{ github.workflow != 'pr' }}
+      #   uses: hawk-ai-aml/github-actions/check-docker-tag-exists@master
+      #   with:
+      #     ecr-registry: ${{ steps.login-ecr.outputs.registry }}
+      #     ecr-repository: ${{ fromJson(needs.init.outputs.metadata).ecr.repository }}
+      #     image-tag: ${{ needs.init.outputs.image-tag }}
 
       # - name: Build image
       #   if: ${{ github.workflow != 'pr' && steps.check-tag.outputs.tag_already_exists != 'true' }}
