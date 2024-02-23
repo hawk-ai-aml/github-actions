@@ -104,6 +104,15 @@ jobs:
           source_dir: ./report-dir
           destination_dir: ${{ github.event.repository.name }}-${{ github.run_id }}
 
+      - name: Clean up workspace
+        run: |
+          echo "Current virtual env size"
+          du -hcs $(pipenv --venv)
+          pipenv --clear
+          pipenv --rm
+          echo "Current disk usage:"
+          df -h /
+
       - name: Configure AWS credentials
         if: ${{ github.workflow != 'pr' }}
         uses: aws-actions/configure-aws-credentials@v1
