@@ -130,6 +130,9 @@ jobs:
       run: |
         echo "GH var: ${{ needs.build.outputs.requirements }}"
         echo "ENV var: $REQUIREMENTS"
+        df -f /
+        du -hcs ${PWD}
+
 
       # - name: Configure AWS credentials
       #   if: ${{ github.workflow != 'pr' }}
