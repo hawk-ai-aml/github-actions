@@ -92,6 +92,10 @@ jobs:
           pipenv run tests --junitxml=report.xml
           pipenv run junit2html report.xml report.html
           mkdir report-dir && mv report.html ./report-dir/report.html
+          du -hcs $(pipenv --venv)
+          pipenv --clear
+          pipenv --rm
+          df -h /
 
       - name: Upload Reports to S3
         id: reports
