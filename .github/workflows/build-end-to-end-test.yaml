@@ -32,6 +32,10 @@ jobs:
       test_status: ${{ steps.status.outputs.test_status }}
 
     steps:
+
+      - name: Cleanup old checkout
+        run: chmod +w -R ${GITHUB_WORKSPACE}; rm -rf ${GITHUB_WORKSPACE}/*;
+
       - name: Checkout
         run: |
           echo "Checkout ref: ${{ inputs.ref }}"
