@@ -110,6 +110,9 @@ jobs:
           DEV_REDIS_PORT: ${{ secrets.DEV_REDIS_PORT }}
           DEV_REDIS_AUTH_TOKEN: ${{ secrets.DEV_REDIS_AUTH_TOKEN }}
 
+          E2E_USER_PASSWORD: ${{ secrets.E2E_USER_PASSWORD }}
+          E2E_SSO_LOGIN_USER_PASSWORD: ${{ secrets.E2E_SSO_LOGIN_USER_PASSWORD }}
+
           environment: ${{ inputs.environment }}
         continue-on-error: true
         run: |
