@@ -32,15 +32,15 @@ jobs:
       test_status: ${{ steps.status.outputs.test_status }}
 
     steps:
-      - name: Display test dependencies
+      - name: Display test tools versions
         run: |
-          echo "### wget: $(wget --version)"
-          echo "### node: $(node --version) / npm: $(npm --version) / jq: $(jq --version)"
-          echo "### curl: $(curl --version)"
-          echo "### java: $(java --version) [which java]"
-          echo "### chrome-driver: $(chromedriver --version) / [$(which chromedriver)]"
-          echo "### chrome-browser: $(google-chrome --version) / [$(which google-chrome)]"
-          echo "### allure: $(allure --version)"
+          printf "### wget: $(wget --version)\n"
+          printf "### node: $(node --version) / npm: $(npm --version) / jq: $(jq --version)\n"
+          printf "### curl: $(curl --version)\n"
+          printf "### java: $(java --version) [$(which java)]\n"
+          printf "### chrome-driver: $(chromedriver --version) / [$(which chromedriver)]\n"
+          printf "### chrome-browser: $(google-chrome --version) / [$(which google-chrome)]\n"
+          printf "### allure: $(allure --version)\n"
 
       - name: Cleanup old checkout
         run: chmod +w -R ${GITHUB_WORKSPACE}; rm -rf ${GITHUB_WORKSPACE}/*;
