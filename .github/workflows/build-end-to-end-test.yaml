@@ -34,14 +34,14 @@ jobs:
     steps:
       - name: Display test tools versions
         run: |
-          printf "### wget: $(wget --version | head -n 1)\n"
-          printf "### node: $(node --version) / npm: $(npm --version) / jq: $(jq --version)\n"
-          printf "### curl: $(curl --version | head -n 1)\n"
-          printf "### java: $(java --version | head -n 1) [$(readlink -f $(which java))]\n"
-          printf "### java-home: $JAVA_HOME\n"
-          printf "### chrome-driver: $(chromedriver --version) / [$(which chromedriver)]\n"
-          printf "### chrome-browser: $(google-chrome --version) / [$(which google-chrome)]\n"
-          printf "### allure: $(allure --version)\n"
+          printf "## wget: $(wget --version | head -n 1)\n"
+          printf "## node: $(node --version) / npm: $(npm --version) / jq: $(jq --version)\n"
+          printf "## curl: $(curl --version | head -n 1)\n"
+          printf "## java: $(java --version | head -n 1) [$(readlink -f $(which java))]\n"
+          printf "## java-home: $JAVA_HOME\n"
+          printf "## chrome-driver: $(chromedriver --version) / [$(which chromedriver)]\n"
+          printf "## chrome-browser: $(google-chrome --version) / [$(which google-chrome)]\n"
+          printf "## allure: $(allure --version)\n"
 
       - name: Cleanup old checkout
         run: chmod +w -R ${GITHUB_WORKSPACE}; rm -rf ${GITHUB_WORKSPACE}/*;
@@ -215,6 +215,11 @@ jobs:
         run: |
           echo "test_status=1" >> $GITHUB_OUTPUT
 
+      - name: Mark with failed result if e2e test fails
+        if: needs.test.outputs.test_status == 1
+        run: |
+          exit 1
+
     # -------------------------------------- END-REPORT --------------------------------------
   test-results:
     needs: test
@@ -227,8 +232,3 @@ jobs:
       - uses: actions/checkout@v3
         with:
           ref: ${{ inputs.ref }}
-
-      - name: Mark with failed result if e2e test fails
-        if: needs.test.outputs.test_status == 1
-        run: |
-          exit 1
