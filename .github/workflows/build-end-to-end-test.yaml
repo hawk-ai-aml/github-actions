@@ -34,13 +34,13 @@ jobs:
     steps:
       - name: Display test dependencies
         run: |
-          echo "wget: $(wget --version)"
-          echo "node: $(node --version) / npm: $(npm --version) / jq: $(jq --version)"
-          echo "java: $(java --version)"
-          echo "curl: $(curl --version)"
-          echo "chrome-driver: $(chromedriver --version) / [$(which chromedriver)]"
-          echo "chrome-browser: $(google-chrome --version) / [$(which google-chrome)]"
-          echo "allure: $(allure --version)"
+          echo "### wget: $(wget --version)"
+          echo "### node: $(node --version) / npm: $(npm --version) / jq: $(jq --version)"
+          echo "### curl: $(curl --version)"
+          echo "### java: $(java --version) [which java]"
+          echo "### chrome-driver: $(chromedriver --version) / [$(which chromedriver)]"
+          echo "### chrome-browser: $(google-chrome --version) / [$(which google-chrome)]"
+          echo "### allure: $(allure --version)"
 
       - name: Cleanup old checkout
         run: chmod +w -R ${GITHUB_WORKSPACE}; rm -rf ${GITHUB_WORKSPACE}/*;
