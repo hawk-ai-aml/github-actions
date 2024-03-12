@@ -218,3 +218,9 @@ jobs:
     environment:
       name: aws-s3
       url: ${{ needs.test.outputs.url }}
+
+    steps:
+      - name: Print test result URL
+        run: |
+          echo "Test result URL: ${{ needs.test.outputs.url }}"
+          echo "Test status: ${{ needs.test.outputs.test_status }}"
