@@ -216,9 +216,14 @@ jobs:
 
     # -------------------------------------- END-REPORT --------------------------------------
   test-results:
-    if: cancelled()
+    if: success() || failure()
     needs: test
     runs-on: [ "self-hosted", "small-builder" ]
     environment:
       name: aws-s3
       url: ${{ needs.test.outputs.url }}
+
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          ref: ${{ inputs.ref }}
