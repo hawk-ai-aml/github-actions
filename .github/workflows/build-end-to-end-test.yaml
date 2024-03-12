@@ -209,14 +209,14 @@ jobs:
         run: |
           echo "url=https://github-actions-static-html-2.s3.eu-central-1.amazonaws.com/e2e-${{ inputs.test }}-test-${{ env.CACHE_ID }}/index.html" >> $GITHUB_OUTPUT
 
-      - name: Mark with failed result if e2e test fails
+      - name: Check test status
+        id: status
         if: steps.run-e2e-test.outcome != 'success'
         run: |
-          exit 1
+          echo "test_status=1" >> $GITHUB_OUTPUT
 
     # -------------------------------------- END-REPORT --------------------------------------
   test-results:
-    if: success() || failure()
     needs: test
     runs-on: [ "self-hosted", "small-builder" ]
     environment:
@@ -227,3 +227,8 @@ jobs:
       - uses: actions/checkout@v3
         with:
           ref: ${{ inputs.ref }}
+
+      - name: Mark with failed result if e2e test fails
+        if: needs.test.outputs.test_status == 1
+        run: |
+          exit 1
