@@ -34,11 +34,10 @@ jobs:
     steps:
       - name: Display test tools versions
         run: |
-          printf "### wget: $(wget --version)\n"
+          printf "### wget: $(wget --version | head -n 1)\n"
           printf "### node: $(node --version) / npm: $(npm --version) / jq: $(jq --version)\n"
-          printf "### curl: $(curl --version)\n"
-          printf "### java: $(java --version) [$(which java)]\n"
-          printf "### java-link: $(readlink -f $(which java))\n"
+          printf "### curl: $(curl --version | head -n 1)\n"
+          printf "### java: $(java --version | head -n 1) [$(readlink -f $(which java))]\n"
           printf "### java-home: $JAVA_HOME\n"
           printf "### chrome-driver: $(chromedriver --version) / [$(which chromedriver)]\n"
           printf "### chrome-browser: $(google-chrome --version) / [$(which google-chrome)]\n"
