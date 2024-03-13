@@ -32,6 +32,16 @@ jobs:
       test_status: ${{ steps.status.outputs.test_status }}
 
     steps:
+      - name: Display test tools versions
+        run: |
+          printf "## wget: $(wget --version | head -n 1)\n"
+          printf "## node: $(node --version) / npm: $(npm --version) / jq: $(jq --version)\n"
+          printf "## curl: $(curl --version | head -n 1)\n"
+          printf "## java: $(java --version | head -n 1) [$(readlink -f $(which java))]\n"
+          printf "## java-home: $JAVA_HOME\n"
+          printf "## chrome-driver: $(chromedriver --version) / [$(which chromedriver)]\n"
+          printf "## chrome-browser: $(google-chrome --version) / [$(which google-chrome)]\n"
+          printf "## allure: $(allure --version)\n"
 
       - name: Cleanup old checkout
         run: chmod +w -R ${GITHUB_WORKSPACE}; rm -rf ${GITHUB_WORKSPACE}/*;
@@ -45,12 +55,6 @@ jobs:
           ref: ${{ inputs.ref }}
 
       # +++++++++++++++++++++++++++++++++++++ START-SETUP +++++++++++++++++++++++++++++++++++++
-      - name: Set up JDK 17
-        uses: actions/setup-java@v3
-        with:
-          java-version: 17
-          distribution: 'temurin'
-
       - name: Generate cache ID
         run: |
           echo CACHE_ID=$(date +'%Y-%m-%dT%H:%M:%S') >> $GITHUB_ENV
