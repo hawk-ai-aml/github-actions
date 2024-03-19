@@ -121,6 +121,9 @@ jobs:
           E2E_USER_PASSWORD: ${{ secrets.E2E_USER_PASSWORD }}
           E2E_SSO_LOGIN_USER_PASSWORD: ${{ secrets.E2E_SSO_LOGIN_USER_PASSWORD }}
 
+          E2E_GMAIL_CLIENT_ID: ${{ secrets.E2E_GMAIL_CLIENT_ID }}
+          E2E_GMAIL_CLIENT_SECRET: ${{ secrets.E2E_GMAIL_CLIENT_SECRET }}
+
           environment: ${{ inputs.environment }}
         continue-on-error: true
         run: |
