@@ -104,6 +104,19 @@ runs:
       env:
         METADATA: ${{ steps.profile.outputs.metadata }}
       run: |
+        get_overlays() {
+          local ENV=$1
+      
+          local OVERLAYS="dev"
+          if [[ "$ENV" == "prod" ]]; then
+            OVERLAYS="qa prod/eu-central-1 prod/eu-central-2 prod/us-east-1 prod/ap-southeast-1 prod/ksa nab-dev"
+          else
+            OVERLAYS="$1"
+          fi
+      
+          echo "$OVERLAYS"
+        }
+        
         cat <<EOF | tee -a ${GITHUB_STEP_SUMMARY}
         \`\`\`
         Workflow: ${HAWK_WORKFLOW_ID}
@@ -165,17 +178,12 @@ runs:
         IMAGE_LIST="[${IMAGE_LIST}]"
         ECR_IMAGES="${IMAGE_LIST}"
         
-        if [[ ${KUSTOMIZE_OVERLAYS} != "null" ]]; then
-          OVERLAYS_JSON=$(echo ${METADATA} | jq -cr --arg OVERLAYS ${KUSTOMIZE_OVERLAYS} '.overlays[$OVERLAYS]')
-        fi
-        
-        OVERLAYS_STRING=$(echo ${OVERLAYS_JSON} | jq -r 'join(" ")')
-        
+        OVERLAYS=$(get_overlays "$KUSTOMIZE_OVERLAYS")
         USE_SONARCLOUD=${{ inputs.use-sonarcloud }}
 
         # Workflow outputs
         cat <<EOF | tee -a ${GITHUB_STEP_SUMMARY} | tee -a ${GITHUB_OUTPUT}
-        overlays=${OVERLAYS_STRING}
+        overlays=${OVERLAYS}
         update-kustomize=${UPDATE_KUSTOMIZE}
         skip-tests=${SKIP_TESTS}
         image-tag=${IMAGE_TAG}
