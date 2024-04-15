@@ -36,7 +36,7 @@ jobs:
       - name: Sync Argo CD
         run: echo "Here we will refresh and sync Argo CD in the first environment"
       - name: Checkout E2E-Tests repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           repository: ${{ inputs.tests-repository }}
           token: ${{ secrets.TOKEN }}
