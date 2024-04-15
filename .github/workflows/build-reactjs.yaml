@@ -62,7 +62,7 @@ jobs:
       yarn-dir-path: ${{ steps.yarn-cache-path.outputs.path }}
 
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
       - name: Set up Node
         uses: actions/setup-node@v3
@@ -121,7 +121,7 @@ jobs:
       matrix:
         shard: [1, 2, 3, 4]
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
       - name: Use Yarn cache
         uses: actions/cache@v3
@@ -159,7 +159,7 @@ jobs:
     runs-on: [ "self-hosted", "frontend-builder" ]
 
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
       - name: Yarn cache
         uses: actions/cache@v3
@@ -273,7 +273,7 @@ jobs:
     runs-on: [ "self-hosted", "small-builder" ]
 
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
       - name: Clean cache
         if: ${{ inputs.deleteCache == true }}

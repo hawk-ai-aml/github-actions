@@ -102,7 +102,7 @@ outputs:
 runs:
   using: composite
   steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
       with:
         repository: hawk-ai-aml/end-to-end-tests
         token: ${{ inputs.repository-access-token }}

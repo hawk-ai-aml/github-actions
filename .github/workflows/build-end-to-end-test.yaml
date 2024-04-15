@@ -43,14 +43,7 @@ jobs:
           printf "## chrome-browser: $(google-chrome --version) / [$(which google-chrome)]\n"
           printf "## allure: $(allure --version)\n"
 
-      - name: Cleanup old checkout
-        run: chmod +w -R ${GITHUB_WORKSPACE}; rm -rf ${GITHUB_WORKSPACE}/*;
-
-      - name: Checkout
-        run: |
-          echo "Checkout ref: ${{ inputs.ref }}"
-
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           ref: ${{ inputs.ref }}
 
@@ -234,7 +227,7 @@ jobs:
       url: ${{ needs.test.outputs.url }}
 
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           ref: ${{ inputs.ref }}
 
