@@ -34,6 +34,10 @@ defaults:
   run:
     shell: bash -l -ET -eo pipefail {0}
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
 jobs:
   init:
     runs-on: [ "self-hosted", "small-builder" ]
