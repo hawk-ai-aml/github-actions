@@ -28,6 +28,10 @@ inputs:
     description: "Hint to use SonarCloud"
     required: false
     default: "false"
+  build-once:
+    description: "Use the temporal feature flag buildOnce"
+    required: false
+    default: "false"
 
 outputs:
   overlays:
@@ -77,6 +81,10 @@ outputs:
   use-sonarcloud:
     description: 'Hint to use SonarCloud'
     value: ${{ steps.vars.outputs.use-sonarcloud }}
+
+  build-once:
+    description: 'Use the temporal feature flag buildOnce'
+    value: ${{ steps.vars.outputs.build-once }}
 
 runs:
   using: composite
@@ -172,6 +180,7 @@ runs:
         OVERLAYS_STRING=$(echo ${OVERLAYS_JSON} | jq -r 'join(" ")')
         
         USE_SONARCLOUD=${{ inputs.use-sonarcloud }}
+        BUILD_ONCE=${{ inputs.build-once }}
 
         # Workflow outputs
         cat <<EOF | tee -a ${GITHUB_STEP_SUMMARY} | tee -a ${GITHUB_OUTPUT}
@@ -187,6 +196,7 @@ runs:
         ecr-region=${ECR_REGION}
         metadata=${METADATA}
         use-sonarcloud=${USE_SONARCLOUD}
+        build-once=${BUILD_ONCE}
         EOF
 
         cat <<EOF | tee -a ${GITHUB_STEP_SUMMARY}

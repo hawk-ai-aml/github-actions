@@ -34,6 +34,11 @@ on:
         type: boolean
         required: false
         default: false
+      buildOnce:
+        description: "Temporal Feature Flag to build the image once"
+        type: boolean
+        required: false
+        default: false
 
 defaults:
   run:
@@ -59,6 +64,7 @@ jobs:
       ecr-region: ${{ steps.init.outputs.ecr-region }}
       metadata: ${{ steps.init.outputs.metadata }}
       use-sonarcloud: ${{ steps.init.outputs.use-sonarcloud }}
+      build-once: ${{ steps.init.outputs.build-once }}
 
     steps:
       - id: init
@@ -72,6 +78,7 @@ jobs:
           repository-ref: ${{ env.GITHUB_REF_NAME }}
           repository-access-token: ${{ secrets.REPO_ACCESS_PAT }}
           use-sonarcloud: ${{ inputs.useSonarCloud }}
+          build-once: ${{ inputs.buildOnce }}
 
   build:
     needs: [ init ]
@@ -190,7 +197,7 @@ jobs:
           destination_dir: ${{ github.event.repository.name }}-${{ github.run_id }}
 
       - name: Configure AWS credentials
-        if: ${{ github.workflow != 'pr' }}
+        if: ${{ github.workflow != 'pr' || needs.init.outputs.build-once == 'true' }}
         uses: aws-actions/configure-aws-credentials@v1
         with:
           aws-access-key-id: ${{ secrets.AWS_ORG_ECR_ACCESS_KEY_ID }}
@@ -199,14 +206,14 @@ jobs:
 
       - name: Login to Amazon ECR
         id: login-ecr
-        if: ${{ github.workflow != 'pr' }}
+        if: ${{ github.workflow != 'pr' || needs.init.outputs.build-once == 'true'}}
         uses: aws-actions/amazon-ecr-login@v2
         with:
           registries: ${{ needs.init.outputs.ecr-registry-code }}
 
       - name: check if docker image tag exists in ECR
         id: check-tag
-        if: ${{ github.workflow != 'pr' }}
+        if: ${{ github.workflow != 'pr' || needs.init.outputs.build-once == 'true'}}
         uses: hawk-ai-aml/github-actions/check-docker-tag-exists@master
         with:
           ecr-registry: ${{ steps.login-ecr.outputs.registry }}
@@ -214,7 +221,7 @@ jobs:
           image-tag: ${{ needs.init.outputs.image-tag }}
 
       - name: Build Docker image
-        if: ${{ github.workflow != 'pr' && steps.check-tag.outputs.tag_already_exists != 'true' }}
+        if: ${{ github.workflow != 'pr' || needs.init.outputs.build-once == 'true' && steps.check-tag.outputs.tag_already_exists != 'true' }}
         env:
           ARTIFACTORY_CONTEXT_URL: ${{ secrets.ARTIFACTORY_CONTEXT_URL }}
           ARTIFACTORY_USERNAME: ${{ secrets.ARTIFACTORY_USERNAME }}
