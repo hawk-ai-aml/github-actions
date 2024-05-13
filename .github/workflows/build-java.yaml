@@ -69,7 +69,7 @@ jobs:
     steps:
       - id: init
         name: Init Workflow
-        uses: hawk-ai-aml/github-actions/workflow-init@master
+        uses: hawk-ai-aml/github-actions/workflow-init@AR-198-build-docker-images-during-pr-build
         with:
           skip-tests: ${{ inputs.skipTests }}
           update-kustomize: ${{ inputs.updateKustomize }}
