@@ -19,7 +19,7 @@ on:
       publishTask:
         description: "Parameter to choose task that will be run in publish step"
         type: string
-        required: true
+        required: false
         default: "artifactoryPublish"
 
 defaults:
