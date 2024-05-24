@@ -111,6 +111,7 @@ runs:
       shell: bash -l -ET -eo pipefail {0}
       env:
         METADATA: ${{ steps.profile.outputs.metadata }}
+        PR_NUMBER: ${{ github.event.number }}
       run: |
         cat <<EOF | tee -a ${GITHUB_STEP_SUMMARY}
         \`\`\`
@@ -140,7 +141,7 @@ runs:
           ;;
           "pr")
             BRANCH_NAME=$(echo ${GITHUB_HEAD_REF} | sed 's,\/,-,g; s,\#,,g')
-            IMAGE_TAG="pr-${BRANCH_NAME}-${GIT_SHA_SHORT}"
+            IMAGE_TAG="pull-request-${PR_NUMBER}-${GIT_SHA_SHORT}"
           ;;
           *)
             IMAGE_TAG=${BUILD_BRANCH}-${GIT_SHA_SHORT}
