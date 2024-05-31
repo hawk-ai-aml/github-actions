@@ -52,6 +52,7 @@ jobs:
           else
             echo "Directory does not exist continue checkout job"
           fi
+          
       - uses: actions/checkout@v4
         with:
           ref: ${{ inputs.ref }}
