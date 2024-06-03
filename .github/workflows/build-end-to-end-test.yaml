@@ -46,11 +46,16 @@ jobs:
       - name: Cleanup old checkout
         run: |
           if [ -d "${GITHUB_WORKSPACE}" ]; then
-            echo "Directory exists"
-            chmod +w -R ${GITHUB_WORKSPACE}
-            rm -rf ${GITHUB_WORKSPACE}/*
+            if grep -r "aws" "$GITHUB_WORKSPACE" > /dev/null 2>&1; then
+              echo "Skip chmod because awscli"
+            else
+              chmod +w -R ${GITHUB_WORKSPACE}
+              rm -rf ${GITHUB_WORKSPACE}/* 
+            fi
+            echo "Old GITHUB_WORKSPACE exists and cleaned"
+ 
           else
-            echo "Directory does not exist continue checkout job"
+            echo "GITHUB_WORKSPACE does not exist continue checkout job"
           fi
           
       - uses: actions/checkout@v4
