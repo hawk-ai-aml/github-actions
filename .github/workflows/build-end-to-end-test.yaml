@@ -42,7 +42,17 @@ jobs:
           printf "## chrome-driver: $(chromedriver --version) / [$(which chromedriver)]\n"
           printf "## chrome-browser: $(google-chrome --version) / [$(which google-chrome)]\n"
           printf "## allure: $(allure --version)\n"
-
+      
+      - name: Cleanup old checkout
+        run: |
+          if [ -d "${GITHUB_WORKSPACE}" ]; then
+            echo "Directory exists"
+            chmod +w -R ${GITHUB_WORKSPACE}
+            rm -rf ${GITHUB_WORKSPACE}/*
+          else
+            echo "Directory does not exist continue checkout job"
+          fi
+          
       - uses: actions/checkout@v4
         with:
           ref: ${{ inputs.ref }}
