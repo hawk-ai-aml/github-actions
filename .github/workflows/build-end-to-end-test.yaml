@@ -46,14 +46,9 @@ jobs:
       - name: Cleanup old checkout
         run: |
           if [ -d "${GITHUB_WORKSPACE}" ]; then
-            if grep -r "aws" "$GITHUB_WORKSPACE" > /dev/null 2>&1; then
-              echo "Skip chmod because awscli"
-            else
-              chmod +w -R ${GITHUB_WORKSPACE}
-              rm -rf ${GITHUB_WORKSPACE}/* 
-            fi
-            echo "Old GITHUB_WORKSPACE exists and cleaned"
- 
+            echo "GITHUB_WORKSPACE exists and cleaned"
+            rm -rf ${GITHUB_WORKSPACE}/*
+            
           else
             echo "GITHUB_WORKSPACE does not exist continue checkout job"
           fi
