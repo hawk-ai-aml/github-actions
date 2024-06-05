@@ -267,7 +267,7 @@ runs:
 
     - name: Upload Allure report to S3
       if: always()
-      uses: hawk-ai-aml/github-actions/upload-to-s3@master
+      uses: hawk-ai-aml/github-actions/upload-to-s3@SRE-3058-Remove-awscli
       with:
         aws_access_key_id: ${{ inputs.aws-key-id }}
         aws_secret_access_key: ${{ inputs.aws-secret-access-key }}
