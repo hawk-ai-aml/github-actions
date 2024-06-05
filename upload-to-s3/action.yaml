@@ -69,6 +69,6 @@ runs:
           echo "* [${DISPLAY_TEXT}](${FULL_URL})" | tee -a ${GITHUB_STEP_SUMMARY}
         done
 # End of file
-    - name: Ensure directory removal
+    - name: Clean up aws-cli
       run: |
         sudo rm -rf /runner/_work/end-to-end-tests/end-to-end-tests/unfor19-awscli
