@@ -42,20 +42,14 @@ jobs:
           printf "## chrome-driver: $(chromedriver --version) / [$(which chromedriver)]\n"
           printf "## chrome-browser: $(google-chrome --version) / [$(which google-chrome)]\n"
           printf "## allure: $(allure --version)\n"
-      
+
       - name: Cleanup old checkout
         run: |
           if [ -d "${GITHUB_WORKSPACE}" ]; then
-            if grep -r "aws" "$GITHUB_WORKSPACE" > /dev/null 2>&1; then
-              echo "Skip chmod because awscli"
-            else
-              chmod +w -R ${GITHUB_WORKSPACE}
-              rm -rf ${GITHUB_WORKSPACE}/* 
-            fi
-            echo "Old GITHUB_WORKSPACE exists and cleaned"
- 
+            echo "Directory exists"
+            sudo chmod +w -R ${GITHUB_WORKSPACE}
           else
-            echo "GITHUB_WORKSPACE does not exist continue checkout job"
+            echo "Directory does not exist continue checkout job"
           fi
           
       - uses: actions/checkout@v4
