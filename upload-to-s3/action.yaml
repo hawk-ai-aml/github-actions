@@ -69,4 +69,3 @@ runs:
           echo "* [${DISPLAY_TEXT}](${FULL_URL})" | tee -a ${GITHUB_STEP_SUMMARY}
         done
 # End of file
-
