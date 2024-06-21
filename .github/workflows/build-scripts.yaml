@@ -75,7 +75,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        module: ${{ needs.init.outputs.updated-modules }}
+        module: ${{ fromJson(needs.detect-changes.outputs.updated-modules) }}
 
     steps:
       # - uses: actions/checkout@v4
