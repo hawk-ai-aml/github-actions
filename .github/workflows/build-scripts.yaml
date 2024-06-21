@@ -14,49 +14,80 @@ on:
         description: The metadata for the test
         type: string
         required: false
+      component:
+        description: "Name of the repository"
+        type: string
+        required: true
+      modules-string:
+        description: "Module names in string. Example: module1, module2, ..."
+        type: string
+        required: true
 
 defaults:
   run:
     shell: bash -l -ET -eo pipefail {0}
 
 jobs:
-  build-image:
+  detect-changes:
     name: build image
     runs-on: [ "self-hosted", "small-builder" ]
     outputs:
       dev-tag: ${{ steps.build-and-push-image.outputs.dev-tag }}
+      updated-modules: ${{ steps.detect-changes.outputs.updated-modules }}
+      updated-modules-string: ${{ steps.detect-changes.outputs.updated-modules-string }}
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Login to Docker Hub
-        uses: docker/login-action@v3
-        with:
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
+      # - name: Login to Docker Hub
+      #   uses: docker/login-action@v3
+      #   with:
+      #     username: ${{ secrets.DOCKERHUB_USERNAME }}
+      #     password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      - name: Configure HAWK AWS credentials
-        uses: aws-actions/configure-aws-credentials@v4
-        with:
-          aws-access-key-id: ${{ secrets.AWS_ORG_ECR_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_ORG_ECR_SECRET_ACCESS_KEY }}
-          aws-region: eu-central-1
+      # - name: Configure HAWK AWS credentials
+      #   uses: aws-actions/configure-aws-credentials@v4
+      #   with:
+      #     aws-access-key-id: ${{ secrets.AWS_ORG_ECR_ACCESS_KEY_ID }}
+      #     aws-secret-access-key: ${{ secrets.AWS_ORG_ECR_SECRET_ACCESS_KEY }}
+      #     aws-region: eu-central-1
 
-      - name: Login to HAWK Amazon ECR
-        id: login-ecr
-        uses: aws-actions/amazon-ecr-login@v2
+      # - name: Login to HAWK Amazon ECR
+      #   id: login-ecr
+      #   uses: aws-actions/amazon-ecr-login@v2
+      #   with:
+      #     registries: "860641649575"
+
+      - id: detect-changes
+        name: Detect changes
+        uses: hawk-ai-aml/github-actions/repository-detect-changes@master
         with:
-          registries: "860641649575"
+          repository: hawk-ai-aml/${{ inputs.component }}
+          repository-ref: ${{ env.GITHUB_REF_NAME }}
+          repository-user: ${{ secrets.RECREATE_DEVELOP_GITHUB_USER }}
+          repository-access-token: ${{ secrets.REPO_ACCESS_PAT }}
+          modules-string: ${{ inputs.modules-string }}
+
+  build:
+    needs: [ init ]
+    runs-on: [ "self-hosted", "small-builder" ]
+    strategy:
+      fail-fast: false
+      matrix:
+        module: ${{ fromJson(needs.init.outputs.updated-modules) }}
+
+    steps:
+      # - uses: actions/checkout@v4
+
+      # - name: Login to Docker Hub
+      #   uses: docker/login-action@v2
+      #   with:
+      #     username: ${{ secrets.DOCKERHUB_USERNAME }}
+      #     password: ${{ secrets.DOCKERHUB_TOKEN }}
 
       - name: Build and push image
         id: build-and-push-image
-        env:
-          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
-          ECR_REPOSITORY: grafana
         run: |
-          GIT_SHA_SHORT=${GITHUB_SHA:0:7}
-          echo "dev-tag=develop-${GIT_SHA_SHORT}" >> $GITHUB_OUTPUT
-
-          docker build -t ${ECR_REGISTRY}/${ECR_REPOSITORY}:develop-${GIT_SHA_SHORT} .
-          docker push ${ECR_REGISTRY}/${ECR_REPOSITORY}:develop-${GIT_SHA_SHORT}
+          echo "${{ matrix.module }}"
+          echo "yolo"
