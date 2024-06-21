@@ -32,32 +32,19 @@ jobs:
     name: build image
     runs-on: [ "self-hosted", "small-builder" ]
     outputs:
-      dev-tag: ${{ steps.build-and-push-image.outputs.dev-tag }}
+      image-tag: ${{ steps.init.outputs.image-tag }}
+      ecr-url: ${{ steps.init.outputs.ecr-url }}
       updated-modules: ${{ steps.detect-changes.outputs.updated-modules }}
       updated-modules-string: ${{ steps.detect-changes.outputs.updated-modules-string }}
 
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      # - name: Login to Docker Hub
-      #   uses: docker/login-action@v3
-      #   with:
-      #     username: ${{ secrets.DOCKERHUB_USERNAME }}
-      #     password: ${{ secrets.DOCKERHUB_TOKEN }}
-
-      # - name: Configure HAWK AWS credentials
-      #   uses: aws-actions/configure-aws-credentials@v4
-      #   with:
-      #     aws-access-key-id: ${{ secrets.AWS_ORG_ECR_ACCESS_KEY_ID }}
-      #     aws-secret-access-key: ${{ secrets.AWS_ORG_ECR_SECRET_ACCESS_KEY }}
-      #     aws-region: eu-central-1
-
-      # - name: Login to HAWK Amazon ECR
-      #   id: login-ecr
-      #   uses: aws-actions/amazon-ecr-login@v2
-      #   with:
-      #     registries: "860641649575"
+      - id: init
+        name: Init Workflow
+        uses: hawk-ai-aml/github-actions/workflow-init@master
+        with:
+          repository-name: hawk-ai-aml/${{ inputs.component }}
+          repository-ref: ${{ env.GITHUB_REF_NAME }}
+          repository-access-token: ${{ secrets.REPO_ACCESS_PAT }}
 
       - id: detect-changes
         name: Detect changes
@@ -78,16 +65,32 @@ jobs:
         module: ${{ fromJson(needs.detect-changes.outputs.updated-modules) }}
 
     steps:
-      # - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      # - name: Login to Docker Hub
-      #   uses: docker/login-action@v2
-      #   with:
-      #     username: ${{ secrets.DOCKERHUB_USERNAME }}
-      #     password: ${{ secrets.DOCKERHUB_TOKEN }}
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      - name: Build and push image
-        id: build-and-push-image
-        run: |
-          echo "${{ matrix.module }}"
-          echo "yolo"
+      - name: Configure HAWK AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ORG_ECR_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_ORG_ECR_SECRET_ACCESS_KEY }}
+          aws-region: eu-central-1
+
+      - name: Login to HAWK Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+        with:
+          registries: "860641649575"
+
+      - name: Build docker image
+        uses: docker/build-push-action@v6
+        with:
+          context: ./${{ matrix.module }}
+          push: true
+          tags: ${{ steps.detect-changes.outputs.ecr-url }}/${{ matrix.module }}:${{ needs.detect-changes.outputs.image-tag }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
