@@ -70,7 +70,7 @@ jobs:
           modules-string: ${{ inputs.modules-string }}
 
   build:
-    needs: [ dete ]
+    needs: [ detect-changes ]
     runs-on: [ "self-hosted", "small-builder" ]
     strategy:
       fail-fast: false
