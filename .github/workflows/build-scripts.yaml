@@ -70,12 +70,12 @@ jobs:
           modules-string: ${{ inputs.modules-string }}
 
   build:
-    needs: [ detect-changes ]
+    needs: [ dete ]
     runs-on: [ "self-hosted", "small-builder" ]
     strategy:
       fail-fast: false
       matrix:
-        module: ${{ fromJson(needs.init.outputs.updated-modules) }}
+        module: ${{ needs.init.outputs.updated-modules }}
 
     steps:
       # - uses: actions/checkout@v4
