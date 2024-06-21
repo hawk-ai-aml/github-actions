@@ -86,11 +86,11 @@ jobs:
         with:
           registries: "860641649575"
 
-      - name: Build docker image
-        uses: docker/build-push-action@v6
-        with:
-          context: ./${{ matrix.module }}
-          push: true
-          tags: ${{ steps.detect-changes.outputs.ecr-url }}/${{ matrix.module }}:${{ needs.detect-changes.outputs.image-tag }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+      - name: Build image
+        env:
+          ECR_REGISTRY: ${{ steps.detect-changes.outputs.ecr-url }}
+          ECR_REPOSITORY: ${{ matrix.module }}
+          IMAGE_TAG: ${{ needs.detect-changes.outputs.image-tag }}
+        run: |
+          docker build -t ${ECR_REGISTRY}/${ECR_REPOSITORY}:${IMAGE_TAG} ./${ECR_REPOSITORY}
+
