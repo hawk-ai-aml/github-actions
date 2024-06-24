@@ -39,6 +39,7 @@ jobs:
       overlays: ${{ steps.init.outputs.overlays }}
       image-tag: ${{ steps.init.outputs.image-tag }}
       update-kustomize: ${{ steps.init.outputs.update-kustomize }}
+      kustomize-modules-string: ${{ steps.init.outputs.kustomize-modules-string }}
       ecr-url: ${{ steps.init.outputs.ecr-url }}
       ecr-registry-code: ${{ steps.init.outputs.ecr-registry-code }}
       ecr-region: ${{ steps.init.outputs.ecr-region }}
