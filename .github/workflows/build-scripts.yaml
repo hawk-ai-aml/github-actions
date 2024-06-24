@@ -2,6 +2,10 @@ name: build
 on:
   workflow_call:
     inputs:
+      updateKustomize:
+        description: "Update kustomize overlays (true/false)"
+        type: boolean
+        required: false
       environment:
         type: string
         description: Environment
@@ -42,6 +46,7 @@ jobs:
         name: Init Workflow
         uses: hawk-ai-aml/github-actions/workflow-init@master
         with:
+          update-kustomize: ${{ inputs.updateKustomize }}
           repository-name: hawk-ai-aml/${{ inputs.component }}
           repository-ref: ${{ env.GITHUB_REF_NAME }}
           repository-access-token: ${{ secrets.REPO_ACCESS_PAT }}
