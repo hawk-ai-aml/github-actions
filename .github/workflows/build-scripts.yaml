@@ -111,8 +111,8 @@ jobs:
           docker push ${ECR_REGISTRY}/${ECR_REPOSITORY}:${IMAGE_TAG}
 
   update-overlays:
-    needs: [ init ]
-    if: ${{ needs.init.outputs.update-kustomize == 'true' }} # && github.workflow != 'pr' }}
+    needs: [ init, build ]
+    if: ${{ needs.init.outputs.update-kustomize == 'true' && github.workflow != 'pr' }}
     runs-on: [ "self-hosted", "small-builder" ]
 
     steps:
