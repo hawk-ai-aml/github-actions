@@ -86,22 +86,22 @@ jobs:
         with:
           registries: "860641649575"
 
-      - name: Build image
-        env:
-          ECR_REGISTRY: ${{ steps.detect-changes.outputs.ecr-url }}
-          ECR_REPOSITORY: ${{ matrix.module }}
-          IMAGE_TAG: ${{ needs.init.outputs.image-tag }}
-        run: |
-          docker build -t ${ECR_REGISTRY}${ECR_REPOSITORY}:${IMAGE_TAG} ./${ECR_REPOSITORY}
+      # - name: Build image
+      #   env:
+      #     ECR_REGISTRY: ${{ steps.detect-changes.outputs.ecr-url }}
+      #     ECR_REPOSITORY: ${{ matrix.module }}
+      #     IMAGE_TAG: ${{ needs.init.outputs.image-tag }}
+      #   run: |
+      #     docker build -t ${ECR_REGISTRY}${ECR_REPOSITORY}:${IMAGE_TAG} ./${ECR_REPOSITORY}
 
-      - name: Push Image
-        id: push-image
-        env:
-          ECR_REGISTRY: ${{ steps.detect-changes.outputs.ecr-url }}
-          ECR_REPOSITORY: ${{ matrix.module }}
-          IMAGE_TAG: ${{ needs.init.outputs.image-tag }}
-        run: |
-          docker push ${ECR_REGISTRY}${ECR_REPOSITORY}:${IMAGE_TAG}
+      # - name: Push Image
+      #   id: push-image
+      #   env:
+      #     ECR_REGISTRY: ${{ steps.detect-changes.outputs.ecr-url }}
+      #     ECR_REPOSITORY: ${{ matrix.module }}
+      #     IMAGE_TAG: ${{ needs.init.outputs.image-tag }}
+      #   run: |
+      #     docker push ${ECR_REGISTRY}${ECR_REPOSITORY}:${IMAGE_TAG}
 
   update-overlays:
     needs: [ init, build ]
