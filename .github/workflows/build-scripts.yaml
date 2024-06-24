@@ -95,7 +95,7 @@ jobs:
 
       - name: Build image
         env:
-          ECR_REGISTRY: ${{ steps.init.outputs.ecr-url }}
+          ECR_REGISTRY: ${{ needs.init.outputs.ecr-url }}
           ECR_REPOSITORY: ${{ matrix.module }}
           IMAGE_TAG: ${{ needs.init.outputs.image-tag }}
         run: |
@@ -104,7 +104,7 @@ jobs:
       - name: Push Image
         id: push-image
         env:
-          ECR_REGISTRY: ${{ steps.init.outputs.ecr-url }}
+          ECR_REGISTRY: ${{ needs.init.outputs.ecr-url }}
           ECR_REPOSITORY: ${{ matrix.module }}
           IMAGE_TAG: ${{ needs.init.outputs.image-tag }}
         run: |
