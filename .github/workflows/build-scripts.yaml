@@ -37,6 +37,7 @@ jobs:
     runs-on: [ "self-hosted", "small-builder" ]
     outputs:
       image-tag: ${{ steps.init.outputs.image-tag }}
+      update-kustomize: ${{ steps.init.outputs.update-kustomize }}
       ecr-url: ${{ steps.init.outputs.ecr-url }}
       updated-modules: ${{ steps.detect-changes.outputs.updated-modules }}
       updated-modules-string: ${{ steps.detect-changes.outputs.updated-modules-string }}
