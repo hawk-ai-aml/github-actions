@@ -28,7 +28,7 @@ defaults:
     shell: bash -l -ET -eo pipefail {0}
 
 jobs:
-  detect-changes:
+  init:
     name: build image
     runs-on: [ "self-hosted", "small-builder" ]
     outputs:
@@ -57,12 +57,12 @@ jobs:
           modules-string: ${{ inputs.modules-string }}
 
   build:
-    needs: [ detect-changes ]
+    needs: [ init ]
     runs-on: [ "self-hosted", "small-builder" ]
     strategy:
       fail-fast: false
       matrix:
-        module: ${{ fromJson(needs.detect-changes.outputs.updated-modules) }}
+        module: ${{ fromJson(needs.init.outputs.updated-modules) }}
 
     steps:
       - uses: actions/checkout@v4
@@ -90,7 +90,34 @@ jobs:
         env:
           ECR_REGISTRY: ${{ steps.detect-changes.outputs.ecr-url }}
           ECR_REPOSITORY: ${{ matrix.module }}
-          IMAGE_TAG: ${{ needs.detect-changes.outputs.image-tag }}
+          IMAGE_TAG: ${{ needs.init.outputs.image-tag }}
         run: |
           docker build -t ${ECR_REGISTRY}${ECR_REPOSITORY}:${IMAGE_TAG} ./${ECR_REPOSITORY}
 
+      - name: Push Image
+        id: push-image
+        env:
+          ECR_REGISTRY: ${{ steps.detect-changes.outputs.ecr-url }}
+          ECR_REPOSITORY: ${{ matrix.module }}
+          IMAGE_TAG: ${{ needs.init.outputs.image-tag }}
+        run: |
+          docker push ${ECR_REGISTRY}${ECR_REPOSITORY}:${IMAGE_TAG}
+
+  update-overlays:
+    needs: [ init, build ]
+    if: ${{ needs.init.outputs.update-kustomize == 'true' && github.workflow != 'pr' }}
+    runs-on: [ "self-hosted", "small-builder" ]
+
+    steps:
+      - name: Update kustomize overlay
+        uses: hawk-ai-aml/github-actions/kustomize-overlay@master
+        with:
+          overlays: ${{ needs.init.outputs.overlays }}
+          modules: ${{ needs.init.outputs.kustomize-modules-string }}
+          component-name: ${{ inputs.component }}
+          component-tag: ${{ needs.init.outputs.image-tag }}
+          kustomize-repo: hawk-ai-aml/kustomize.git
+          kustomize-access-token: ${{ secrets.REPO_ACCESS_PAT }}
+          ecr-region: ${{ needs.init.outputs.ecr-region }}
+          ecr-registry-code: ${{ needs.init.outputs.ecr-registry-code }}
+          metadata: ${{ needs.init.outputs.metadata }}
