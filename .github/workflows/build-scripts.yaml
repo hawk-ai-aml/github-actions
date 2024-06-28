@@ -139,7 +139,7 @@ jobs:
         if: success()
         with:
           notify-pr-author: true
-          slack-message: ":tada: Successfully updated overlay ${{ needs.init.outputs.overlays }} with ${{ inputs.component }}:${{ needs.init.outputs.image-tag }}."
+          slack-message: ":tada: Successfully updated overlay [${{ needs.init.outputs.overlays }}]\nmodules: [${{ needs.init.outputs.kustomize-modules-string }}]\ntag:${{ needs.init.outputs.image-tag }}."
           slack-access-token: ${{ secrets.SLACK_RELEASE_BOT_ACCESS_TOKEN }}
           github-users-access-token: ${{ secrets.USER_GITHUB_ACCESS }}    
 

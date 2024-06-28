@@ -55,7 +55,7 @@ runs:
         slack_text="[$REPO]\n\n$INPUT_SLACK_MESSAGE \n\n> branch-name: $BRANCH_NAME\n> <$RUN_URL|Github Link>\n\n"
         found_slack_id=true
 
-        if [[ "$INPUT_NOTIFY_PR_AUTHOR" == "true" ]]; then
+        if [[ "$INPUT_NOTIFY_PR_AUTHOR" == "true" && "$GITHUB_ACTOR" != "hawkai-bot" ]]; then
           if [[ -n "$SLACK_USER_ID" && "$SLACK_USER_ID" != "null" && "$INPUT_NOTIFY_PR_AUTHOR" == "true" ]]; then
 
             # Send message to the user's Slack channel
