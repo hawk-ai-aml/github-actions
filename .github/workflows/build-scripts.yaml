@@ -6,16 +6,8 @@ on:
         description: "Update kustomize overlays (true/false)"
         type: boolean
         required: false
-      environment:
-        type: string
-        description: Environment
-        required: false
-      ref:
-        type: string
-        description: Tag or branch name
-        required: false
-      metadata:
-        description: The metadata for the test
+      kustomizeOverlays:
+        description: "Overlays to update"
         type: string
         required: false
       component:
@@ -48,6 +40,7 @@ jobs:
         name: Init Workflow
         uses: hawk-ai-aml/github-actions/workflow-init@master
         with:
+          overlays: ${{ inputs.kustomizeOverlays }}
           update-kustomize: ${{ inputs.updateKustomize }}
           repository-name: hawk-ai-aml/${{ inputs.component }}
           repository-ref: ${{ env.GITHUB_REF_NAME }}
@@ -62,6 +55,15 @@ jobs:
           repository-user: ${{ secrets.RECREATE_DEVELOP_GITHUB_USER }}
           repository-access-token: ${{ secrets.REPO_ACCESS_PAT }}
           modules-string: ${{ steps.init.outputs.kustomize-modules-string }}
+
+      - name: Slack notification for failed init workflow
+        uses: hawk-ai-aml/github-actions/send-slack-notification@master
+        if: failure()
+        with:
+          notify-pr-author: true
+          slack-message: ":x: The init workflow failed. Please check the reason for it and contact @team-pe."
+          slack-access-token: ${{ secrets.SLACK_RELEASE_BOT_ACCESS_TOKEN }}
+          github-users-access-token: ${{ secrets.USER_GITHUB_ACCESS }} 
 
   build:
     needs: [ init ]
@@ -104,6 +106,15 @@ jobs:
         run: |
           docker push ${ECR_REGISTRY}/${ECR_REPOSITORY}:${IMAGE_TAG}
 
+      - name: Slack notification for failed overlay update workflow
+        uses: hawk-ai-aml/github-actions/send-slack-notification@master
+        if: failure()
+        with:
+          notify-pr-author: true
+          slack-message: ":x: Your build failed. Please check the reason for it."
+          slack-access-token: ${{ secrets.SLACK_RELEASE_BOT_ACCESS_TOKEN }}
+          github-users-access-token: ${{ secrets.USER_GITHUB_ACCESS }} 
+
   update-overlays:
     needs: [ init, build ]
     if: ${{ needs.init.outputs.update-kustomize == 'true' && github.workflow != 'pr' }}
@@ -122,3 +133,21 @@ jobs:
           ecr-region: ${{ needs.init.outputs.ecr-region }}
           ecr-registry-code: ${{ needs.init.outputs.ecr-registry-code }}
           metadata: ${{ needs.init.outputs.metadata }}
+
+      - name: Slack notification for successful overlay update workflow
+        uses: hawk-ai-aml/github-actions/send-slack-notification@master
+        if: success()
+        with:
+          notify-pr-author: true
+          slack-message: ":tada: Successfully updated overlay ${{ needs.init.outputs.overlays }} with ${{ inputs.component }}:${{ needs.init.outputs.image-tag }}."
+          slack-access-token: ${{ secrets.SLACK_RELEASE_BOT_ACCESS_TOKEN }}
+          github-users-access-token: ${{ secrets.USER_GITHUB_ACCESS }}    
+
+      - name: Slack notification for failed overlay update workflow
+        uses: hawk-ai-aml/github-actions/send-slack-notification@master
+        if: failure()
+        with:
+          notify-pr-author: true
+          slack-message: ":x: The update overlay workflow failed. Please check the reason for it and contact @team-pe."
+          slack-access-token: ${{ secrets.SLACK_RELEASE_BOT_ACCESS_TOKEN }}
+          github-users-access-token: ${{ secrets.USER_GITHUB_ACCESS }}       

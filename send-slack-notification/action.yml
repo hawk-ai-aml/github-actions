@@ -1,0 +1,107 @@
+name: send-slack-notification
+description: Send a direct slack notification to authors or slack channels
+
+inputs:
+  notify-pr-author:
+    description: "Boolean value indicating if the slack notification should be sent to the author only"
+    required: true
+  slack-message:
+    description: "The message to send to the Slack channel"
+    required: true
+  slack-access-token:
+    description: "Access token to slack"
+    required: true
+  github-users-access-token:
+    description: "Access token to GitHub users"
+    required: true
+  notify-slack-channel-name:
+    default: ""
+    description: "The Slack channel name to send the notification to. There is a mapping of slack names to ID."
+    required: false
+
+runs:
+  using: composite
+  steps:
+    - name: Checkout Kustomize
+      uses: actions/checkout@v4
+      with:
+        repository: hawk-ai-aml/github-actions.git
+        ref: master
+
+    - shell: bash -l -ET -eo pipefail {0}
+      name: Send DM Slack notification when pipeline fails
+      env:
+        INPUT_NOTIFY_PR_AUTHOR: ${{ inputs.notify-pr-author }}
+        INPUT_SLACK_MESSAGE: ${{ inputs.slack-message }}
+        INPUT_NOTIFY_SLACK_CHANNEL_NAME: ${{ inputs.notify-slack-channel-name }}
+        SLACK_TOKEN: ${{ inputs.slack-access-token }}
+        GITHUB_USER_ACCESS: ${{ inputs.github-users-access-token }}
+        SLACK_CHANNEL_MAPPING_FILE: send-slack-notification/slack_channel_mapping.json
+      run: |
+
+        GITHUB_ACTOR=${{ github.actor }}
+        REPO=${{ github.repository }}
+        RUN_ID=${{ github.run_id }}
+
+        # Construct the URL for the current GitHub Action run
+        RUN_URL="https://github.com/$REPO/actions/runs/$RUN_ID"
+        # Retrieve the repository and run ID
+        REPO="${{ github.repository }}"
+        BRANCH_NAME=${GITHUB_HEAD_REF:-${GITHUB_REF#refs/heads/}}
+        
+        # Fetch GitHub user profile; extract blog URL; remove double quotes
+        SLACK_USER_ID=$(curl -s -H "Authorization: token $GITHUB_USER_ACCESS" "https://api.github.com/users/$GITHUB_ACTOR" | jq '.blog' | sed 's/"//g')
+
+        slack_text="[$REPO]\n\n$INPUT_SLACK_MESSAGE \n\n> branch-name: $BRANCH_NAME\n> <$RUN_URL|Github Link>\n\n"
+        found_slack_id=true
+
+        if [[ "$INPUT_NOTIFY_PR_AUTHOR" == "true" ]]; then
+          if [[ -n "$SLACK_USER_ID" && "$SLACK_USER_ID" != "null" && "$INPUT_NOTIFY_PR_AUTHOR" == "true" ]]; then
+
+            # Send message to the user's Slack channel
+            SLACK_RESPONSE=$(curl -X POST -H "Authorization: Bearer $SLACK_TOKEN" -H 'Content-type: application/json' \
+            --data "{\"channel\":\"$SLACK_USER_ID\",\"text\":\"$slack_text\"}" \
+            https://slack.com/api/chat.postMessage)
+
+            # Print the Slack response (optional for debugging purposes)
+            echo $SLACK_RESPONSE
+
+            # Check if the response contains "ok": false
+            if echo $SLACK_RESPONSE | grep -q '"ok":false'; then
+              echo "Failed to send Slack notification to $GITHUB_ACTOR."
+              exit 1
+            else
+              echo "Slack notification sent successfully to $GITHUB_ACTOR."
+            fi
+          else
+            INPUT_NOTIFY_SLACK_CHANNEL_NAME="developers"
+            found_slack_id=false
+          fi
+        fi
+
+        if [[ "$INPUT_NOTIFY_SLACK_CHANNEL_NAME" != ""  ]]; then
+          if [[ "$found_slack_id" == "false" ]]; then
+            echo "Slack user ID not found for GitHub user: $GITHUB_ACTOR"
+            slack_text+="\n\n---------------\n\nThere is no slack_id found in the profile. @$GITHUB_ACTOR please add it -> https://hawkai.atlassian.net/wiki/spaces/SRE/pages/3408363526/GitHub+Onboarding+Guide#4.-Personalize-your-profile"
+          fi
+
+          # Extract the channel ID from the JSON file using jq
+          SLACK_CHANNEL_ID=$(jq -r --arg channel_name "$INPUT_NOTIFY_SLACK_CHANNEL_NAME" '.[$channel_name]' "$SLACK_CHANNEL_MAPPING_FILE")
+
+          # Send the message using curl
+          SLACK_RESPONSE=$(curl -X POST -H "Authorization: Bearer $SLACK_TOKEN" -H 'Content-type: application/json' \
+              --data "{\"channel\":\"$SLACK_CHANNEL_ID\",\"text\":\"$slack_text\"}" \
+              https://slack.com/api/chat.postMessage)
+
+          # Print the Slack response (optional for debugging purposes)
+          echo $SLACK_RESPONSE
+
+          if echo $SLACK_RESPONSE | grep -q '"ok":false'; then
+            echo "Failed to send Slack notification to $INPUT_NOTIFY_SLACK_CHANNEL_NAME channel."
+            exit 1
+          else
+            echo "Slack notification sent successfully to $INPUT_NOTIFY_SLACK_CHANNEL_NAME channel."
+          fi
+
+          exit 0
+        fi
