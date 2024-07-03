@@ -95,7 +95,7 @@ jobs:
           ECR_REPOSITORY: ${{ matrix.module }}
           IMAGE_TAG: ${{ needs.init.outputs.image-tag }}
         run: |
-          docker build -t ${ECR_REGISTRY}/${ECR_REPOSITORY}:${IMAGE_TAG} ./${ECR_REPOSITORY}
+          DOCKER_BUILDKIT=1 docker build -t ${ECR_REGISTRY}/${ECR_REPOSITORY}:${IMAGE_TAG} ./${ECR_REPOSITORY}
 
       - name: Push Image
         id: push-image
