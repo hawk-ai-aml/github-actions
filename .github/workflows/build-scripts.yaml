@@ -133,4 +133,6 @@ jobs:
           ecr-region: ${{ needs.init.outputs.ecr-region }}
           ecr-registry-code: ${{ needs.init.outputs.ecr-registry-code }}
           metadata: ${{ needs.init.outputs.metadata }}
+          github-access-token: ${{ secrets.USER_GITHUB_ACCESS }}
+          slack-access-token: ${{ secrets.SLACK_RELEASE_BOT_ACCESS_TOKEN }}
     
