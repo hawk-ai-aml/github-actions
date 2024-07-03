@@ -68,6 +68,10 @@ jobs:
   build:
     needs: [ init ]
     runs-on: [ "self-hosted", "small-builder" ]
+    services:
+      docker:
+        image: docker:20.10.8
+        options: --privileged
     strategy:
       fail-fast: false
       matrix:
