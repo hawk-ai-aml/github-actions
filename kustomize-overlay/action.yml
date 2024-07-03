@@ -126,8 +126,8 @@ runs:
       with:
         notify-pr-author: true
         slack-message: ":tada: Successfully updated overlay [${{ inputs.overlays }}]\nmodules: [${{ inputs.modules }}]\ntag:${{ inputs.component-tag }}."
-        slack-access-token: ${SLACK_ACCESS_TOKEN}
-        github-users-access-token: ${GITHUB_ACCESS_TOKEN}
+        slack-access-token: ${{ inputs.slack-access-token }}
+        github-users-access-token: ${{ inputs.github-users-access-token }}
 
     - name: Slack notification for failed overlay update workflow
       uses: hawk-ai-aml/github-actions/send-slack-notification@master
@@ -138,5 +138,5 @@ runs:
       with:
         notify-pr-author: true
         slack-message: ":x: The update overlay workflow failed. Please check the reason for it and contact @team-pe."
-        slack-access-token: ${SLACK_ACCESS_TOKEN}
-        github-users-access-token: ${GITHUB_ACCESS_TOKEN}
+        slack-access-token: ${{ inputs.slack-access-token }}
+        github-users-access-token: ${{ inputs.github-users-access-token }}
