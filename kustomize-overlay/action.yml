@@ -125,7 +125,7 @@ runs:
         GITHUB_ACCESS_TOKEN: ${{ inputs.github-users-access-token }}
       with:
         notify-pr-author: true
-        slack-message: ":tada: Successfully updated overlay [${{ inputs.overlays }}]\nmodules: [${{ inputs.modules }}]\ntag: `${{ inputs.component-tag }}`"
+        slack-message: ":tada: Successfully updated overlay [${{ inputs.overlays }}]\nmodules: [ ${{ inputs.modules }}]\ntag: `${{ inputs.component-tag }}`"
         slack-access-token: ${{ inputs.slack-access-token }}
         github-users-access-token: ${{ inputs.github-users-access-token }}
 
@@ -137,6 +137,6 @@ runs:
         GITHUB_ACCESS_TOKEN: ${{ inputs.github-users-access-token }}      
       with:
         notify-pr-author: true
-        slack-message: ":x: The update overlay workflow failed. Please check the reason for it and contact @team-pe."
+        slack-message: ":x: The `update-overlay` workflow failed. Please check the reason for it and contact @team-pe."
         slack-access-token: ${{ inputs.slack-access-token }}
         github-users-access-token: ${{ inputs.github-users-access-token }}

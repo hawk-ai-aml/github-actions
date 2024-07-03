@@ -122,7 +122,7 @@ jobs:
 
     steps:
       - name: Update kustomize overlay
-        uses: hawk-ai-aml/github-actions/kustomize-overlay@PE-3420-add-slack-notifications-for-python-builds
+        uses: hawk-ai-aml/github-actions/kustomize-overlay@master
         with:
           overlays: ${{ needs.init.outputs.overlays }}
           modules: ${{ needs.init.outputs.kustomize-modules-string }}
