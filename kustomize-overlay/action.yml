@@ -38,6 +38,15 @@ inputs:
     description: "Metadata for the module"
     required: true
 
+  slack-access-token:
+    description: "Access token to slack"
+    required: true
+
+  github-users-access-token:
+    description: "Access token to GitHub users"
+    required: true
+
+
 runs:
   using: composite
   steps:
@@ -111,17 +120,23 @@ runs:
     - name: Slack notification for successful overlay update workflow
       uses: hawk-ai-aml/github-actions/send-slack-notification@master
       if: success()
+      env:
+        SLACK_ACCESS_TOKEN: ${{ inputs.slack-access-token }}
+        GITHUB_ACCESS_TOKEN: ${{ inputs.github-users-access-token }}
       with:
         notify-pr-author: true
-        slack-message: ":tada: Successfully updated overlay [${{ needs.init.outputs.overlays }}]\nmodules: [${{ needs.init.outputs.kustomize-modules-string }}]\ntag:${{ needs.init.outputs.image-tag }}."
-        slack-access-token: ${{ secrets.SLACK_RELEASE_BOT_ACCESS_TOKEN }}
-        github-users-access-token: ${{ secrets.USER_GITHUB_ACCESS }}    
+        slack-message: ":tada: Successfully updated overlay [${{ inputs.overlays }}]\nmodules: [${{ inputs.modules }}]\ntag:${{ inputs.component-tag }}."
+        slack-access-token: ${SLACK_ACCESS_TOKEN}
+        github-users-access-token: ${GITHUB_ACCESS_TOKEN}
 
     - name: Slack notification for failed overlay update workflow
       uses: hawk-ai-aml/github-actions/send-slack-notification@master
       if: failure()
+      env:
+        SLACK_ACCESS_TOKEN: ${{ inputs.slack-access-token }}
+        GITHUB_ACCESS_TOKEN: ${{ inputs.github-users-access-token }}      
       with:
         notify-pr-author: true
         slack-message: ":x: The update overlay workflow failed. Please check the reason for it and contact @team-pe."
-        slack-access-token: ${{ secrets.SLACK_RELEASE_BOT_ACCESS_TOKEN }}
-        github-users-access-token: ${{ secrets.USER_GITHUB_ACCESS }}    
+        slack-access-token: ${SLACK_ACCESS_TOKEN}
+        github-users-access-token: ${GITHUB_ACCESS_TOKEN}
