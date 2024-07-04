@@ -184,15 +184,6 @@ jobs:
           DOCKER_BUILDKIT=1 docker build --build-arg SERVICE=${MODULE} --build-arg PY_UTILS_PAT=${PY_UTILS_PAT} -t ${REPOSITORY_FULL_NAME}:${IMAGE_TAG} .
           docker push ${REPOSITORY_FULL_NAME}:${IMAGE_TAG}
 
-      - name: Slack notification for failed overlay update workflow
-        uses: hawk-ai-aml/github-actions/send-slack-notification@master
-        if: failure()
-        with:
-          notify-pr-author: true
-          slack-message: ":x: Your build failed. Please check the reason for it."
-          slack-access-token: ${{ secrets.SLACK_RELEASE_BOT_ACCESS_TOKEN }}
-          github-users-access-token: ${{ secrets.USER_GITHUB_ACCESS }}
-
   check-if-all-builds-passed:
     if: always()
     needs: [ build ]
@@ -205,6 +196,15 @@ jobs:
       - name: Check Build Job Success
         if: ${{ needs.build.result == 'success' }}
         run: exit 0
+
+      - name: Slack notification for failed overlay update workflow
+        uses: hawk-ai-aml/github-actions/send-slack-notification@master
+        if: failure()
+        with:
+          notify-pr-author: true
+          slack-message: ":x: Your build failed. Please check the reason for it."
+          slack-access-token: ${{ secrets.SLACK_RELEASE_BOT_ACCESS_TOKEN }}
+          github-users-access-token: ${{ secrets.USER_GITHUB_ACCESS }}
 
   vulnerability-check-run:
     if: ${{ inputs.vulnerabilityCheck == true }}
