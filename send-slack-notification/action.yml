@@ -82,7 +82,7 @@ runs:
         if [[ "$INPUT_NOTIFY_SLACK_CHANNEL_NAME" != ""  ]]; then
           if [[ "$found_slack_id" == "false" ]]; then
             echo "Slack user ID not found for GitHub user: $GITHUB_ACTOR"
-            slack_text+="\n\n---------------\n\nThere is no slack_id found in the profile. @$GITHUB_ACTOR please add it -> https://hawkai.atlassian.net/wiki/spaces/SRE/pages/3408363526/GitHub+Onboarding+Guide#4.-Personalize-your-profile"
+            slack_text+="\n---------------\n\nThere is no slack_id found in the profile. @$GITHUB_ACTOR please add it -> https://hawkai.atlassian.net/wiki/spaces/SRE/pages/3408363526/GitHub+Onboarding+Guide#4.-Personalize-your-profile"
           fi
 
           # Extract the channel ID from the JSON file using jq
