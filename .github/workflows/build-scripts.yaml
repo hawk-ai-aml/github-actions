@@ -133,21 +133,6 @@ jobs:
           ecr-region: ${{ needs.init.outputs.ecr-region }}
           ecr-registry-code: ${{ needs.init.outputs.ecr-registry-code }}
           metadata: ${{ needs.init.outputs.metadata }}
-
-      - name: Slack notification for successful overlay update workflow
-        uses: hawk-ai-aml/github-actions/send-slack-notification@master
-        if: success()
-        with:
-          notify-pr-author: true
-          slack-message: ":tada: Successfully updated overlay [${{ needs.init.outputs.overlays }}]\nmodules: [${{ needs.init.outputs.kustomize-modules-string }}]\ntag:${{ needs.init.outputs.image-tag }}."
           slack-access-token: ${{ secrets.SLACK_RELEASE_BOT_ACCESS_TOKEN }}
-          github-users-access-token: ${{ secrets.USER_GITHUB_ACCESS }}    
-
-      - name: Slack notification for failed overlay update workflow
-        uses: hawk-ai-aml/github-actions/send-slack-notification@master
-        if: failure()
-        with:
-          notify-pr-author: true
-          slack-message: ":x: The update overlay workflow failed. Please check the reason for it and contact @team-pe."
-          slack-access-token: ${{ secrets.SLACK_RELEASE_BOT_ACCESS_TOKEN }}
-          github-users-access-token: ${{ secrets.USER_GITHUB_ACCESS }}       
+          github-users-access-token: ${{ secrets.USER_GITHUB_ACCESS }} 
+    
