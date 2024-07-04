@@ -52,7 +52,7 @@ runs:
         # Fetch GitHub user profile; extract blog URL; remove double quotes
         SLACK_USER_ID=$(curl -s -H "Authorization: token $GITHUB_USER_ACCESS" "https://api.github.com/users/$GITHUB_ACTOR" | jq '.blog' | sed 's/"//g')
 
-        slack_text="`[$REPO]`\n\n$INPUT_SLACK_MESSAGE \n\n> branch-name: $BRANCH_NAME\n> <$RUN_URL|Github Link>\n\n"
+        slack_text="[`$REPO`]\n\n$INPUT_SLACK_MESSAGE \n\n> branch-name: $BRANCH_NAME\n> <$RUN_URL|Github Link>\n\n"
         found_slack_id=true
 
         if [[ "$INPUT_NOTIFY_PR_AUTHOR" == "true" && "$GITHUB_ACTOR" != "hawkai-bot" ]]; then
