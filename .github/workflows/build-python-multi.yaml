@@ -197,7 +197,7 @@ jobs:
         if: ${{ needs.build.result == 'success' }}
         run: exit 0
 
-      - name: Slack notification for failed overlay update workflow
+      - name: Slack notification for failed build status
         uses: hawk-ai-aml/github-actions/send-slack-notification@master
         if: failure()
         with:

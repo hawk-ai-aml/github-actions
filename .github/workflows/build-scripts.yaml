@@ -106,7 +106,7 @@ jobs:
         run: |
           docker push ${ECR_REGISTRY}/${ECR_REPOSITORY}:${IMAGE_TAG}
 
-      - name: Slack notification for failed overlay update workflow
+      - name: Slack notification for failed build status
         uses: hawk-ai-aml/github-actions/send-slack-notification@master
         if: failure()
         with:
