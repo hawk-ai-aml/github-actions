@@ -252,7 +252,7 @@ jobs:
 
       - name: Slack notification for failed E2E status
         uses: hawk-ai-aml/github-actions/send-slack-notification@master
-        if: failure() && github.event.inputs.notify-author-slack == 'true'
+        if: always() && github.event.inputs.notify-author-slack == 'true'
         with:
           notify-pr-author: true
           slack-message: ":x: Your :github: E2E Tests failed. Please check the reason for it."
