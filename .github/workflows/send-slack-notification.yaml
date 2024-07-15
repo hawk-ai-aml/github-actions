@@ -1,0 +1,43 @@
+name: send-slack-notification
+on:
+  workflow_call:
+    inputs:
+      notify-pr-author:
+        description: "Boolean value indicating if the slack notification should be sent to the author only"
+        type: boolean
+        required: true
+      slack-message:
+        description: "The message to send to the Slack channel"
+        type: string
+        required: true
+      slack-access-token:
+        description: "Access token to slack"
+        type: string
+        required: true
+      github-users-access-token:
+        description: "Access token to GitHub users"
+        type: string
+        required: true
+      notify-slack-channel-name:
+        default: ""
+        description: "The Slack channel name to send the notification to. There is a mapping of slack names to ID."
+        type: string
+        required: false
+
+defaults:
+  run:
+    shell: bash -l -ET -eo pipefail {0}
+
+jobs:
+  send-slack-notification:
+    runs-on: [ "self-hosted", "small-builder" ]
+      
+    steps:
+      - name: Slack notification for failed build status
+        uses: hawk-ai-aml/github-actions/send-slack-notification@master
+        with:
+          notify-pr-author: ${{ inputs.notify-pr-author }}
+          slack-message: ${{ inputs.slack-message }}
+          slack-access-token: ${{ inputs.slack-access-token }}
+          github-users-access-token: ${{ inputs.github-users-access-token }}
+          notify-slack-channel-name: ${{ inputs.notify-slack-channel-name }}
