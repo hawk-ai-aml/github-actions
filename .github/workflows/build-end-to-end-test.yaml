@@ -18,11 +18,6 @@ on:
         description: The metadata for the test
         type: string
         required: false
-      notify-author-slack:
-        description: Boolean value indicating if the slack notification should be sent to the author only
-        type: boolean
-        default: false
-        required: false
 
 defaults:
   run:
