@@ -10,14 +10,6 @@ on:
         description: "The message to send to the Slack channel"
         type: string
         required: true
-      slack-access-token:
-        description: "Access token to slack"
-        type: string
-        required: true
-      github-users-access-token:
-        description: "Access token to GitHub users"
-        type: string
-        required: true
       notify-slack-channel-name:
         default: ""
         description: "The Slack channel name to send the notification to. There is a mapping of slack names to ID."
@@ -38,6 +30,6 @@ jobs:
         with:
           notify-pr-author: ${{ inputs.notify-pr-author }}
           slack-message: ${{ inputs.slack-message }}
-          slack-access-token: ${{ inputs.slack-access-token }}
-          github-users-access-token: ${{ inputs.github-users-access-token }}
+          slack-access-token: ${{ secrets.SLACK_RELEASE_BOT_ACCESS_TOKEN }}
+          github-users-access-token: ${{ secrets.USER_GITHUB_ACCESS }} 
           notify-slack-channel-name: ${{ inputs.notify-slack-channel-name }}
