@@ -203,6 +203,15 @@ jobs:
             -DIMAGE_NAME="${ECR_REGISTRY}/${ECR_REPOSITORY_PREFIX}" \
             -DTAG_COMMIT=${{ needs.init.outputs.image-tag }}
 
+      - name: Slack notification for failed build status
+        uses: hawk-ai-aml/github-actions/send-slack-notification@master
+        if: failure()
+        with:
+          notify-pr-author: true
+          slack-message: ":x: Your build failed. Please check the reason for it."
+          slack-access-token: ${{ secrets.SLACK_RELEASE_BOT_ACCESS_TOKEN }}
+          github-users-access-token: ${{ secrets.USER_GITHUB_ACCESS }}            
+
   update-overlays:
     needs: [ init, build ]
     if: ${{ needs.init.outputs.update-kustomize == 'true' }}
