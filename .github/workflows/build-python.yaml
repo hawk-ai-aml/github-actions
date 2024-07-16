@@ -73,7 +73,7 @@ jobs:
         with:
           # From SonarCloud Scan GitHub Action
           # Disabling shallow clone is recommended for improving relevancy of reporting
-          fetch-depth: 0
+          fetch-depth: 30
 
       - uses: actions/setup-python@v4
         with:
