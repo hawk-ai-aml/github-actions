@@ -271,6 +271,28 @@ jobs:
             -DIMAGE_NAME="${ECR_REGISTRY}/${ECR_REPOSITORY_PREFIX}" \
             -DTAG_COMMIT=${IMAGE_TAG}
 
+  coverage-report-with-sonar:
+    if: always()
+    needs: [ build ]
+    runs-on: [ "self-hosted", "small-builder" ]
+    steps:
+      - name: Run Tests With Sonar
+        if: ${{needs.init.outputs.use-sonarcloud == 'true'}}
+        env:
+          CI_BUILD: true
+          GRADLE_CACHE_CI_PASSWORD: ${{ secrets.GRADLE_CACHE_CI_PASSWORD }}
+          ARTIFACTORY_CONTEXT_URL: ${{ secrets.ARTIFACTORY_CONTEXT_URL }}
+          ARTIFACTORY_USERNAME: ${{ secrets.ARTIFACTORY_USERNAME }}
+          ARTIFACTORY_PASSWORD: ${{ secrets.ARTIFACTORY_PASSWORD }}
+          GRADLE_CACHE_USERNAME: ${{ secrets.GRADLE_CACHE_USERNAME }}
+          GRADLE_CACHE_PASSWORD: ${{ secrets.GRADLE_CACHE_PASSWORD }}
+          DISABLE_SLACK: true
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
+          SONAR_ORGANIZATION: ${{ secrets.SONAR_ORGANIZATION }}
+        run: |
+          ./gradlew codeCoverageReport sonar
+
   check-if-all-builds-passed:
     if: always()
     needs: [ build ]
