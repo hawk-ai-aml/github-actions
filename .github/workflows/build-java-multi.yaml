@@ -181,7 +181,7 @@ jobs:
           SONAR_ORGANIZATION: ${{ secrets.SONAR_ORGANIZATION }}
         run: |
           ./gradlew :${{ matrix.module }}:check -isS
-          ./gradlew codeCoverageReport sonar
+          ./gradlew :${{ matrix.module }}:jacocoTestReport codeCoverageReport sonar
 
       - name: License Report
         env:
