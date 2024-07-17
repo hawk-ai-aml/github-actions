@@ -273,10 +273,10 @@ jobs:
 
   coverage-report-with-sonar:
     if: always()
-    needs: [ build ]
+    needs: [ build, init ]
     runs-on: [ "self-hosted", "small-builder" ]
     steps:
-      - name: Run Tests With Sonar
+      - name: Run aggregated coverage report with Sonar
         if: ${{needs.init.outputs.use-sonarcloud == 'true'}}
         env:
           CI_BUILD: true
