@@ -129,14 +129,13 @@ jobs:
           credentials_json: ${{ secrets.GCP_CLOUD_STORAGE_SERVICE_ACCOUNT_KEY }}
 
       - name: Run Pytest on Module
-        working-directory: ${{ matrix.module }}
         env:  
           JENKINS: true
           IS_JENKINS: true
           AWS_ACCESS_KEY_ID: ${{ secrets.BACKEND_FILE_AWS_ACCESS_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.BACKEND_FILE_AWS_SECRET_ACCESS_KEY }}
         run: |
-          pipenv run module-tests --cov=${{ matrix.module }} --junitxml=report.xml ../tests/${{ matrix.module }} 
+          pipenv run tests --cov=${{ matrix.module }} --junitxml=report.xml tests/${{ matrix.module }} 
       
       - name: Generate Reports for Module
         if: inputs.skipTests != 'true' && (success() || failure())
