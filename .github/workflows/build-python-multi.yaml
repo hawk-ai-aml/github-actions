@@ -31,6 +31,11 @@ on:
         type: boolean
         required: false
         default: false
+      useSonarCloud:
+        description: "Use SonarCloud for code quality checks"
+        type: boolean
+        required: false
+        default: false
 
 jobs:
   init:
@@ -81,7 +86,21 @@ jobs:
         module: ${{ fromJson(needs.init.outputs.updated-modules) }}
 
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout master
+        uses: actions/checkout@v4
+        with:
+          ref: master
+          # From SonarCloud Scan GitHub Action
+          # Disabling shallow clone is recommended for improving relevancy of reporting
+          fetch-depth: 1000
+
+      - name: Checkout current branch
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ env.GITHUB_REF_NAME }}
+          # From SonarCloud Scan GitHub Action
+          # Disabling shallow clone is recommended for improving relevancy of reporting
+          fetch-depth: 1000
 
       - uses: actions/setup-python@v4
         with:
@@ -109,22 +128,23 @@ jobs:
         with:
           credentials_json: ${{ secrets.GCP_CLOUD_STORAGE_SERVICE_ACCOUNT_KEY }}
 
-      - name: Run Pytest
+      - name: Run Pytest on Module
         env:  
           JENKINS: true
           IS_JENKINS: true
           AWS_ACCESS_KEY_ID: ${{ secrets.BACKEND_FILE_AWS_ACCESS_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.BACKEND_FILE_AWS_SECRET_ACCESS_KEY }}
         run: |
-          pipenv run tests --junitxml=report.xml
+          pipenv run tests --cov=${{ matrix.module }} --junitxml=${{ matrix.module }}/report.xml tests/${{ matrix.module }} 
       
-      - name: Generate Reports
+      - name: Generate Reports for Module
         if: inputs.skipTests != 'true' && (success() || failure())
+        working-directory: ${{ matrix.module }}
         run: |
           pipenv run junit2html report.xml report.html
           mkdir report-dir && mv report.html ./report-dir/report.html
 
-      - name: Upload Test Reports to S3
+      - name: Upload Test Reports to S3 for Module
         id: reports
         if: inputs.skipTests != 'true' && (success() || failure())
         uses: hawk-ai-aml/github-actions/upload-to-s3@master
@@ -133,8 +153,19 @@ jobs:
           aws_access_key_id: ${{ secrets.AWS_DEV_ACCESS_KEY_ID }}
           aws_secret_access_key: ${{ secrets.AWS_DEV_SECRET_ACCESS_KEY }}
           aws_bucket: github-actions-static-html-2
-          source_dir: ./report-dir
-          destination_dir: ${{ github.event.repository.name }}-${{ github.run_id }}
+          source_dir: ${{ matrix.module }}/report-dir
+          destination_dir: ${{ github.event.repository.name }}-${{ matrix.module }}-${{ github.run_id }}
+
+      - name: SonarCloud Scan
+        if: inputs.skipTests != 'true' && (success() || failure()) && inputs.useSonarCloud == 'true'
+        uses: SonarSource/sonarcloud-github-action@master
+        with:
+          args: >
+            -Dsonar.python.version=${{ fromJson(needs.init.outputs.metadata).python-version }}
+          projectBaseDir: ${{ matrix.module }}/
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
 
       - name: Get ECR info
         id: ecr-info

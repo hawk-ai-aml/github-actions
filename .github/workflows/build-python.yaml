@@ -69,11 +69,21 @@ jobs:
     needs: init
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout master
+        uses: actions/checkout@v4
         with:
+          ref: master
           # From SonarCloud Scan GitHub Action
           # Disabling shallow clone is recommended for improving relevancy of reporting
-          fetch-depth: 30
+          fetch-depth: 1000
+
+      - name: Checkout current branch
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ env.GITHUB_REF_NAME }}
+          # From SonarCloud Scan GitHub Action
+          # Disabling shallow clone is recommended for improving relevancy of reporting
+          fetch-depth: 1000
 
       - uses: actions/setup-python@v4
         with:
