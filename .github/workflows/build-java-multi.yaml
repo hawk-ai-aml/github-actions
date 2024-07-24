@@ -1,4 +1,4 @@
-name: build-java-mutil
+name: build-java-multi
 
 on:
   workflow_call:
@@ -136,18 +136,18 @@ jobs:
         run: |
           ./gradlew clean :${{ matrix.module }}:assemble :${{ matrix.module }}:testClasses -isS
 
-#      - name: Check Quality
-#        env:
-#          CI_BUILD: true
-#          GRADLE_CACHE_CI_PASSWORD: ${{ secrets.GRADLE_CACHE_CI_PASSWORD }}
-#          ARTIFACTORY_CONTEXT_URL: ${{ secrets.ARTIFACTORY_CONTEXT_URL }}
-#          ARTIFACTORY_USERNAME: ${{ secrets.ARTIFACTORY_USERNAME }}
-#          ARTIFACTORY_PASSWORD: ${{ secrets.ARTIFACTORY_PASSWORD }}
-#          GRADLE_CACHE_USERNAME: ${{ secrets.GRADLE_CACHE_USERNAME }}
-#          GRADLE_CACHE_PASSWORD: ${{ secrets.GRADLE_CACHE_PASSWORD }}
-#          DISABLE_SLACK: true
-#        run: |
-#          ./gradlew :${{ matrix.module }}:checkQualityMain
+      - name: Check Quality
+        env:
+          CI_BUILD: true
+          GRADLE_CACHE_CI_PASSWORD: ${{ secrets.GRADLE_CACHE_CI_PASSWORD }}
+          ARTIFACTORY_CONTEXT_URL: ${{ secrets.ARTIFACTORY_CONTEXT_URL }}
+          ARTIFACTORY_USERNAME: ${{ secrets.ARTIFACTORY_USERNAME }}
+          ARTIFACTORY_PASSWORD: ${{ secrets.ARTIFACTORY_PASSWORD }}
+          GRADLE_CACHE_USERNAME: ${{ secrets.GRADLE_CACHE_USERNAME }}
+          GRADLE_CACHE_PASSWORD: ${{ secrets.GRADLE_CACHE_PASSWORD }}
+          DISABLE_SLACK: true
+        run: |
+          ./gradlew :${{ matrix.module }}:checkQualityMain
 
       - name: Run Tests
         if: ${{ needs.init.outputs.skip-tests != 'true' && needs.init.outputs.use-sonarcloud != 'true'}}
@@ -203,7 +203,6 @@ jobs:
           if [[ -d ${{ matrix.module }}/build/reports ]]; then
             cp -r ${{ matrix.module }}/build/reports reports/${{ matrix.module }}/build/reports
           fi
-
           if [[ -d ${{ matrix.module }}/build/jacocoHtml ]]; then
             cp -r ${{ matrix.module }}/build/jacocoHtml reports/${{ matrix.module }}/build/reports
           fi
@@ -270,75 +269,6 @@ jobs:
           ./gradlew :${{ matrix.module }}:jib \
             -DIMAGE_NAME="${ECR_REGISTRY}/${ECR_REPOSITORY_PREFIX}" \
             -DTAG_COMMIT=${IMAGE_TAG}
-
-#  coverage-report-with-sonar:
-#    if: always()
-##    needs: [ build, init ]
-#    needs: [ init ]
-#    runs-on: [ "self-hosted", "small-builder" ]
-#    steps:
-#      - name: Checkout master
-#        uses: actions/checkout@v4
-#        with:
-#          ref: master
-#          # From SonarCloud Scan GitHub Action
-#          # Disabling shallow clone is recommended for improving relevancy of reporting
-#          fetch-depth: 1000
-#      - name: Checkout current branch
-#        uses: actions/checkout@v4
-#        with:
-#          ref: ${{ env.GITHUB_REF_NAME }}
-#          # From SonarCloud Scan GitHub Action
-#          # Disabling shallow clone is recommended for improving relevancy of reporting
-#          fetch-depth: 1000
-#
-#      - name: Login to Docker Hub
-#        uses: docker/login-action@v2
-#        with:
-#          username: ${{ secrets.DOCKERHUB_USERNAME }}
-#          password: ${{ secrets.DOCKERHUB_TOKEN }}
-#
-#      - name: Set up JDK
-#        uses: actions/setup-java@v3
-#        with:
-#          java-version: ${{ fromJson(needs.init.outputs.metadata).java-version }}
-#          distribution: temurin
-#          cache: gradle
-#
-#      - name: Set up Gradle
-#        uses: gradle/gradle-build-action@v2
-#        env:
-#          GRADLE_BUILD_ACTION_CACHE_DEBUG_ENABLED: true
-#
-#      - name: Gradle Assemble
-#        env:
-#          CI_BUILD: true
-#          GRADLE_CACHE_CI_PASSWORD: ${{ secrets.GRADLE_CACHE_CI_PASSWORD }}
-#          ARTIFACTORY_CONTEXT_URL: ${{ secrets.ARTIFACTORY_CONTEXT_URL }}
-#          ARTIFACTORY_USERNAME: ${{ secrets.ARTIFACTORY_USERNAME }}
-#          ARTIFACTORY_PASSWORD: ${{ secrets.ARTIFACTORY_PASSWORD }}
-#          GRADLE_CACHE_USERNAME: ${{ secrets.GRADLE_CACHE_USERNAME }}
-#          GRADLE_CACHE_PASSWORD: ${{ secrets.GRADLE_CACHE_PASSWORD }}
-#          DISABLE_SLACK: true
-#        run: |
-#          ./gradlew clean :assemble -isS
-#
-#      - name: Run aggregated coverage report with Sonar
-#        if: ${{needs.init.outputs.use-sonarcloud == 'true'}}
-#        env:
-#          CI_BUILD: true
-#          GRADLE_CACHE_CI_PASSWORD: ${{ secrets.GRADLE_CACHE_CI_PASSWORD }}
-#          ARTIFACTORY_CONTEXT_URL: ${{ secrets.ARTIFACTORY_CONTEXT_URL }}
-#          ARTIFACTORY_USERNAME: ${{ secrets.ARTIFACTORY_USERNAME }}
-#          ARTIFACTORY_PASSWORD: ${{ secrets.ARTIFACTORY_PASSWORD }}
-#          GRADLE_CACHE_USERNAME: ${{ secrets.GRADLE_CACHE_USERNAME }}
-#          GRADLE_CACHE_PASSWORD: ${{ secrets.GRADLE_CACHE_PASSWORD }}
-#          DISABLE_SLACK: true
-#          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-#          SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
-#          SONAR_ORGANIZATION: ${{ secrets.SONAR_ORGANIZATION }}
-#        run: |
-#          ./gradlew codeCoverageReport sonar
 
   check-if-all-builds-passed:
     if: always()
