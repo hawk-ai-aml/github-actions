@@ -113,7 +113,7 @@ jobs:
         env:
           PY_UTILS_PAT: ${{ secrets.PY_UTILS_PAT }}
         run: |
-          pipenv install --dev
+          pipenv sync --dev
           pipenv requirements > pipenv-requirements.txt
 
           if [ -f manual-requirements.txt ]; then
@@ -135,7 +135,7 @@ jobs:
           AWS_ACCESS_KEY_ID: ${{ secrets.BACKEND_FILE_AWS_ACCESS_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.BACKEND_FILE_AWS_SECRET_ACCESS_KEY }}
         run: |
-          pipenv run tests --cov=${{ matrix.module }} --junitxml=${{ matrix.module }}/report.xml tests/${{ matrix.module }} 
+          pipenv run tests_${{ matrix.module }} --junitxml=${{ matrix.module }}/report.xml tests/${{ matrix.module }} 
       
       - name: Generate Reports for Module
         if: inputs.skipTests != 'true' && (success() || failure())
