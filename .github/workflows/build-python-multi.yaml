@@ -157,7 +157,7 @@ jobs:
           destination_dir: ${{ github.event.repository.name }}-${{ matrix.module }}-${{ github.run_id }}
 
       - name: SonarCloud Scan
-        if: inputs.skipTests != 'true' && (success() || failure()) && inputs.useSonarCloud == 'true'
+        if: inputs.skipTests != true && (success() || failure()) && inputs.useSonarCloud
         uses: SonarSource/sonarcloud-github-action@master
         with:
           args: >
