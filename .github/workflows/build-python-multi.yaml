@@ -135,10 +135,10 @@ jobs:
           AWS_ACCESS_KEY_ID: ${{ secrets.BACKEND_FILE_AWS_ACCESS_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.BACKEND_FILE_AWS_SECRET_ACCESS_KEY }}
         run: |
-          pipenv run tests_${{ matrix.module }} --junitxml=${{ matrix.module }}/report.xml tests/${{ matrix.module }} 
+          pipenv run tests --cov=${{ matrix.module }} --junitxml=${{ matrix.module }}/report.xml tests/${{ matrix.module }} 
       
       - name: Generate Reports for Module
-        if: inputs.skipTests != 'true' && (success() || failure())
+        if: inputs.skipTests != true && (success() || failure())
         working-directory: ${{ matrix.module }}
         run: |
           pipenv run junit2html report.xml report.html
@@ -146,7 +146,7 @@ jobs:
 
       - name: Upload Test Reports to S3 for Module
         id: reports
-        if: inputs.skipTests != 'true' && (success() || failure())
+        if: inputs.skipTests != true && (success() || failure())
         uses: hawk-ai-aml/github-actions/upload-to-s3@master
         with:
           module: ${{ matrix.module }}
@@ -157,7 +157,7 @@ jobs:
           destination_dir: ${{ github.event.repository.name }}-${{ matrix.module }}-${{ github.run_id }}
 
       - name: SonarCloud Scan
-        if: inputs.skipTests != 'true' && (success() || failure()) && inputs.useSonarCloud == 'true'
+        if: inputs.skipTests != true && (success() || failure()) && inputs.useSonarCloud
         uses: SonarSource/sonarcloud-github-action@master
         with:
           args: >
