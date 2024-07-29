@@ -113,7 +113,11 @@ jobs:
         env:
           PY_UTILS_PAT: ${{ secrets.PY_UTILS_PAT }}
         run: |
-          pipenv sync --dev
+          if [ -f "Pipfile.lock" ]; then
+              pipenv sync --dev
+          else
+              pipenv install --dev
+          fi
           pipenv requirements > pipenv-requirements.txt
 
           if [ -f manual-requirements.txt ]; then

@@ -107,7 +107,11 @@ jobs:
           PY_UTILS_PAT: ${{ secrets.PY_UTILS_PAT}}
         run: |
           pipenv --clear
-          pipenv sync --dev
+          if [ -f "Pipfile.lock" ]; then
+              pipenv sync --dev
+          else
+              pipenv install --dev
+          fi
           pipenv lock --keep-outdated > pipenv-requirements.txt
           pipenv requirements > requirements.txt
           pipenv run tests --junitxml=report.xml
