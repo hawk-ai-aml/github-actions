@@ -269,6 +269,25 @@ jobs:
           ./gradlew :${{ matrix.module }}:jib \
             -DIMAGE_NAME="${ECR_REGISTRY}/${ECR_REPOSITORY_PREFIX}" \
             -DTAG_COMMIT=${IMAGE_TAG}
+      - name: Check Sonar Report passed
+        if: ${{ needs.init.outputs.skip-tests != 'true' && needs.init.outputs.use-sonarcloud == 'true'}}
+        env:
+          PR_NUMBER: ${{ github.event.number }}
+          CI_BUILD: true
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
+          SONAR_ORGANIZATION: ${{ secrets.SONAR_ORGANIZATION }}
+        run: |
+          RESPONSE=$(curl -s -H 'Authorization: Bearer ${{ env.SONAR_TOKEN }}' ${{ env.SONAR_HOST_URL }}/api/qualitygates/project_status?projectKey=hawk-ai_${{ matrix.module }}&pullRequest=${{ env.PR_NUMBER }})
+          STATUS=$(echo $RESPONSE | jq -r '.projectStatus.status')
+          
+          # Check if the status is "OK"
+          if [ "$STATUS" == "OK" ]; then
+            exit 1
+          else
+            exit 0
+          fi
+          
 
   check-if-all-builds-passed:
     if: always()
