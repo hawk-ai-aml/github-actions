@@ -229,7 +229,7 @@ jobs:
         run: |
           REPOSITORY_NAME=${{ github.event.repository.name }}
           MODULE=${{matrix.module}}
-          PROJECT_KEY=${{env.SONAR_ORGANIZATION}}_${REPOSITORY_NAME}-${MODULE}
+          PROJECT_KEY=${{env.SONAR_ORGANIZATION}}_${MODULE//_/-}
           RESPONSE=$(curl -s -H 'Authorization: Bearer ${{env.SONAR_TOKEN}}' ${{env.SONAR_HOST_URL}}/api/qualitygates/project_status?projectKey=${PROJECT_KEY}\&pullRequest=${{env.PR_NUMBER}})
           STATUS=$(echo $RESPONSE | jq -r '.projectStatus.status')
           echo "SonarQuality Status: $STATUS"
