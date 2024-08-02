@@ -279,7 +279,8 @@ jobs:
           SONAR_ORGANIZATION: ${{ secrets.SONAR_ORGANIZATION }}
         run: |
           RESPONSE=$(curl -s -H 'Authorization: Bearer ${{ env.SONAR_TOKEN }}' ${{ env.SONAR_HOST_URL }}/api/qualitygates/project_status?projectKey=hawk-ai_${{ matrix.module }}&pullRequest=${{ env.PR_NUMBER }})
-          STATUS=$(echo $RESPONSE | jq -r '.projectStatus.status')
+          STATUS=${{fromJson(${{RESPONSE}}).projectStatus.status}}
+          echo "Sonar Status: $STATUS"
           
           # Check if the status is "OK"
           if [ "$STATUS" == "OK" ]; then
