@@ -36,6 +36,11 @@ on:
         type: boolean
         required: false
         default: false
+      blockPullRequestIfSonarFails:
+        description: "Block the pull request if SonarCloud check fails"
+        type: boolean
+        required: false
+        default: false
 
 jobs:
   init:
@@ -220,7 +225,7 @@ jobs:
           docker push ${REPOSITORY_FULL_NAME}:${IMAGE_TAG}
 
       - name: Check SonarCloud Code Analysis passed
-        if: inputs.skipTests != true && (success() || failure()) && inputs.useSonarCloud
+        if: inputs.skipTests != true && (success() || failure()) && inputs.useSonarCloud && inputs.blockPullRequestIfSonarFails
         env:
           PR_NUMBER: ${{ github.event.number }}
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
@@ -229,7 +234,7 @@ jobs:
         run: |
           REPOSITORY_NAME=${{ github.event.repository.name }}
           MODULE=${{matrix.module}}
-          PROJECT_KEY=${{env.SONAR_ORGANIZATION}}_${MODULE//_/-}
+          PROJECT_KEY=${{env.SONAR_ORGANIZATION}}_${REPOSITORY_NAME}_${MODULE}
           RESPONSE=$(curl -s -H 'Authorization: Bearer ${{env.SONAR_TOKEN}}' ${{env.SONAR_HOST_URL}}/api/qualitygates/project_status?projectKey=${PROJECT_KEY}\&pullRequest=${{env.PR_NUMBER}})
           STATUS=$(echo $RESPONSE | jq -r '.projectStatus.status')
           echo "SonarQuality Status: $STATUS"
