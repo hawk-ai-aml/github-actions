@@ -62,7 +62,6 @@ jobs:
       updated-modules: ${{ steps.detect-changes.outputs.updated-modules }}
       updated-modules-string: ${{ steps.detect-changes.outputs.updated-modules-string }}
       use-sonarcloud: ${{ steps.init.outputs.use-sonarcloud }}
-      block-pull-request-if-sonar-fails: ${{ steps.init.outputs.block-pull-request-if-sonar-fails }}
 
     steps:
       - id: init
@@ -76,7 +75,6 @@ jobs:
           repository-ref: ${{ env.GITHUB_REF_NAME }}
           repository-access-token: ${{ secrets.REPO_ACCESS_PAT }}
           use-sonarcloud: ${{ inputs.useSonarCloud }}
-          block-pull-request-if-sonar-fails: ${{ inputs.blockPullRequestIfSonarFails }}
 
       - id: detect-changes
         name: Detect changes
@@ -278,7 +276,7 @@ jobs:
             -DTAG_COMMIT=${IMAGE_TAG}
 
       - name: Check SonarCloud Code Analysis passed
-        if: ${{ needs.init.outputs.skip-tests != 'true' && needs.init.outputs.use-sonarcloud == 'true' && needs.init.outputs.block-pull-request-if-sonar-fails == 'true'}}
+        if: ${{ needs.init.outputs.skip-tests != 'true' && needs.init.outputs.use-sonarcloud == 'true' && inputs.blockPullRequestIfSonarFails == true }}
         env:
           PR_NUMBER: ${{ github.event.number }}
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
