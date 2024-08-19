@@ -36,6 +36,11 @@ on:
         type: boolean
         required: false
         default: false
+      blockPullRequestIfSonarFails:
+        description: "Block the pull request if SonarCloud check fails"
+        type: boolean
+        required: false
+        default: false
 
 jobs:
   init:
@@ -218,6 +223,26 @@ jobs:
           echo "${REPOSITORY_FULL_NAME} is building..."
           DOCKER_BUILDKIT=1 docker build --build-arg SERVICE=${MODULE} --build-arg PY_UTILS_PAT=${PY_UTILS_PAT} -t ${REPOSITORY_FULL_NAME}:${IMAGE_TAG} .
           docker push ${REPOSITORY_FULL_NAME}:${IMAGE_TAG}
+
+      - name: Check SonarCloud Code Analysis passed
+        if: inputs.skipTests != true && (success() || failure()) && inputs.useSonarCloud && inputs.blockPullRequestIfSonarFails
+        env:
+          PR_NUMBER: ${{ github.event.number }}
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
+          SONAR_ORGANIZATION: ${{ secrets.SONAR_ORGANIZATION }}
+        run: |
+          PROJECT_KEY=$(grep '^sonar.projectKey=' sonar-project.properties | cut -d '=' -f 2)
+          RESPONSE=$(curl -s -H 'Authorization: Bearer ${{env.SONAR_TOKEN}}' ${{env.SONAR_HOST_URL}}/api/qualitygates/project_status?projectKey=${PROJECT_KEY}\&pullRequest=${{env.PR_NUMBER}})
+          STATUS=$(echo $RESPONSE | jq -r '.projectStatus.status')
+          echo "SonarQuality Status: $STATUS"
+          
+          # Check if the status is "OK"
+          if [ "$STATUS" == "OK" ]; then
+            exit 0
+          else
+            exit 1
+          fi
 
   check-if-all-builds-passed:
     if: always()
