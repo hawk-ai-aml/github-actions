@@ -167,7 +167,7 @@ jobs:
           ls ${{ inputs.test }}/allure-report/*
 
       - name: Upload plain test results to GitHub Artifact
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v4
         if: always()
         with:
           name: test-results
@@ -199,7 +199,7 @@ jobs:
           ls ${{ inputs.environment }}-${{ inputs.test }}-test-histories/*
 
       - name: Upload Allure results to GitHub Artifact
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v4
         if: always()
         with:
           name: allure-results
