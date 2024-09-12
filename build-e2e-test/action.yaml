@@ -241,7 +241,7 @@ runs:
         echo "$METADATA" > github-artifact/metadata.json
 
     - name: Upload metadata to GitHub Artifact
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v3
       if: always()
       with:
         name: metadata

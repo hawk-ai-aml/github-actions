@@ -61,7 +61,7 @@ jobs:
           mv /home/runner/work/kustomize-cicd/kustomize-cicd/config/build/reports/tests/* github-artifactory
       - name: Upload test result file to GitHub Artifactory
         if: ${{ failure() }}
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v3
         with:
           name: test-results
           path: github-artifactory
