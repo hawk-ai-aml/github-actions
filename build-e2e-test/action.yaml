@@ -143,13 +143,13 @@ runs:
         sudo apt-get update -qqy
         sudo apt-get -qqy install google-chrome-stable
         sudo rm /etc/apt/sources.list.d/google-chrome.list
-        
+
         echo Installing Chrome driver
         export CHROMEDRIVER_VERSION=`curl -s https://googlechromelabs.github.io/chrome-for-testing/last-known-good-versions-with-downloads.json | jq -r '.channels.Stable.version'`
         curl -L -O "https://edgedl.me.gvt1.com/edgedl/chrome/chrome-for-testing/${CHROMEDRIVER_VERSION}/linux64/chromedriver-linux64.zip"
         ls -ahl
         unzip chromedriver-linux64.zip && chmod +x chromedriver-linux64/chromedriver && sudo mv chromedriver-linux64/chromedriver /usr/local/bin/chromedriver
-        
+
         echo "chromeDriver version: $(chromedriver --version)"
         echo "chromeDriver location: $(which chromedriver)"
         echo "chromeBrowser version: $(google-chrome --version)"
@@ -163,8 +163,8 @@ runs:
         if [[ $TEST_NAME == *"ci"* ]]; then
           TEST_NAME=$(echo "${TEST_NAME}" | sed s/"ci"/"cy"/g)
         fi
-        
-        echo TEST_NAME="${TEST_NAME}" >> $GITHUB_ENV        
+
+        echo TEST_NAME="${TEST_NAME}" >> $GITHUB_ENV
         echo CACHE_ID=$(date +'%Y-%m-%dT%H:%M:%S') >> $GITHUB_ENV
         echo CACHE_PATH="$GITHUB_WORKSPACE/${{ inputs.environment }}-${{ inputs.test }}-test-histories/" >> $GITHUB_ENV
 
@@ -241,7 +241,7 @@ runs:
         echo "$METADATA" > github-artifact/metadata.json
 
     - name: Upload metadata to GitHub Artifact
-      uses: actions/upload-artifact@v2
+      uses: actions/upload-artifact@v4
       if: always()
       with:
         name: metadata
@@ -283,7 +283,7 @@ runs:
         if [[ ${{ steps.run-e2e-test.outcome }} != 'success' ]]; then
           TEST_STATUS="failures"
         fi
-        
+
         cat <<EOF | tee -a ${GITHUB_STEP_SUMMARY} | tee -a ${GITHUB_OUTPUT}
         test_status=$TEST_STATUS
         allure_report_url=https://github-actions-static-html-2.s3.eu-central-1.amazonaws.com/e2e-${{ env.TEST_NAME }}-test-${{ env.CACHE_ID }}/index.html
