@@ -51,7 +51,7 @@ jobs:
           else
             echo "Directory does not exist continue checkout job"
           fi
-          
+
       - uses: actions/checkout@v4
         with:
           ref: ${{ inputs.ref }}
@@ -150,7 +150,7 @@ jobs:
           METADATA=$(echo "${{ inputs.metadata }}" | sed s/\'/\"/g)
           echo "METADATA: $METADATA"
           echo "$METADATA" > github-artifact/metadata.json
-      
+
 
       # -------------------------------------- END-TEST --------------------------------------
       # ++++++++++++++++++++++++++++++++++++ START-REPORT ++++++++++++++++++++++++++++++++++++
@@ -167,7 +167,7 @@ jobs:
           ls ${{ inputs.test }}/allure-report/*
 
       - name: Upload plain test results to GitHub Artifact
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v4
         if: always()
         with:
           name: test-results
@@ -244,4 +244,3 @@ jobs:
         if: needs.test.outputs.test_status == 1
         run: |
           exit 1
-
