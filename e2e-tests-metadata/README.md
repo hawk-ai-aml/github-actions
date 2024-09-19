@@ -5,6 +5,6 @@ Usage
       id: e2e-metadata
       uses: hawk-ai-aml/github-actions/e2e-tests-metadata@master
       with:
-        repository-access-token: ${{ secrets.REPO_ACCESS_PAT }}
+        repository-access-token: $REPO_ACCESS_PAT
 
 ```

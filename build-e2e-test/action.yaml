@@ -271,7 +271,7 @@ runs:
       with:
         aws_access_key_id: ${{ inputs.aws-key-id }}
         aws_secret_access_key: ${{ inputs.aws-secret-access-key }}
-        aws_bucket: github-actions-static-html-2
+        aws_bucket: github-actions-static
         source_dir: ${{ inputs.test }}/allure-report2
         destination_dir: e2e-${{ env.TEST_NAME }}-test-${{ env.CACHE_ID }}
 
@@ -286,5 +286,5 @@ runs:
 
         cat <<EOF | tee -a ${GITHUB_STEP_SUMMARY} | tee -a ${GITHUB_OUTPUT}
         test_status=$TEST_STATUS
-        allure_report_url=https://github-actions-static-html-2.s3.eu-central-1.amazonaws.com/e2e-${{ env.TEST_NAME }}-test-${{ env.CACHE_ID }}/index.html
+        allure_report_url=https://github-actions-static.s3.eu-central-1.amazonaws.com/e2e-${{ env.TEST_NAME }}-test-${{ env.CACHE_ID }}/index.html
         EOF

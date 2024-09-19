@@ -30,6 +30,6 @@ jobs:
         with:
           notify-pr-author: ${{ inputs.notify-pr-author }}
           slack-message: ${{ inputs.slack-message }}
-          slack-access-token: ${{ secrets.SLACK_RELEASE_BOT_ACCESS_TOKEN }}
-          github-users-access-token: ${{ secrets.USER_GITHUB_ACCESS }} 
+          slack-access-token: $SLACK_RELEASE_BOT_ACCESS_TOKEN
+          github-users-access-token: $USER_GITHUB_ACCESS 
           notify-slack-channel-name: ${{ inputs.notify-slack-channel-name }}

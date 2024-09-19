@@ -36,7 +36,7 @@ jobs:
           BASE: ${{ inputs.base }}
           BRANCH_NAME: ${{ inputs.branch-name }}
         with:
-          github-token: ${{ secrets.REPO_ACCESS_PAT }}
+          github-token: $REPO_ACCESS_PAT
           result-encoding: string
           script: |
             const { repo, owner } = context.repo;

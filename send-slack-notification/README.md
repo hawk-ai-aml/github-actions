@@ -16,8 +16,8 @@ Usage
           notify-pr-author: true
           notify-slack-channel-name: developers
           slack-message: "Write your message here"
-          slack-access-token: ${{ secrets.SLACK_RELEASE_BOT_ACCESS_TOKEN }}
-          github-users-access-token: ${{ secrets.USER_GITHUB_ACCESS }}
+          slack-access-token: $SLACK_RELEASE_BOT_ACCESS_TOKEN
+          github-users-access-token: $USER_GITHUB_ACCESS
 
 ```
 

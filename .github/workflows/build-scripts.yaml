@@ -43,17 +43,17 @@ jobs:
           overlays: ${{ inputs.kustomizeOverlays }}
           update-kustomize: ${{ inputs.updateKustomize }}
           repository-name: hawk-ai-aml/${{ inputs.component }}
-          repository-ref: ${{ env.GITHUB_REF_NAME }}
-          repository-access-token: ${{ secrets.REPO_ACCESS_PAT }}
+          repository-ref: $GITHUB_REF_NAME
+          repository-access-token: $REPO_ACCESS_PAT
 
       - id: detect-changes
         name: Detect changes
         uses: hawk-ai-aml/github-actions/repository-detect-changes@master
         with:
           repository: hawk-ai-aml/${{ inputs.component }}
-          repository-ref: ${{ env.GITHUB_REF_NAME }}
-          repository-user: ${{ secrets.RECREATE_DEVELOP_GITHUB_USER }}
-          repository-access-token: ${{ secrets.REPO_ACCESS_PAT }}
+          repository-ref: $GITHUB_REF_NAME
+          repository-user: $RECREATE_DEVELOP_GITHUB_USER
+          repository-access-token: $REPO_ACCESS_PAT
           modules-string: ${{ steps.init.outputs.kustomize-modules-string }}
 
       - name: Slack notification for failed init workflow
@@ -62,8 +62,8 @@ jobs:
         with:
           notify-pr-author: true
           slack-message: ":x: The init workflow failed. Please check the reason for it and contact @team-pe."
-          slack-access-token: ${{ secrets.SLACK_RELEASE_BOT_ACCESS_TOKEN }}
-          github-users-access-token: ${{ secrets.USER_GITHUB_ACCESS }} 
+          slack-access-token: $SLACK_RELEASE_BOT_ACCESS_TOKEN
+          github-users-access-token: $USER_GITHUB_ACCESS 
 
   build:
     needs: [ init ]
@@ -79,8 +79,8 @@ jobs:
       - name: Configure HAWK AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
-          aws-access-key-id: ${{ secrets.AWS_ORG_ECR_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_ORG_ECR_SECRET_ACCESS_KEY }}
+          aws-access-key-id: $AWS_ORG_ECR_ACCESS_KEY_ID
+          aws-secret-access-key: $AWS_ORG_ECR_SECRET_ACCESS_KEY
           aws-region: eu-central-1
 
       - name: Login to HAWK Amazon ECR
@@ -112,8 +112,8 @@ jobs:
         with:
           notify-pr-author: true
           slack-message: ":x: Your build failed. Please check the reason for it."
-          slack-access-token: ${{ secrets.SLACK_RELEASE_BOT_ACCESS_TOKEN }}
-          github-users-access-token: ${{ secrets.USER_GITHUB_ACCESS }} 
+          slack-access-token: $SLACK_RELEASE_BOT_ACCESS_TOKEN
+          github-users-access-token: $USER_GITHUB_ACCESS 
 
   update-overlays:
     needs: [ init, build ]
@@ -124,14 +124,14 @@ jobs:
       - name: Update kustomize overlay
         uses: hawk-ai-aml/github-actions/kustomize-overlay@master
         with:
-          slack-access-token: ${{ secrets.SLACK_RELEASE_BOT_ACCESS_TOKEN }}
-          github-users-access-token: ${{ secrets.USER_GITHUB_ACCESS }}
+          slack-access-token: $SLACK_RELEASE_BOT_ACCESS_TOKEN
+          github-users-access-token: $USER_GITHUB_ACCESS
           overlays: ${{ needs.init.outputs.overlays }}
           modules: ${{ needs.init.outputs.kustomize-modules-string }}
           component-name: ${{ inputs.component }}
           component-tag: ${{ needs.init.outputs.image-tag }}
           kustomize-repo: hawk-ai-aml/kustomize-base.git
-          kustomize-access-token: ${{ secrets.REPO_ACCESS_PAT }}
+          kustomize-access-token: $REPO_ACCESS_PAT
           ecr-region: ${{ needs.init.outputs.ecr-region }}
           ecr-registry-code: ${{ needs.init.outputs.ecr-registry-code }}
           metadata: ${{ needs.init.outputs.metadata }}

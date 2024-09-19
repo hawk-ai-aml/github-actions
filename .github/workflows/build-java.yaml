@@ -69,8 +69,8 @@ jobs:
           update-kustomize: ${{ inputs.updateKustomize }}
           overlays: ${{ inputs.kustomizeOverlays }}
           repository-name: hawk-ai-aml/${{ inputs.component }}
-          repository-ref: ${{ env.GITHUB_REF_NAME }}
-          repository-access-token: ${{ secrets.REPO_ACCESS_PAT }}
+          repository-ref: $GITHUB_REF_NAME
+          repository-access-token: $REPO_ACCESS_PAT
           use-sonarcloud: ${{ inputs.useSonarCloud }}
 
   build:
@@ -87,14 +87,14 @@ jobs:
       - name: Checkout current branch
         uses: actions/checkout@v4
         with:
-          ref: ${{ env.GITHUB_REF_NAME }}
+          ref: $GITHUB_REF_NAME
           fetch-depth: 1000
 
       - name: Login to Docker Hub
         uses: docker/login-action@v2
         with:
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
+          username: $DOCKERHUB_USERNAME
+          password: $DOCKERHUB_TOKEN
 
       - name: Set up JDK
         uses: actions/setup-java@v3
@@ -110,30 +110,30 @@ jobs:
 
       - name: Gradle Assemble
         env:
-          ARTIFACTORY_CONTEXT_URL: ${{ secrets.ARTIFACTORY_CONTEXT_URL }}
-          ARTIFACTORY_USERNAME: ${{ secrets.ARTIFACTORY_USERNAME }}
-          ARTIFACTORY_PASSWORD: ${{ secrets.ARTIFACTORY_PASSWORD }}
-          GRADLE_CACHE_USERNAME: ${{ secrets.GRADLE_CACHE_USERNAME }}
-          GRADLE_CACHE_PASSWORD: ${{ secrets.GRADLE_CACHE_PASSWORD }}
+          ARTIFACTORY_CONTEXT_URL: $ARTIFACTORY_CONTEXT_URL
+          ARTIFACTORY_USERNAME: $ARTIFACTORY_USERNAME
+          ARTIFACTORY_PASSWORD: $ARTIFACTORY_PASSWORD
+          GRADLE_CACHE_USERNAME: $GRADLE_CACHE_USERNAME
+          GRADLE_CACHE_PASSWORD: $GRADLE_CACHE_PASSWORD
         run: ./gradlew clean assemble testClasses -isS
 
       - name: Check Quality
         env:
-          ARTIFACTORY_CONTEXT_URL: ${{ secrets.ARTIFACTORY_CONTEXT_URL }}
-          ARTIFACTORY_USERNAME: ${{ secrets.ARTIFACTORY_USERNAME }}
-          ARTIFACTORY_PASSWORD: ${{ secrets.ARTIFACTORY_PASSWORD }}
-          GRADLE_CACHE_USERNAME: ${{ secrets.GRADLE_CACHE_USERNAME }}
-          GRADLE_CACHE_PASSWORD: ${{ secrets.GRADLE_CACHE_PASSWORD }}
+          ARTIFACTORY_CONTEXT_URL: $ARTIFACTORY_CONTEXT_URL
+          ARTIFACTORY_USERNAME: $ARTIFACTORY_USERNAME
+          ARTIFACTORY_PASSWORD: $ARTIFACTORY_PASSWORD
+          GRADLE_CACHE_USERNAME: $GRADLE_CACHE_USERNAME
+          GRADLE_CACHE_PASSWORD: $GRADLE_CACHE_PASSWORD
         run: ./gradlew checkQualityMain
 
       - name: Run Tests
         if: ${{ needs.init.outputs.skip-tests != 'true' && needs.init.outputs.use-sonarcloud != 'true'}}
         env:
-          ARTIFACTORY_CONTEXT_URL: ${{ secrets.ARTIFACTORY_CONTEXT_URL }}
-          ARTIFACTORY_USERNAME: ${{ secrets.ARTIFACTORY_USERNAME }}
-          ARTIFACTORY_PASSWORD: ${{ secrets.ARTIFACTORY_PASSWORD }}
-          GRADLE_CACHE_USERNAME: ${{ secrets.GRADLE_CACHE_USERNAME }}
-          GRADLE_CACHE_PASSWORD: ${{ secrets.GRADLE_CACHE_PASSWORD }}
+          ARTIFACTORY_CONTEXT_URL: $ARTIFACTORY_CONTEXT_URL
+          ARTIFACTORY_USERNAME: $ARTIFACTORY_USERNAME
+          ARTIFACTORY_PASSWORD: $ARTIFACTORY_PASSWORD
+          GRADLE_CACHE_USERNAME: $GRADLE_CACHE_USERNAME
+          GRADLE_CACHE_PASSWORD: $GRADLE_CACHE_PASSWORD
         run: |
           ./gradlew check -isS
           ./gradlew jacocoTestReport
@@ -141,25 +141,25 @@ jobs:
       - name: Run Tests With Sonar
         if: ${{ needs.init.outputs.skip-tests != 'true' && needs.init.outputs.use-sonarcloud == 'true'}}
         env:
-          ARTIFACTORY_CONTEXT_URL: ${{ secrets.ARTIFACTORY_CONTEXT_URL }}
-          ARTIFACTORY_USERNAME: ${{ secrets.ARTIFACTORY_USERNAME }}
-          ARTIFACTORY_PASSWORD: ${{ secrets.ARTIFACTORY_PASSWORD }}
-          GRADLE_CACHE_USERNAME: ${{ secrets.GRADLE_CACHE_USERNAME }}
-          GRADLE_CACHE_PASSWORD: ${{ secrets.GRADLE_CACHE_PASSWORD }}
-          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-          SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
-          SONAR_ORGANIZATION: ${{ secrets.SONAR_ORGANIZATION }}
+          ARTIFACTORY_CONTEXT_URL: $ARTIFACTORY_CONTEXT_URL
+          ARTIFACTORY_USERNAME: $ARTIFACTORY_USERNAME
+          ARTIFACTORY_PASSWORD: $ARTIFACTORY_PASSWORD
+          GRADLE_CACHE_USERNAME: $GRADLE_CACHE_USERNAME
+          GRADLE_CACHE_PASSWORD: $GRADLE_CACHE_PASSWORD
+          SONAR_TOKEN: $SONAR_TOKEN
+          SONAR_HOST_URL: $SONAR_HOST_URL
+          SONAR_ORGANIZATION: $SONAR_ORGANIZATION
         run: |
           ./gradlew check -isS
           ./gradlew jacocoTestReport sonar
 
       - name: License Report
         env:
-          ARTIFACTORY_CONTEXT_URL: ${{ secrets.ARTIFACTORY_CONTEXT_URL }}
-          ARTIFACTORY_USERNAME: ${{ secrets.ARTIFACTORY_USERNAME }}
-          ARTIFACTORY_PASSWORD: ${{ secrets.ARTIFACTORY_PASSWORD }}
-          GRADLE_CACHE_USERNAME: ${{ secrets.GRADLE_CACHE_USERNAME }}
-          GRADLE_CACHE_PASSWORD: ${{ secrets.GRADLE_CACHE_PASSWORD }}
+          ARTIFACTORY_CONTEXT_URL: $ARTIFACTORY_CONTEXT_URL
+          ARTIFACTORY_USERNAME: $ARTIFACTORY_USERNAME
+          ARTIFACTORY_PASSWORD: $ARTIFACTORY_PASSWORD
+          GRADLE_CACHE_USERNAME: $GRADLE_CACHE_USERNAME
+          GRADLE_CACHE_PASSWORD: $GRADLE_CACHE_PASSWORD
         run: ./gradlew licenseReport
 
       - name: Aggregate reports for upload
@@ -183,9 +183,9 @@ jobs:
         if: needs.init.outputs.skip-tests != 'true' && (success() || failure())
         uses: hawk-ai-aml/github-actions/upload-to-s3@master
         with:
-          aws_access_key_id: ${{ secrets.AWS_DEV_ACCESS_KEY_ID }}
-          aws_secret_access_key: ${{ secrets.AWS_DEV_SECRET_ACCESS_KEY }}
-          aws_bucket: github-actions-static-html-2
+          aws_access_key_id: $AWS_DEV_ACCESS_KEY_ID
+          aws_secret_access_key: $AWS_DEV_SECRET_ACCESS_KEY
+          aws_bucket: github-actions-static
           source_dir: reports
           destination_dir: ${{ github.event.repository.name }}-${{ github.run_id }}
 
@@ -193,8 +193,8 @@ jobs:
         if: ${{ github.workflow != 'pr' }}
         uses: aws-actions/configure-aws-credentials@v1
         with:
-          aws-access-key-id: ${{ secrets.AWS_ORG_ECR_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_ORG_ECR_SECRET_ACCESS_KEY }}
+          aws-access-key-id: $AWS_ORG_ECR_ACCESS_KEY_ID
+          aws-secret-access-key: $AWS_ORG_ECR_SECRET_ACCESS_KEY
           aws-region: ${{ needs.init.outputs.ecr-region }}
 
       - name: Login to Amazon ECR
@@ -216,11 +216,11 @@ jobs:
       - name: Build Docker image
         if: ${{ github.workflow != 'pr' && steps.check-tag.outputs.tag_already_exists != 'true' }}
         env:
-          ARTIFACTORY_CONTEXT_URL: ${{ secrets.ARTIFACTORY_CONTEXT_URL }}
-          ARTIFACTORY_USERNAME: ${{ secrets.ARTIFACTORY_USERNAME }}
-          ARTIFACTORY_PASSWORD: ${{ secrets.ARTIFACTORY_PASSWORD }}
-          GRADLE_CACHE_USERNAME: ${{ secrets.GRADLE_CACHE_USERNAME }}
-          GRADLE_CACHE_PASSWORD: ${{ secrets.GRADLE_CACHE_PASSWORD }}
+          ARTIFACTORY_CONTEXT_URL: $ARTIFACTORY_CONTEXT_URL
+          ARTIFACTORY_USERNAME: $ARTIFACTORY_USERNAME
+          ARTIFACTORY_PASSWORD: $ARTIFACTORY_PASSWORD
+          GRADLE_CACHE_USERNAME: $GRADLE_CACHE_USERNAME
+          GRADLE_CACHE_PASSWORD: $GRADLE_CACHE_PASSWORD
           ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
           ECR_REPOSITORY: ${{ fromJson(needs.init.outputs.metadata).ecr.repository }}
           BASE_TAG: ${{ inputs.base-tag }}
@@ -234,8 +234,8 @@ jobs:
         with:
           notify-pr-author: true
           slack-message: ":x: Your build failed. Please check the reason for it."
-          slack-access-token: ${{ secrets.SLACK_RELEASE_BOT_ACCESS_TOKEN }}
-          github-users-access-token: ${{ secrets.USER_GITHUB_ACCESS }}          
+          slack-access-token: $SLACK_RELEASE_BOT_ACCESS_TOKEN
+          github-users-access-token: $USER_GITHUB_ACCESS          
 
   vulnerability-check-run:
     if: ${{ inputs.vulnerabilityCheck == true }}
@@ -256,11 +256,11 @@ jobs:
           image-name: ${{ matrix.image }}
           image-tag: ${{ needs.init.outputs.image-tag }}
           ecr-url: ${{ needs.init.outputs.ecr-url }}
-          aws-access-key-id: ${{ secrets.AWS_ORG_ECR_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_ORG_ECR_SECRET_ACCESS_KEY }}
+          aws-access-key-id: $AWS_ORG_ECR_ACCESS_KEY_ID
+          aws-secret-access-key: $AWS_ORG_ECR_SECRET_ACCESS_KEY
           java-offline-mode: ${{ env.LACEWORK_JAVA_OFFLINE_MODE }}
-          lacework-account-name: ${{ secrets.LACEWORK_ACCOUNT_NAME }}
-          lacework-access-token: ${{ secrets.LACEWORK_ACCESS_TOKEN }}
+          lacework-account-name: $LACEWORK_ACCOUNT_NAME
+          lacework-access-token: $LACEWORK_ACCESS_TOKEN
 
   update-overlays:
     needs: [ init, build ]
@@ -271,14 +271,14 @@ jobs:
       - name: Update kustomize overlay
         uses: hawk-ai-aml/github-actions/kustomize-overlay@master
         with:
-          slack-access-token: ${{ secrets.SLACK_RELEASE_BOT_ACCESS_TOKEN }}
-          github-users-access-token: ${{ secrets.USER_GITHUB_ACCESS }}
+          slack-access-token: $SLACK_RELEASE_BOT_ACCESS_TOKEN
+          github-users-access-token: $USER_GITHUB_ACCESS
           overlays: ${{ needs.init.outputs.overlays }}
           modules: ${{ needs.init.outputs.kustomize-modules-string }}
           component-name: ${{ inputs.component }}
           component-tag: ${{ needs.init.outputs.image-tag }}
           kustomize-repo: hawk-ai-aml/kustomize.git
-          kustomize-access-token: ${{ secrets.REPO_ACCESS_PAT }}
+          kustomize-access-token: $REPO_ACCESS_PAT
           ecr-region: ${{ needs.init.outputs.ecr-region }}
           ecr-registry-code: ${{ needs.init.outputs.ecr-registry-code }}
           metadata: ${{ needs.init.outputs.metadata }}

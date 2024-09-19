@@ -107,31 +107,23 @@ jobs:
         id: run-e2e-test
         if: always()
         env:
-          TEST_MAILBOX_PASSWORD: ${{ secrets.AUTH0_DEV_API_CLIENT_SECRET }}
-          AUTH0_DEV_API_CLIENT_SECRET: ${{ secrets.AUTH0_DEV_API_CLIENT_SECRET }}
-          AUTH0_PROD_API_CLIENT_SECRET: ${{ secrets.AUTH0_PROD_API_CLIENT_SECRET }}
-          AUTH0_PROD_US_EAST_API_CLIENT_SECRET: ${{ secrets.AUTH0_PROD_US_EAST_API_CLIENT_SECRET }}
-          AUTH0_PROD_AP_SOUTHEAST_API_CLIENT_SECRET: ${{ secrets.AUTH0_PROD_AP_SOUTHEAST_API_CLIENT_SECRET }}
-          AUTH0_PROD_CH_API_CLIENT_SECRET: ${{ secrets.AUTH0_PROD_CH_API_CLIENT_SECRET }}
-          AUTH0_PROD_KSA_API_CLIENT_SECRET: ${{ secrets.AUTH0_PROD_KSA_API_CLIENT_SECRET }}
-          AUTH0_NAB_QA_API_CLIENT_SECRET: ${{ secrets.AUTH0_PROD_US_EAST_API_CLIENT_SECRET }}
-          AUTH0_NAB_PROD_API_CLIENT_SECRET: ${{ secrets.AUTH0_PROD_US_EAST_API_CLIENT_SECRET }}
+          AUTH0_DEV_API_CLIENT_SECRET: $AUTH0_UAT_API_CLIENT_SECRET
 
-          ARTIFACTORY_CONTEXT_URL: ${{ secrets.ARTIFACTORY_CONTEXT_URL }}
-          ARTIFACTORY_USERNAME: ${{ secrets.ARTIFACTORY_USERNAME }}
-          ARTIFACTORY_PASSWORD: ${{ secrets.ARTIFACTORY_PASSWORD }}
-          GRADLE_CACHE_USERNAME: ${{ secrets.GRADLE_CACHE_USERNAME }}
-          GRADLE_CACHE_PASSWORD: ${{ secrets.GRADLE_CACHE_PASSWORD }}
+          ARTIFACTORY_CONTEXT_URL: $ARTIFACTORY_CONTEXT_URL
+          ARTIFACTORY_USERNAME: $ARTIFACTORY_USERNAME
+          ARTIFACTORY_PASSWORD: $ARTIFACTORY_PASSWORD
+          GRADLE_CACHE_USERNAME: $GRADLE_CACHE_USERNAME
+          GRADLE_CACHE_PASSWORD: $GRADLE_CACHE_PASSWORD
 
-          DEV_REDIS_HOST: ${{ secrets.DEV_REDIS_HOST }}
-          DEV_REDIS_PORT: ${{ secrets.DEV_REDIS_PORT }}
-          DEV_REDIS_AUTH_TOKEN: ${{ secrets.DEV_REDIS_AUTH_TOKEN }}
+          DEV_REDIS_HOST: $DEV_REDIS_HOST
+          DEV_REDIS_PORT: $DEV_REDIS_PORT
+          DEV_REDIS_AUTH_TOKEN: $DEV_REDIS_AUTH_TOKEN
 
-          E2E_USER_PASSWORD: ${{ secrets.E2E_USER_PASSWORD }}
-          E2E_SSO_LOGIN_USER_PASSWORD: ${{ secrets.E2E_SSO_LOGIN_USER_PASSWORD }}
+          E2E_USER_PASSWORD: $E2E_USER_PASSWORD
+          E2E_SSO_LOGIN_USER_PASSWORD: $E2E_SSO_LOGIN_USER_PASSWORD
 
-          E2E_GMAIL_CLIENT_ID: ${{ secrets.E2E_GMAIL_CLIENT_ID }}
-          E2E_GMAIL_CLIENT_SECRET: ${{ secrets.E2E_GMAIL_CLIENT_SECRET }}
+          E2E_GMAIL_CLIENT_ID: $E2E_GMAIL_CLIENT_ID
+          E2E_GMAIL_CLIENT_SECRET: $E2E_GMAIL_CLIENT_SECRET
 
           environment: ${{ inputs.environment }}
         continue-on-error: true
@@ -209,9 +201,9 @@ jobs:
         if: always()
         uses: hawk-ai-aml/github-actions/upload-to-s3@master
         with:
-          aws_access_key_id: ${{ secrets.AWS_DEV_ACCESS_KEY_ID }}
-          aws_secret_access_key: ${{ secrets.AWS_DEV_SECRET_ACCESS_KEY }}
-          aws_bucket: github-actions-static-html-2
+          aws_access_key_id: $AWS_DEV_ACCESS_KEY_ID
+          aws_secret_access_key: $AWS_DEV_SECRET_ACCESS_KEY
+          aws_bucket: github-actions-static
           source_dir: ${{ inputs.test }}/allure-report2
           destination_dir: e2e-${{ inputs.test }}-test-${{ env.CACHE_ID }}
 
@@ -219,7 +211,7 @@ jobs:
         id: report-url
         if: always()
         run: |
-          echo "url=https://github-actions-static-html-2.s3.eu-central-1.amazonaws.com/e2e-${{ inputs.test }}-test-${{ env.CACHE_ID }}/index.html" >> $GITHUB_OUTPUT
+          echo "url=https://github-actions-static.s3.eu-central-1.amazonaws.com/e2e-${{ inputs.test }}-test-${{ env.CACHE_ID }}/index.html" >> $GITHUB_OUTPUT
 
       - name: Check test status
         id: status

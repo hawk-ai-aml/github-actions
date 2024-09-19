@@ -37,12 +37,12 @@ jobs:
         name: Init Workflow
         uses: hawk-ai-aml/github-actions/workflow-init@master
         with:
-          slack-notification-webhook: ${{ secrets.CICD_MIGRATION_SLACK_WEBHOOK_URL }}
+          slack-notification-webhook: $CICD_MIGRATION_SLACK_WEBHOOK_URL
           update-kustomize: false
           skip-tests: ${{ inputs.skipTests }}
           repository-name: hawk-ai-aml/${{ inputs.component }}
           repository-ref: master
-          repository-access-token: ${{ secrets.REPO_ACCESS_PAT }}
+          repository-access-token: $REPO_ACCESS_PAT
 
   build:
     needs: [ init ]
@@ -65,11 +65,11 @@ jobs:
 
       - name: Gradle Assemble
         env:
-          ARTIFACTORY_CONTEXT_URL: ${{ secrets.ARTIFACTORY_CONTEXT_URL }}
-          ARTIFACTORY_USERNAME: ${{ secrets.ARTIFACTORY_USERNAME }}
-          ARTIFACTORY_PASSWORD: ${{ secrets.ARTIFACTORY_PASSWORD }}
-          GRADLE_CACHE_USERNAME: ${{ secrets.GRADLE_CACHE_USERNAME }}
-          GRADLE_CACHE_PASSWORD: ${{ secrets.GRADLE_CACHE_PASSWORD }}
+          ARTIFACTORY_CONTEXT_URL: $ARTIFACTORY_CONTEXT_URL
+          ARTIFACTORY_USERNAME: $ARTIFACTORY_USERNAME
+          ARTIFACTORY_PASSWORD: $ARTIFACTORY_PASSWORD
+          GRADLE_CACHE_USERNAME: $GRADLE_CACHE_USERNAME
+          GRADLE_CACHE_PASSWORD: $GRADLE_CACHE_PASSWORD
         run: |
           if [ "${{ inputs.artifacts }}" == "" ]; then
             ./gradlew clean assemble testClasses -isS
@@ -83,11 +83,11 @@ jobs:
 
       - name: License Report
         env:
-          ARTIFACTORY_CONTEXT_URL: ${{ secrets.ARTIFACTORY_CONTEXT_URL }}
-          ARTIFACTORY_USERNAME: ${{ secrets.ARTIFACTORY_USERNAME }}
-          ARTIFACTORY_PASSWORD: ${{ secrets.ARTIFACTORY_PASSWORD }}
-          GRADLE_CACHE_USERNAME: ${{ secrets.GRADLE_CACHE_USERNAME }}
-          GRADLE_CACHE_PASSWORD: ${{ secrets.GRADLE_CACHE_PASSWORD }}
+          ARTIFACTORY_CONTEXT_URL: $ARTIFACTORY_CONTEXT_URL
+          ARTIFACTORY_USERNAME: $ARTIFACTORY_USERNAME
+          ARTIFACTORY_PASSWORD: $ARTIFACTORY_PASSWORD
+          GRADLE_CACHE_USERNAME: $GRADLE_CACHE_USERNAME
+          GRADLE_CACHE_PASSWORD: $GRADLE_CACHE_PASSWORD
         run: |
           if [ "${{ inputs.artifacts }}" == "" ]; then
             ./gradlew licenseReport --no-parallel
@@ -101,11 +101,11 @@ jobs:
 
       - name: Check Quality
         env:
-          ARTIFACTORY_CONTEXT_URL: ${{ secrets.ARTIFACTORY_CONTEXT_URL }}
-          ARTIFACTORY_USERNAME: ${{ secrets.ARTIFACTORY_USERNAME }}
-          ARTIFACTORY_PASSWORD: ${{ secrets.ARTIFACTORY_PASSWORD }}
-          GRADLE_CACHE_USERNAME: ${{ secrets.GRADLE_CACHE_USERNAME }}
-          GRADLE_CACHE_PASSWORD: ${{ secrets.GRADLE_CACHE_PASSWORD }}
+          ARTIFACTORY_CONTEXT_URL: $ARTIFACTORY_CONTEXT_URL
+          ARTIFACTORY_USERNAME: $ARTIFACTORY_USERNAME
+          ARTIFACTORY_PASSWORD: $ARTIFACTORY_PASSWORD
+          GRADLE_CACHE_USERNAME: $GRADLE_CACHE_USERNAME
+          GRADLE_CACHE_PASSWORD: $GRADLE_CACHE_PASSWORD
         run: |
           if [ "${{ inputs.artifacts }}" == "" ]; then
             ./gradlew checkQualityMain
@@ -120,11 +120,11 @@ jobs:
       - name: Run Tests
         if: ${{ needs.init.outputs.skip-tests != 'true' }}
         env:
-          ARTIFACTORY_CONTEXT_URL: ${{ secrets.ARTIFACTORY_CONTEXT_URL }}
-          ARTIFACTORY_USERNAME: ${{ secrets.ARTIFACTORY_USERNAME }}
-          ARTIFACTORY_PASSWORD: ${{ secrets.ARTIFACTORY_PASSWORD }}
-          GRADLE_CACHE_USERNAME: ${{ secrets.GRADLE_CACHE_USERNAME }}
-          GRADLE_CACHE_PASSWORD: ${{ secrets.GRADLE_CACHE_PASSWORD }}
+          ARTIFACTORY_CONTEXT_URL: $ARTIFACTORY_CONTEXT_URL
+          ARTIFACTORY_USERNAME: $ARTIFACTORY_USERNAME
+          ARTIFACTORY_PASSWORD: $ARTIFACTORY_PASSWORD
+          GRADLE_CACHE_USERNAME: $GRADLE_CACHE_USERNAME
+          GRADLE_CACHE_PASSWORD: $GRADLE_CACHE_PASSWORD
         run: |
           if [ "${{ inputs.artifacts }}" == "" ]; then
             ./gradlew test -isS
@@ -138,9 +138,9 @@ jobs:
 
       - name: Publish artifacts to Artifactory
         env:
-          ARTIFACTORY_CONTEXT_URL: ${{ secrets.ARTIFACTORY_CONTEXT_URL }}
-          ARTIFACTORY_USERNAME: ${{ secrets.ARTIFACTORY_DEPLOY_USERNAME }}
-          ARTIFACTORY_PASSWORD: ${{ secrets.ARTIFACTORY_DEPLOY_PASSWORD }}
+          ARTIFACTORY_CONTEXT_URL: $ARTIFACTORY_CONTEXT_URL
+          ARTIFACTORY_USERNAME: $ARTIFACTORY_DEPLOY_USERNAME
+          ARTIFACTORY_PASSWORD: $ARTIFACTORY_DEPLOY_PASSWORD
         run: |
           publishTask="${{ inputs.publishTask }}"
           

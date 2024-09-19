@@ -22,7 +22,7 @@ jobs:
           path: gitops
           repository: hawk-ai-aml/gitops.git
           ref: master
-          token: ${{ secrets.REPO_ACCESS_PAT }}
+          token: $REPO_ACCESS_PAT
 
       - name: Update targetRevision for ${{ inputs.overlay }} to ${{ inputs.tag }}
         run: |

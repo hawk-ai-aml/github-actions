@@ -4,8 +4,8 @@ Usage
         name: Check required labels
         uses: hawk-ai-aml/github-actions/enforce-labels@master
         with:
-          repository-ref: ${{ env.GITHUB_REF_NAME }}
-          repository-access-token: ${{ secrets.REPO_ACCESS_PAT }}
+          repository-ref: $GITHUB_REF_NAME
+          repository-access-token: $REPO_ACCESS_PAT
 
 ```
 

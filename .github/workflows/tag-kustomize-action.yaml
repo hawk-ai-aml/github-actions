@@ -41,7 +41,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: ${{ inputs.kustomize-repository }}
-          token: ${{ secrets.TOKEN }}
+          token: $TOKEN
           ref: ${{ inputs.kustomize-branch }}
 
       - name: Update ${{ matrix.environment }} to ${{ inputs.tag }}

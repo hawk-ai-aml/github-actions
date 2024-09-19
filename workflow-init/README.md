@@ -20,7 +20,7 @@ Usage:
         name: Init Workflow
         uses: hawk-ai-aml/github-actions/workflow-init@master
         with:
-          slack-notification-webhook: ${{ secrets.CICD_MIGRATION_SLACK_WEBHOOK_URL }}
+          slack-notification-webhook: $CICD_MIGRATION_SLACK_WEBHOOK_URL
           profile: ${{ inputs.profile }}
           component: ${{ inputs.component }}
           update-kustomize: ${{ inputs.updateKustomize }}
