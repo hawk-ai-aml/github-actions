@@ -138,14 +138,14 @@ jobs:
           credentials_json: ${{ secrets.GCP_CLOUD_STORAGE_SERVICE_ACCOUNT_KEY }}
 
       - name: Run Pytest on Module
-        env:  
+        env:
           JENKINS: true
           IS_JENKINS: true
-          AWS_ACCESS_KEY_ID: ${{ secrets.BACKEND_FILE_AWS_ACCESS_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.BACKEND_FILE_AWS_SECRET_ACCESS_KEY }}
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_DEV_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_DEV_SECRET_ACCESS_KEY }}
         run: |
-          pipenv run tests --cov=${{ matrix.module }} --junitxml=${{ matrix.module }}/report.xml tests/${{ matrix.module }} 
-      
+          pipenv run tests --cov=${{ matrix.module }} --junitxml=${{ matrix.module }}/report.xml tests/${{ matrix.module }}
+
       - name: Generate Reports for Module
         if: inputs.skipTests != true && (success() || failure())
         working-directory: ${{ matrix.module }}
@@ -236,7 +236,7 @@ jobs:
           RESPONSE=$(curl -s -H 'Authorization: Bearer ${{env.SONAR_TOKEN}}' ${{env.SONAR_HOST_URL}}/api/qualitygates/project_status?projectKey=${PROJECT_KEY}\&pullRequest=${{env.PR_NUMBER}})
           STATUS=$(echo $RESPONSE | jq -r '.projectStatus.status')
           echo "SonarQuality Status: $STATUS"
-          
+
           # Check if the status is "OK"
           if [ "$STATUS" == "OK" ]; then
             exit 0
