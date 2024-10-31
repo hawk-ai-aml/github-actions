@@ -121,6 +121,8 @@ jobs:
           ARTIFACTORY_PASSWORD: ${{ secrets.ARTIFACTORY_PASSWORD }}
           GRADLE_CACHE_USERNAME: ${{ secrets.GRADLE_CACHE_USERNAME }}
           GRADLE_CACHE_PASSWORD: ${{ secrets.GRADLE_CACHE_PASSWORD }}
+          ELASTICSEARCH_USERNAME: ${{ secrets.ELASTICSEARCH_USERNAME }}
+          ELASTICSEARCH_PASSWORD: ${{ secrets.ELASTICSEARCH_PASSWORD }}
           DISABLE_SLACK: true
         run: |
           ./gradlew :${{ inputs.module }}:check :${{ inputs.module }}:jacocoTestReport :${{ inputs.module }}:jacocoTestCoverageVerification -isS
@@ -133,6 +135,8 @@ jobs:
           ARTIFACTORY_PASSWORD: ${{ secrets.ARTIFACTORY_PASSWORD }}
           GRADLE_CACHE_USERNAME: ${{ secrets.GRADLE_CACHE_USERNAME }}
           GRADLE_CACHE_PASSWORD: ${{ secrets.GRADLE_CACHE_PASSWORD }}
+          ELASTICSEARCH_USERNAME: ${{ secrets.ELASTICSEARCH_USERNAME }}
+          ELASTICSEARCH_PASSWORD: ${{ secrets.ELASTICSEARCH_PASSWORD }}
           DISABLE_SLACK: true
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
           SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
