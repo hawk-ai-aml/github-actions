@@ -69,17 +69,20 @@ runs:
       run: |
         ECR_REGION=${{ inputs.ecr-region }}
         ECR_REGISTRY=${{ inputs.ecr-registry-code }}
-        
+
+        # Remove 'qa' from KUSTOMIZE_OVERLAYS if it contains it
+        OVERLAYS=${OVERLAYS//qa/}
+
         for module in $MODULES; do
           ECR_REPOSITORY=$(echo ${METADATA} | jq -cr --arg MODULE ${module} '.modules[$MODULE].ecr.repository')
 
           if [[ $ECR_REPOSITORY != null ]]; then
             KUSTOMIZE_PATH=$(echo ${METADATA} | jq -cr --arg MODULE ${module} '.modules[$MODULE].kustomize.path')
             IMAGE_NAME=${ECR_REGISTRY}.dkr.ecr.${ECR_REGION}.amazonaws.com/${ECR_REPOSITORY}
-          
+
             for overlay in $OVERLAYS; do
               KUSTOMIZE_OVERLAY_PATH=${KUSTOMIZE_PATH}/overlays/${overlay}
-      
+
               (
                 cd ${KUSTOMIZE_OVERLAY_PATH}
                 kustomize edit set image ${IMAGE_NAME}:${TAG}
@@ -88,7 +91,7 @@ runs:
             done
           fi
         done
-        
+
         if ! git diff --quiet HEAD; then
           git config --global user.name "GitHub Actions"
           git config --global user.email "github-actions@hawk.ai"
@@ -112,7 +115,7 @@ runs:
                 break
               fi
             done
-            
+
             [[ ${PUSHED} == "true" ]] || return 1
           fi
         fi
@@ -134,7 +137,7 @@ runs:
       if: failure()
       env:
         SLACK_ACCESS_TOKEN: ${{ inputs.slack-access-token }}
-        GITHUB_ACCESS_TOKEN: ${{ inputs.github-users-access-token }}      
+        GITHUB_ACCESS_TOKEN: ${{ inputs.github-users-access-token }}
       with:
         notify-pr-author: true
         slack-message: ":x: The `update-overlay` workflow failed. Please check the reason for it and contact @team-pe."
