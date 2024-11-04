@@ -186,6 +186,7 @@ jobs:
           cp -a -r ${{ inputs.environment }}-${{ inputs.test }}-test-histories/* ${{ inputs.test }}/allure-results
           echo "----------------------------------->>> Allure-results after merged"
           # ls ${{ inputs.test }}/allure-results/*
+          mkdir ${{ inputs.test }}/allure-report2
           mkdir ${{ inputs.test }}/allure-report2/${{ inputs.environment }}-${{ inputs.test }}
           allure generate ${{ inputs.test }}/allure-results -o ${{ inputs.test }}/allure-report2/${{ inputs.environment }}-${{ inputs.test }} --clean
           echo "----------------------------------->>> New Allure report"
