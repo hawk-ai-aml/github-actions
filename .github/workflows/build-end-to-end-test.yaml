@@ -186,11 +186,11 @@ jobs:
           cp -a -r ${{ inputs.environment }}-${{ inputs.test }}-test-histories/* ${{ inputs.test }}/allure-results
           echo "----------------------------------->>> Allure-results after merged"
           # ls ${{ inputs.test }}/allure-results/*
-          mkdir ${{ inputs.test }}/allure-report2
-          allure generate ${{ inputs.test }}/allure-results -o ${{ inputs.test }}/allure-report2 --clean
+          mkdir ${{ inputs.test }}/allure-report2/dev-blacklist
+          allure generate ${{ inputs.test }}/allure-results -o ${{ inputs.test }}/allure-report2/dev-blacklist --clean
           echo "----------------------------------->>> New Allure report"
           # ls ${{ inputs.test }}/allure-report2/*
-          cp -a -r ${{ inputs.test }}/allure-report2/history ${{ inputs.environment }}-${{ inputs.test }}-test-histories
+          cp -a -r ${{ inputs.test }}/allure-report2/dev-blacklist/history ${{ inputs.environment }}-${{ inputs.test }}-test-histories
 
       - name: Check cache after generating new report
         if: always()
@@ -220,7 +220,7 @@ jobs:
         with:
           github_token: ${{ secrets.REPO_ACCESS_PAT }}
           publish_dir: ${{ inputs.test }}/allure-report2
-          publish_branch: blacklist-pages
+          publish_branch: gh-pages
 
       - name: Provide test result URL
         id: report-url
