@@ -215,6 +215,13 @@ jobs:
           source_dir: ${{ inputs.test }}/allure-report2
           destination_dir: e2e-${{ inputs.test }}-test-${{ env.CACHE_ID }}
 
+      - name: Publish Allure Report to GitHub Pages
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ${{ inputs.test }}/allure-report2
+          publish_branch: gh-pages
+
       - name: Provide test result URL
         id: report-url
         if: always()
