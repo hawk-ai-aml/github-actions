@@ -186,11 +186,11 @@ jobs:
           cp -a -r ${{ inputs.environment }}-${{ inputs.test }}-test-histories/* ${{ inputs.test }}/allure-results
           echo "----------------------------------->>> Allure-results after merged"
           # ls ${{ inputs.test }}/allure-results/*
-          mkdir ${{ inputs.test }}/allure-report2/dev-blacklist
-          allure generate ${{ inputs.test }}/allure-results -o ${{ inputs.test }}/allure-report2/dev-blacklist --clean
+          mkdir ${{ inputs.test }}/allure-report2/${{ inputs.environment }}-${{ inputs.test }}
+          allure generate ${{ inputs.test }}/allure-results -o ${{ inputs.test }}/allure-report2/${{ inputs.environment }}-${{ inputs.test }} --clean
           echo "----------------------------------->>> New Allure report"
           # ls ${{ inputs.test }}/allure-report2/*
-          cp -a -r ${{ inputs.test }}/allure-report2/dev-blacklist/history ${{ inputs.environment }}-${{ inputs.test }}-test-histories
+          cp -a -r ${{ inputs.test }}/allure-report2/${{ inputs.environment }}-${{ inputs.test }}/history ${{ inputs.environment }}-${{ inputs.test }}-test-histories
 
       - name: Check cache after generating new report
         if: always()
