@@ -220,7 +220,7 @@ jobs:
         with:
           github_token: ${{ secrets.REPO_ACCESS_PAT }}
           publish_dir: ${{ inputs.test }}/allure-report2
-          publish_branch: gh-pages
+          publish_branch: blacklist-pages
 
       - name: Provide test result URL
         id: report-url
