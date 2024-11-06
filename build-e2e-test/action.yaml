@@ -90,11 +90,11 @@ inputs:
     description: Gmail client secret
     required: true
 
-  dev-es-username:
+  elasticsearch-username:
     description: DEV ES username
     required: true
 
-  dev-es-password:
+  elasticsearch-password:
     description: DEV ES password
     required: true
 
@@ -245,8 +245,8 @@ runs:
         E2E_GMAIL_CLIENT_ID: ${{ inputs.E2E_GMAIL_CLIENT_ID }}
         E2E_GMAIL_CLIENT_SECRET: ${{ inputs.E2E_GMAIL_CLIENT_SECRET }}
 
-        DEV_ES_USERNAME: ${{ inputs.dev-es-username }}
-        DEV_ES_PASSWORD: ${{ inputs.dev-es-password }}
+        ELASTICSEARCH_USERNAME: ${{ inputs.elasticsearch-username }}
+        ELASTICSEARCH_PASSWORD: ${{ inputs.elasticsearch-password }}
 
         environment: ${{ inputs.environment }}
       continue-on-error: true
