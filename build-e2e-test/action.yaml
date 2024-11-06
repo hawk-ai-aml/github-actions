@@ -82,6 +82,14 @@ inputs:
     description: DEV redis auth token
     required: true
 
+  gmail-client-id:
+    description: Gmail client id
+    required: true
+
+  gmail-client-secret:
+    description: Gmail client secret
+    required: true
+
   dev-es-username:
     description: DEV ES username
     required: true
@@ -233,6 +241,12 @@ runs:
         DEV_REDIS_HOST: ${{ inputs.dev-redis-host }}
         DEV_REDIS_PORT: ${{ inputs.dev-redis-port }}
         DEV_REDIS_AUTH_TOKEN: ${{ inputs.dev-redis-auth-token }}
+
+        E2E_GMAIL_CLIENT_ID: ${{ secrets.E2E_GMAIL_CLIENT_ID }}
+        E2E_GMAIL_CLIENT_SECRET: ${{ secrets.E2E_GMAIL_CLIENT_SECRET }}
+
+        DEV_ES_USERNAME: ${{ inputs.dev-es-username }}
+        DEV_ES_PASSWORD: ${{ inputs.dev-es-password }}
 
         environment: ${{ inputs.environment }}
       continue-on-error: true
