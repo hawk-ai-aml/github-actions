@@ -82,6 +82,14 @@ inputs:
     description: DEV redis auth token
     required: true
 
+  dev-es-username:
+    description: DEV ES username
+    required: true
+
+  dev-es-password:
+    description: DEV ES password
+    required: true
+
   aws-key-id:
     description: DEV redis auth token
     required: true
