@@ -242,8 +242,8 @@ runs:
         DEV_REDIS_PORT: ${{ inputs.dev-redis-port }}
         DEV_REDIS_AUTH_TOKEN: ${{ inputs.dev-redis-auth-token }}
 
-        E2E_GMAIL_CLIENT_ID: ${{ secrets.E2E_GMAIL_CLIENT_ID }}
-        E2E_GMAIL_CLIENT_SECRET: ${{ secrets.E2E_GMAIL_CLIENT_SECRET }}
+        E2E_GMAIL_CLIENT_ID: ${{ inputs.E2E_GMAIL_CLIENT_ID }}
+        E2E_GMAIL_CLIENT_SECRET: ${{ inputs.E2E_GMAIL_CLIENT_SECRET }}
 
         DEV_ES_USERNAME: ${{ inputs.dev-es-username }}
         DEV_ES_PASSWORD: ${{ inputs.dev-es-password }}
