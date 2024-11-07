@@ -82,6 +82,22 @@ inputs:
     description: DEV redis auth token
     required: true
 
+  gmail-client-id:
+    description: Gmail client id
+    required: true
+
+  gmail-client-secret:
+    description: Gmail client secret
+    required: true
+
+  elasticsearch-username:
+    description: DEV ES username
+    required: true
+
+  elasticsearch-password:
+    description: DEV ES password
+    required: true
+
   aws-key-id:
     description: DEV redis auth token
     required: true
@@ -225,6 +241,12 @@ runs:
         DEV_REDIS_HOST: ${{ inputs.dev-redis-host }}
         DEV_REDIS_PORT: ${{ inputs.dev-redis-port }}
         DEV_REDIS_AUTH_TOKEN: ${{ inputs.dev-redis-auth-token }}
+
+        E2E_GMAIL_CLIENT_ID: ${{ inputs.E2E_GMAIL_CLIENT_ID }}
+        E2E_GMAIL_CLIENT_SECRET: ${{ inputs.E2E_GMAIL_CLIENT_SECRET }}
+
+        ELASTICSEARCH_USERNAME: ${{ inputs.elasticsearch-username }}
+        ELASTICSEARCH_PASSWORD: ${{ inputs.elasticsearch-password }}
 
         environment: ${{ inputs.environment }}
       continue-on-error: true

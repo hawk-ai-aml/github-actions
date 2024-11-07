@@ -26,4 +26,8 @@ Usage
           dev-redis-auth-token: ${{ secrets.DEV_REDIS_AUTH_TOKEN }}
           aws-key-id: ${{ secrets.AWS_DEV_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_DEV_SECRET_ACCESS_KEY }}
+          gmail-client-id: ${{ secrets.GMAIL_CLIENT_ID }}
+          gmail-client-secret: ${{ secrets.GMAIL_CLIENT_SECRET }}
+          elasticsearch-username: ${{ secrets.ELASTICSEARCH_USERNAME }}
+          elasticsearch-password: ${{ secrets.ELASTICSEARCH_PASSWORD }}
 ```
