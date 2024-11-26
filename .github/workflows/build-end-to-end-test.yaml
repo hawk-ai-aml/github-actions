@@ -57,12 +57,6 @@ jobs:
           ref: ${{ inputs.ref }}
 
       # +++++++++++++++++++++++++++++++++++++ START-SETUP +++++++++++++++++++++++++++++++++++++
-      - name: Set up Java JDK 17
-        uses: actions/setup-java@v3
-        with:
-          java-version: 17
-          distribution: 'temurin'
-
       - name: Generate cache ID
         run: |
           echo CACHE_ID=$(date +'%Y-%m-%dT%H:%M:%S') >> $GITHUB_ENV
@@ -78,7 +72,7 @@ jobs:
       - name: Caching test history
         id: cache-test-history
         if: always()
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         continue-on-error: true
         with:
           path: ${{ env.CACHE_PATH }}
@@ -87,7 +81,7 @@ jobs:
             ${{ runner.os }}-${{ inputs.environment }}-${{ inputs.test }}-test-histories-
 
       - name: Cache Gradle
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: /home/builder/.gradle/
           key: ${{ runner.os }}-gradle-
@@ -170,7 +164,7 @@ jobs:
           ls ${{ inputs.test }}/allure-report/*
 
       - name: Upload plain test results to GitHub Artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         if: always()
         with:
           name: test-results
@@ -202,7 +196,7 @@ jobs:
           ls ${{ inputs.environment }}-${{ inputs.test }}-test-histories/*
 
       - name: Upload Allure results to GitHub Artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         if: always()
         with:
           name: allure-results
