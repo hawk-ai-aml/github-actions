@@ -106,6 +106,7 @@ jobs:
           APP_CONFIG_YAML_PATH: "tests"
           PY_UTILS_PAT: ${{ secrets.PY_UTILS_PAT}}
         run: |
+          pipenv --python=$(which python)
           pipenv --clear
           if [ -f "Pipfile.lock" ]; then
               pipenv sync --dev
