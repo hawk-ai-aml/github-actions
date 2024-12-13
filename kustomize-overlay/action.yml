@@ -11,6 +11,9 @@ inputs:
     description: "Kustomize access PAT"
     required: true
 
+  kustomize-repo:
+    description: "Kustomize repository"
+    required: true
 
 runs:
   using: composite
