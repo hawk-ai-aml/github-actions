@@ -73,6 +73,9 @@ runs:
         # Remove 'qa' from KUSTOMIZE_OVERLAYS if it contains it
         OVERLAYS=${OVERLAYS//qa/}
 
+        # SemVer validation regex
+        semver_regex='^([0-9]+)\.([0-9]+)\.([0-9]+)$'
+
         for module in $MODULES; do
           ECR_REPOSITORY=$(echo ${METADATA} | jq -cr --arg MODULE ${module} '.modules[$MODULE].ecr.repository')
 
@@ -83,10 +86,32 @@ runs:
             for overlay in $OVERLAYS; do
               KUSTOMIZE_OVERLAY_PATH=${KUSTOMIZE_PATH}/overlays/${overlay}
 
+              # Get the current tag from kustomize rendered output
+              current_tag=$(kustomize build "$KUSTOMIZE_OVERLAY_PATH" | grep -E "${IMAGE_NAME}:" | awk -F':' '{print $NF}' | tr -d '[:space:]')
+
+              # Function to compare semantic versions
+              compare_versions() {
+                # Returns 0 if $1 >= $2, otherwise returns 1
+                [ "$(printf '%s\n' "$1" "$2" | sort -V | head -n 1)" != "$1" ]
+              }
+
               (
                 cd ${KUSTOMIZE_OVERLAY_PATH}
-                kustomize edit set image ${IMAGE_NAME}:${TAG}
-                echo "Update overlay ${overlay} of ${ECR_REPOSITORY} to ${TAG}"
+                # Check if the new tag is greater than the current tag
+                if [[ $current_tag =~ $semver_regex ]] && [[ $TAG =~ $semver_regex ]]; then
+                  echo "Both tags are valid SemVer. Comparing versions..."
+
+                  if compare_versions "$TAG" "$current_tag"; then
+                      kustomize edit set image ${IMAGE_NAME}:${TAG}
+                      echo "Updated overlay ${overlay} of ${ECR_REPOSITORY} from $current_tag to ${TAG}"
+                  else
+                      echo "No update needed. Current tag '$current_tag' is equal to or newer than '$TAG'."
+                  fi
+                else
+                  echo "For non-SemVer tags, direct update will be applied."
+                  kustomize edit set image ${IMAGE_NAME}:${TAG}
+                  echo "Updated overlay ${overlay} of ${ECR_REPOSITORY} from $current_tag to ${TAG}"
+                fi
               )
             done
           fi
