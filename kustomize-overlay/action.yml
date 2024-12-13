@@ -39,6 +39,9 @@ runs:
             KUSTOMIZE_PATH="plattform/case-manager/frontend"
             IMAGE_NAME="860641649575.dkr.ecr.eu-central-1.amazonaws.com/hawkai-case-manager-frontend"
 
+            # SemVer validation regex
+            semver_regex='^([0-9]+)\.([0-9]+)\.([0-9]+)$'
+
             for overlay in $OVERLAYS; do
               KUSTOMIZE_OVERLAY_PATH=${KUSTOMIZE_PATH}/overlays/${overlay}
 
@@ -53,11 +56,19 @@ runs:
 
               (
                 cd ${KUSTOMIZE_OVERLAY_PATH}
-                # Check if the new tag is greater than the current tag
-                if compare_versions "$TAG" "$current_tag"; then
-                    echo "Updated overlay ${overlay} of ${ECR_REPOSITORY} from $current_tag to ${TAG}"
+                # Check if both tags are valid SemVer
+                if [[ $current_tag =~ $semver_regex ]] && [[ $TAG =~ $semver_regex ]]; then
+                  echo "Both tags are valid SemVer. Comparing versions..."
+
+                  # Check if the new tag is greater than the current tag
+                  if compare_versions "$TAG" "$current_tag"; then
+                      echo "Updated overlay ${overlay} of ${ECR_REPOSITORY} from $current_tag to ${TAG}"
+                  else
+                      echo "No update needed. Current tag '$current_tag' is equal to or newer than '$TAG'."
+                  fi
                 else
-                    echo "No update needed. Current tag '$current_tag' is equal to or newer than '$TAG'."
+                  echo "For non-SemVer tags, direct update will be applied."
+                  echo "Overlay updated to tag: $TAG."
                 fi
               )
             done
