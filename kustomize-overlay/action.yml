@@ -2,22 +2,50 @@ name: kustomize-overlay
 description: Kustomize Overlay
 
 inputs:
+  component-name:
+    description: "Component name"
+    required: true
 
   overlays:
     description: "List of overlay in string"
     required: true
 
-  kustomize-access-token:
-    description: "Kustomize access PAT"
+  modules:
+    description: "List of module name in string"
+    required: true
+
+  component-tag:
+    description: "New component tag"
     required: true
 
   kustomize-repo:
     description: "Kustomize repository"
     required: true
 
-  component-tag:
-    description: "New component tag"
+  kustomize-access-token:
+    description: "Kustomize access PAT"
     required: true
+
+  ecr-registry-code:
+    description: "ECR registry code"
+    required: true
+
+  ecr-region:
+    description: "ECR region"
+    required: true
+
+  metadata:
+    description: "Metadata for the module"
+    required: true
+
+  slack-access-token:
+    description: "Access token to slack"
+    required: true
+
+  github-users-access-token:
+    description: "Access token to GitHub users"
+    required: true
+
 
 runs:
   using: composite
@@ -33,14 +61,27 @@ runs:
     - name: Update
       shell: bash -l -ET -eo pipefail {0}
       env:
+        METADATA: ${{ inputs.metadata }}
+        MODULES: ${{ inputs.modules }}
         OVERLAYS: ${{ inputs.overlays }}
         TAG: ${{ inputs.component-tag }}
+        COMPONENT: ${{ inputs.component-name }}
       run: |
-            KUSTOMIZE_PATH="plattform/case-manager/frontend"
-            IMAGE_NAME="860641649575.dkr.ecr.eu-central-1.amazonaws.com/hawkai-case-manager-frontend"
+        ECR_REGION=${{ inputs.ecr-region }}
+        ECR_REGISTRY=${{ inputs.ecr-registry-code }}
 
-            # SemVer validation regex
-            semver_regex='^([0-9]+)\.([0-9]+)\.([0-9]+)$'
+        # Remove 'qa' from KUSTOMIZE_OVERLAYS if it contains it
+        OVERLAYS=${OVERLAYS//qa/}
+
+        # SemVer validation regex
+        semver_regex='^([0-9]+)\.([0-9]+)\.([0-9]+)$'
+
+        for module in $MODULES; do
+          ECR_REPOSITORY=$(echo ${METADATA} | jq -cr --arg MODULE ${module} '.modules[$MODULE].ecr.repository')
+
+          if [[ $ECR_REPOSITORY != null ]]; then
+            KUSTOMIZE_PATH=$(echo ${METADATA} | jq -cr --arg MODULE ${module} '.modules[$MODULE].kustomize.path')
+            IMAGE_NAME=${ECR_REGISTRY}.dkr.ecr.${ECR_REGION}.amazonaws.com/${ECR_REPOSITORY}
 
             for overlay in $OVERLAYS; do
               KUSTOMIZE_OVERLAY_PATH=${KUSTOMIZE_PATH}/overlays/${overlay}
@@ -56,19 +97,74 @@ runs:
 
               (
                 cd ${KUSTOMIZE_OVERLAY_PATH}
-                # Check if both tags are valid SemVer
+                # Check if the new tag is greater than the current tag
                 if [[ $current_tag =~ $semver_regex ]] && [[ $TAG =~ $semver_regex ]]; then
                   echo "Both tags are valid SemVer. Comparing versions..."
 
-                  # Check if the new tag is greater than the current tag
                   if compare_versions "$TAG" "$current_tag"; then
+                      kustomize edit set image ${IMAGE_NAME}:${TAG}
                       echo "Updated overlay ${overlay} of ${ECR_REPOSITORY} from $current_tag to ${TAG}"
                   else
                       echo "No update needed. Current tag '$current_tag' is equal to or newer than '$TAG'."
                   fi
                 else
                   echo "For non-SemVer tags, direct update will be applied."
-                  echo "Overlay updated to tag: $TAG."
+                  kustomize edit set image ${IMAGE_NAME}:${TAG}
+                  echo "Updated overlay ${overlay} of ${ECR_REPOSITORY} from $current_tag to ${TAG}"
                 fi
               )
             done
+          fi
+        done
+
+        if ! git diff --quiet HEAD; then
+          git config --global user.name "GitHub Actions"
+          git config --global user.email "github-actions@hawk.ai"
+
+          if [[ -z $(git status -s) ]]; then
+            echo "Tag: ${TAG} already existed for overlays ${overlay}."
+          else
+            git add .
+            git commit -m "AUTOMATIC COMMIT: Update tag for ${COMPONENT} to ${TAG}"
+
+            REMOTE=${1:-origin}
+            CURRENT_BRANCH=$(git rev-parse --abbrev-ref HEAD)
+            PUSHED="false"
+
+            for interval in 0 1 2 5 10; do
+              [[ ${interval} -gt 0 ]] && echo "Retrying in ${interval} seconds..."
+              sleep ${interval}
+              git pull --rebase ${REMOTE} ${CURRENT_BRANCH} || return $?
+              if git push ${REMOTE} ${CURRENT_BRANCH}; then
+                PUSHED="true"
+                break
+              fi
+            done
+
+            [[ ${PUSHED} == "true" ]] || return 1
+          fi
+        fi
+
+    - name: Slack notification for successful overlay update workflow
+      uses: hawk-ai-aml/github-actions/send-slack-notification@master
+      if: success()
+      env:
+        SLACK_ACCESS_TOKEN: ${{ inputs.slack-access-token }}
+        GITHUB_ACCESS_TOKEN: ${{ inputs.github-users-access-token }}
+      with:
+        notify-pr-author: true
+        slack-message: ":tada: Successfully updated overlay [${{ inputs.overlays }}]\nmodules: [ ${{ inputs.modules }}]\ntag: `${{ inputs.component-tag }}`"
+        slack-access-token: ${{ inputs.slack-access-token }}
+        github-users-access-token: ${{ inputs.github-users-access-token }}
+
+    - name: Slack notification for failed overlay update workflow
+      uses: hawk-ai-aml/github-actions/send-slack-notification@master
+      if: failure()
+      env:
+        SLACK_ACCESS_TOKEN: ${{ inputs.slack-access-token }}
+        GITHUB_ACCESS_TOKEN: ${{ inputs.github-users-access-token }}
+      with:
+        notify-pr-author: true
+        slack-message: ":x: The `update-overlay` workflow failed. Please check the reason for it and contact @team-pe."
+        slack-access-token: ${{ inputs.slack-access-token }}
+        github-users-access-token: ${{ inputs.github-users-access-token }}
