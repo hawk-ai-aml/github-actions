@@ -23,7 +23,7 @@ defaults:
 jobs:
   send-slack-notification:
     runs-on: [ "self-hosted", "small-builder" ]
-      
+
     steps:
       - name: Slack notification for failed build status
         uses: hawk-ai-aml/github-actions/send-slack-notification@master
@@ -31,5 +31,5 @@ jobs:
           notify-pr-author: ${{ inputs.notify-pr-author }}
           slack-message: ${{ inputs.slack-message }}
           slack-access-token: ${{ secrets.SLACK_RELEASE_BOT_ACCESS_TOKEN }}
-          github-users-access-token: ${{ secrets.USER_GITHUB_ACCESS }} 
+          github-users-access-token: ${{ secrets.USER_GITHUB_ACCESS }}
           notify-slack-channel-name: ${{ inputs.notify-slack-channel-name }}

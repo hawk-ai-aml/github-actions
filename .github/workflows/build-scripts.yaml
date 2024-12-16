@@ -34,7 +34,7 @@ jobs:
       updated-modules: ${{ steps.detect-changes.outputs.updated-modules }}
       updated-modules-string: ${{ steps.detect-changes.outputs.updated-modules-string }}
       metadata: ${{ steps.init.outputs.metadata }}
-      
+
     steps:
       - id: init
         name: Init Workflow
@@ -63,7 +63,7 @@ jobs:
           notify-pr-author: true
           slack-message: ":x: The init workflow failed. Please check the reason for it and contact @team-pe."
           slack-access-token: ${{ secrets.SLACK_RELEASE_BOT_ACCESS_TOKEN }}
-          github-users-access-token: ${{ secrets.USER_GITHUB_ACCESS }} 
+          github-users-access-token: ${{ secrets.USER_GITHUB_ACCESS }}
 
   build:
     needs: [ init ]
@@ -113,7 +113,7 @@ jobs:
           notify-pr-author: true
           slack-message: ":x: Your build failed. Please check the reason for it."
           slack-access-token: ${{ secrets.SLACK_RELEASE_BOT_ACCESS_TOKEN }}
-          github-users-access-token: ${{ secrets.USER_GITHUB_ACCESS }} 
+          github-users-access-token: ${{ secrets.USER_GITHUB_ACCESS }}
 
   update-overlays:
     needs: [ init, build ]

@@ -48,7 +48,7 @@ runs:
         # Retrieve the repository and run ID
         REPO="${{ github.repository }}"
         BRANCH_NAME=${GITHUB_HEAD_REF:-${GITHUB_REF#refs/heads/}}
-        
+
         # Fetch GitHub user profile; extract blog URL; remove double quotes
         SLACK_USER_ID=$(curl -s -H "Authorization: token $GITHUB_USER_ACCESS" "https://api.github.com/users/$GITHUB_ACTOR" | jq '.blog' | sed 's/"//g')
 

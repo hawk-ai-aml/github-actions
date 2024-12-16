@@ -16,10 +16,10 @@ jobs:
         run: |
           while IFS= read -r line; do
             kustomize build $line
-          
+
             if [ $? -ne 0 ]; then
               echo "Error detected path $line"
               exit
             fi
-          
+
           done <<< $(find . -type f -name "kustomization.yaml" -exec dirname "{}" \; |sort -u)

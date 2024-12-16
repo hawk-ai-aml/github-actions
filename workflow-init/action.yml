@@ -113,7 +113,7 @@ runs:
         \`\`\`
         \`\`\`
         EOF
-        
+
         UPDATE_KUSTOMIZE=${{ inputs.update-kustomize }}
         UPDATE_KUSTOMIZE=${UPDATE_KUSTOMIZE:-false}
 
@@ -138,17 +138,17 @@ runs:
             IMAGE_TAG=${BUILD_BRANCH}-${GIT_SHA_SHORT}
           ;;
         esac
-                
+
         ECR_REGION=$(echo ${METADATA} | jq -r '.ecr.region')
         ECR_REGISTRY_CODE=$(echo ${METADATA} | jq -r '.ecr."registry-code"')
         ECR_URL=${ECR_REGISTRY_CODE}.dkr.ecr.${ECR_REGION}.amazonaws.com
-        
+
         # Build kustomize modules and ECR images
         SPACE=" "
         for module in $(echo ${METADATA} | jq -cr '.modules | keys | join(" ")'); do
           MODULE_LIST="${MODULE_LIST}\"${module}\","
           MODULE_LIST_STRING=${MODULE_LIST_STRING}${module}${SPACE}
-          
+
           MODULE_ECR=$(echo ${METADATA} | jq -cr --arg MODULE ${module} '.modules[$MODULE].ecr')
           if [[ ${MODULE_ECR} != "null" ]]; then
             MODULE_REPOSITORY=$(echo ${METADATA} | jq -cr --arg MODULE ${module} '.modules[$MODULE].ecr.repository')
@@ -159,18 +159,18 @@ runs:
         LENGTH_OF_MODULE_LIST=$(echo ${#MODULE_LIST})
         MODULE_LIST=${MODULE_LIST:0:${LENGTH_OF_MODULE_LIST}-1}
         KUSTOMIZE_MODULES="[${MODULE_LIST}]"
-        
+
         LENGTH_OF_IMAGE_LIST=$(echo ${#IMAGE_LIST})
         IMAGE_LIST=${IMAGE_LIST:0:${LENGTH_OF_IMAGE_LIST}-1}
         IMAGE_LIST="[${IMAGE_LIST}]"
         ECR_IMAGES="${IMAGE_LIST}"
-        
+
         if [[ ${KUSTOMIZE_OVERLAYS} != "null" ]]; then
           OVERLAYS_JSON=$(echo ${METADATA} | jq -cr --arg OVERLAYS ${KUSTOMIZE_OVERLAYS} '.overlays[$OVERLAYS]')
         fi
-        
+
         OVERLAYS_STRING=$(echo ${OVERLAYS_JSON} | jq -r 'join(" ")')
-        
+
         USE_SONARCLOUD=${{ inputs.use-sonarcloud }}
 
         # Workflow outputs

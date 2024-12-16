@@ -26,7 +26,7 @@ jobs:
     runs-on: [ "self-hosted", "small-builder" ]
     outputs:
       pr-found: ${{ steps.check-existing-pr.outputs.result }}
-    
+
     steps:
       - name: Check existing PR
         id: check-existing-pr
@@ -56,4 +56,3 @@ jobs:
             }
 
             return true
-

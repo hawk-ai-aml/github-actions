@@ -4,7 +4,7 @@ on:
       inputs:
         cluster_teleport:
           description: "Teleport cluster address"
-          type: string 
+          type: string
           default: "teleport.dev.aml-ai.net"
           required: true
         OTP_admin:
@@ -34,7 +34,7 @@ jobs:
           sudo apt-get install teleport expect -y
       - name: Check teleport version
         run: tctl version
-      - name: Check teleport version 
+      - name: Check teleport version
         run: tsh version
       - name: login teleport cluster
         run: |
@@ -47,12 +47,12 @@ jobs:
             expect eof
           EOF
       - name: Verify login success
-        run: tctl status 
+        run: tctl status
       - name: Create new roles
         run: tctl create -f ${{ inputs.role_path }}
       - name: Verify new roles
         run: tctl get roles --format text
-        id: role_info  
+        id: role_info
       - name: Slack Notification
         uses: rtCamp/action-slack-notify@v2
         env:
