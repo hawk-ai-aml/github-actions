@@ -62,14 +62,14 @@ runs:
 
             COMMIT_IDS=$(curl -s https://api.github.com/repos/$REPOSITORY/commits\?sha\=${CURRENT_BRANCH} -u "$USER:$TOKEN" | jq -r '[.[] | if .commit.verification.signature == null then .sha else 1 end] | join(" ")')
             echo "IDS: ${COMMIT_IDS}"
-        
+
             for id in ${COMMIT_IDS}; do
               if [[ $id == 1 ]]; then
                 break
               fi
-      
+
               FILES=$(curl -s https://api.github.com/repos/$REPOSITORY/commits/${id} -u "$USER:$TOKEN" | jq -r '[.files | .[] | select(.status == "modified") | .filename] | join(" ")')
-      
+
               for module in $REPOSITORY_MODULES; do
                 for file in $FILES; do
                   IFS='/' read -ra ADDR <<< "$file"
@@ -87,7 +87,7 @@ runs:
             echo "PR: ${PULL_NUMBER}";
 
             FILES=$(curl -s https://api.github.com/repos/$REPOSITORY/pulls/${PULL_NUMBER}/files -u "$USER:$TOKEN" | jq -r '[.[] | .filename] | join(" ")')
-          
+
             for module in $REPOSITORY_MODULES; do
               for file in $FILES; do
                 IFS='/' read -ra ADDR <<< "$file"
@@ -109,7 +109,7 @@ runs:
 
         echo "MODULES=${MODULES}"
         echo "FILES=${FILES}"
-        
+
         CORE_CHANGES=false
 
         for file in $FILES; do
@@ -118,7 +118,7 @@ runs:
             break
           fi
         done
-        
+
         if [[ ((${MODULES} == "" || ${MODULES} == "\"core\",") && $(echo ${#FILES}) != 0) || ((${MODULES} == "" || ${MODULES} == "\"core\",") && $CORE_CHANGES == true) ]];  then
           for module in $REPOSITORY_MODULES; do
             if [[ $MODULES != *"$module"* ]];  then
@@ -127,7 +127,7 @@ runs:
             fi
           done
         fi
-        
+
         LENGTH_OF_MODULE_LIST=$(echo ${#MODULES})
         MODULES=${MODULES:0:${LENGTH_OF_MODULE_LIST}-1}
         MODULES="[${MODULES}]"

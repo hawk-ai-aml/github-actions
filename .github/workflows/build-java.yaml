@@ -176,7 +176,7 @@ jobs:
             if [[ -d ${module}/build/reports ]]; then
               cp -r ${module}/build/reports reports/${module}/build/reports
             fi
-          
+
             if [[ -d ${module}/build/jacocoHtml ]]; then
               cp -r ${module}/build/jacocoHtml reports/${module}/build/jacocoHtml
             fi
@@ -239,7 +239,7 @@ jobs:
           notify-pr-author: true
           slack-message: ":x: Your build failed. Please check the reason for it."
           slack-access-token: ${{ secrets.SLACK_RELEASE_BOT_ACCESS_TOKEN }}
-          github-users-access-token: ${{ secrets.USER_GITHUB_ACCESS }}          
+          github-users-access-token: ${{ secrets.USER_GITHUB_ACCESS }}
 
   vulnerability-check-run:
     if: ${{ inputs.vulnerabilityCheck == true }}

@@ -282,5 +282,5 @@ jobs:
             echo "Some mandatory tests failed."
             exit 1
           fi
-          
+
           echo "Start tagging process ..."

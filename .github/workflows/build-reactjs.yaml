@@ -231,7 +231,7 @@ jobs:
           notify-pr-author: true
           slack-message: ":x: Your build failed. Please check the reason for it."
           slack-access-token: ${{ secrets.SLACK_RELEASE_BOT_ACCESS_TOKEN }}
-          github-users-access-token: ${{ secrets.USER_GITHUB_ACCESS }}          
+          github-users-access-token: ${{ secrets.USER_GITHUB_ACCESS }}
 
   vulnerability-check-run:
     if: ${{ inputs.vulnerabilityCheck == true }}

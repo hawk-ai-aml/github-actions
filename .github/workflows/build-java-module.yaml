@@ -143,7 +143,7 @@ jobs:
           SONAR_ORGANIZATION: ${{ secrets.SONAR_ORGANIZATION }}
         run: |
           ./gradlew :${{ inputs.module }}:check :${{ inputs.module }}:jacocoTestReport sonar -isS
-          
+
 
       - name: License Report for <${{ inputs.component }}/${{ inputs.module }}>
         env:
@@ -163,7 +163,7 @@ jobs:
             if [[ -d ${module}/build/reports ]]; then
               cp -r ${module}/build/reports reports/${module}/build/reports
             fi
-          
+
             if [[ -d ${module}/build/jacocoHtml ]]; then
               cp -r ${module}/build/jacocoHtml reports/${module}/build/jacocoHtml
             fi
@@ -214,7 +214,7 @@ jobs:
           notify-pr-author: true
           slack-message: ":x: Your build failed. Please check the reason for it."
           slack-access-token: ${{ secrets.SLACK_RELEASE_BOT_ACCESS_TOKEN }}
-          github-users-access-token: ${{ secrets.USER_GITHUB_ACCESS }}            
+          github-users-access-token: ${{ secrets.USER_GITHUB_ACCESS }}
 
   update-overlays:
     needs: [ init, build ]

@@ -16,12 +16,6 @@ on:
         description: "The indicated overlays (dev, test, qa, prod)"
         type: string
         required: false
-      ecr-prefix:
-        type: string
-        required: false
-      caller-workflow-type:
-        type: string
-        required: true
       component:
         description: "Name of the repository"
         type: string
@@ -36,11 +30,13 @@ on:
         type: boolean
         required: false
         default: false
-      blockPullRequestIfSonarFails:
-        description: "Block the pull request if SonarCloud check fails"
-        type: boolean
-        required: false
-        default: false
+
+env:
+  POETRY_VERSION: 1.8.4
+
+defaults:
+  run:
+    shell: bash -l -ET -eo pipefail {0}
 
 jobs:
   init:
@@ -57,12 +53,11 @@ jobs:
       ecr-registry-code: ${{ steps.init.outputs.ecr-registry-code }}
       ecr-region: ${{ steps.init.outputs.ecr-region }}
       metadata: ${{ steps.init.outputs.metadata }}
-      updated-modules: ${{ steps.detect-changes.outputs.updated-modules }}
-      updated-modules-string: ${{ steps.detect-changes.outputs.updated-modules-string }}
+      use-sonarcloud: ${{ steps.init.outputs.use-sonarcloud }}
 
     steps:
       - id: init
-        name: Init Workflow
+        name: Init workflow
         uses: hawk-ai-aml/github-actions/workflow-init@master
         with:
           skip-tests: ${{ inputs.skipTests }}
@@ -71,25 +66,11 @@ jobs:
           repository-name: hawk-ai-aml/${{ inputs.component }}
           repository-ref: ${{ env.GITHUB_REF_NAME }}
           repository-access-token: ${{ secrets.REPO_ACCESS_PAT }}
-
-      - id: detect-changes
-        name: Detect changes
-        uses: hawk-ai-aml/github-actions/repository-detect-changes@master
-        with:
-          repository: hawk-ai-aml/${{ inputs.component }}
-          repository-ref: ${{ env.GITHUB_REF_NAME }}
-          repository-user: ${{ secrets.RECREATE_DEVELOP_GITHUB_USER }}
-          repository-access-token: ${{ secrets.REPO_ACCESS_PAT }}
-          modules-string: ${{ steps.init.outputs.kustomize-modules-string }}
+          use-sonarcloud: ${{ inputs.useSonarCloud }}
 
   build:
     needs: init
     runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        module: ${{ fromJson(needs.init.outputs.updated-modules) }}
-
     steps:
       - name: Checkout master
         uses: actions/checkout@v4
@@ -107,86 +88,72 @@ jobs:
           # Disabling shallow clone is recommended for improving relevancy of reporting
           fetch-depth: 1000
 
-      - uses: actions/setup-python@v4
+      - name: Install Poetry
+        run: pipx install "poetry==${{ env.POETRY_VERSION }}"
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
         with:
           python-version: ${{ fromJson(needs.init.outputs.metadata).python-version }}
+          cache: poetry
 
-      - name: Install pipenv
-        run: pip install pipenv==2023.6.18
-
-      - name: Install Dependencies
-        env:
-          PY_UTILS_PAT: ${{ secrets.PY_UTILS_PAT }}
-        run: |
-          if [ -f "Pipfile.lock" ]; then
-              pipenv sync --dev
-          else
-              pipenv install --dev
-          fi
-          pipenv requirements > pipenv-requirements.txt
-
-          if [ -f manual-requirements.txt ]; then
-            cat manual-requirements.txt pipenv-requirements.txt > requirements.txt
-            pipenv run pip install -r manual-requirements.txt
-          else
-             cat pipenv-requirements.txt > requirements.txt
-          fi
-          pipenv run pip install pip-licenses
-
-      - uses: google-github-actions/auth@v2
+      - name: Authorize to GCP
+        uses: google-github-actions/auth@v2
         with:
           credentials_json: ${{ secrets.GCP_CLOUD_STORAGE_SERVICE_ACCOUNT_KEY }}
 
-      - name: Run Pytest on Module
+      - name: Authorize Poetry
+        run: scripts/authorize_poetry.sh
         env:
-          JENKINS: true
-          IS_JENKINS: true
-          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_DEV_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_DEV_SECRET_ACCESS_KEY }}
-        run: |
-          pipenv run tests --flake8 --cov=${{ matrix.module }} --junitxml=${{ matrix.module }}/report.xml tests/${{ matrix.module }}
+          PY_UTILS_PAT: ${{ secrets.PY_UTILS_PAT }}
 
-      - name: Generate Reports for Module
-        if: inputs.skipTests != true && (success() || failure())
-        working-directory: ${{ matrix.module }}
-        run: |
-          pipenv run junit2html report.xml report.html
-          mkdir report-dir && mv report.html ./report-dir/report.html
+      - name: Install dependencies
+        run: poetry install
 
-      - name: Upload Test Reports to S3 for Module
-        id: reports
-        if: inputs.skipTests != true && (success() || failure())
+      - name: Run tests
+        if: needs.init.outputs.skip-tests != 'true' && (success() || failure())
+        env:
+          SCHEMA_REGISTRY_URL: "http://internal-aed0c439480b011ea821006d55bdfaa3-2040159056.eu-central-1.elb.amazonaws.com:8081"
+          KAFKA_SERVICE: "kafka-service:9092"
+          KAFKA_CONSUMER_THREADS: 1
+          KAFKA_AUTO_OFFSET_RESET: "latest"
+          FILES_STORAGE: "files.dev.aml-ai.net"
+          APP_CONFIG_YAML_PATH: "tests"
+        run: |
+          poetry run pytest --junitxml=report.xml
+          poetry run junit2html report.xml report.html
+          mkdir report-dir && mv report.html report-dir
+
+      - name: Upload reports to S3
+        if: needs.init.outputs.skip-tests != 'true' && (success() || failure())
         uses: hawk-ai-aml/github-actions/upload-to-s3@master
         with:
-          module: ${{ matrix.module }}
           aws_access_key_id: ${{ secrets.AWS_DEV_ACCESS_KEY_ID }}
           aws_secret_access_key: ${{ secrets.AWS_DEV_SECRET_ACCESS_KEY }}
           aws_bucket: github-actions-static-html-2
-          source_dir: ${{ matrix.module }}/report-dir
-          destination_dir: ${{ github.event.repository.name }}-${{ matrix.module }}-${{ github.run_id }}
+          source_dir: ./report-dir
+          destination_dir: ${{ github.event.repository.name }}-${{ github.run_id }}
 
-      - name: SonarCloud Scan
-        if: inputs.skipTests != true && (success() || failure()) && inputs.useSonarCloud
+      - name: Run SonarCloud scan
+        if: ${{ needs.init.outputs.skip-tests != 'true' && needs.init.outputs.use-sonarcloud == 'true'}}
         uses: SonarSource/sonarcloud-github-action@master
         with:
           args: >
             -Dsonar.python.version=${{ fromJson(needs.init.outputs.metadata).python-version }}
-          projectBaseDir: ${{ matrix.module }}/
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
           SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
 
-      - name: Get ECR info
-        id: ecr-info
-        env:
-          METADATA: ${{ needs.init.outputs.metadata }}
+      - name: Clean up workspace
         run: |
-          MODULE_ECR=$(echo ${METADATA} | jq -cr --arg MODULE ${{ matrix.module }} '.modules[$MODULE].ecr')
-          echo "ECR=$MODULE_ECR"
-          echo "module_ecr=$MODULE_ECR" >> $GITHUB_OUTPUT
+          echo "Current virtualenv size:"
+          du -hcs $(poetry env info --path)
+          poetry env remove --all
+          echo "Current disk usage:"
+          df -h /
 
       - name: Configure AWS credentials
-        if: ${{ github.workflow != 'pr' && steps.ecr-info.outputs.module_ecr != 'null' }}
+        if: ${{ github.workflow != 'pr' }}
         uses: aws-actions/configure-aws-credentials@v1
         with:
           aws-access-key-id: ${{ secrets.AWS_ORG_ECR_ACCESS_KEY_ID }}
@@ -195,67 +162,39 @@ jobs:
 
       - name: Login to Amazon ECR
         id: login-ecr
-        if: ${{ github.workflow != 'pr' && steps.ecr-info.outputs.module_ecr != 'null' }}
+        if: ${{ github.workflow != 'pr' }}
         uses: aws-actions/amazon-ecr-login@v2
         with:
           registries: ${{ needs.init.outputs.ecr-registry-code }}
 
-      - name: check if docker image tag exists in ECR
+      - name: Check if Docker image tag exists in ECR
         id: check-tag
-        if: ${{ github.workflow != 'pr' && steps.ecr-info.outputs.module_ecr != 'null' }}
+        if: ${{ github.workflow != 'pr' }}
         uses: hawk-ai-aml/github-actions/check-docker-tag-exists@master
         with:
           ecr-registry: ${{ steps.login-ecr.outputs.registry }}
-          ecr-repository: ${{ steps.ecr-info.outputs.module_ecr }}
+          ecr-repository: ${{ fromJson(needs.init.outputs.metadata).ecr.repository }}
           image-tag: ${{ needs.init.outputs.image-tag }}
 
-      - name: Build and tag images
-        if: ${{ github.workflow != 'pr' && steps.ecr-info.outputs.module_ecr != 'null' && steps.check-tag.outputs.tag_already_exists != 'true' }}
+      - name: Build image
+        if: ${{ github.workflow != 'pr' && steps.check-tag.outputs.tag_already_exists != 'true' }}
         env:
-          IMAGE_TAG: ${{ needs.init.outputs.image-tag }}
-          ECR_PREFIX: ${{ inputs.ecr-prefix }}
           ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
-          PY_UTILS_PAT: ${{ secrets.PY_UTILS_PAT }}
-          MODULE: ${{ matrix.module }}
+          ECR_REPOSITORY: ${{ fromJson(needs.init.outputs.metadata).ecr.repository }}
+          PY_UTILS_PAT: ${{ secrets.PY_UTILS_PAT}}
         run: |
-          REPOSITORY_FOLDER=$(echo ${MODULE} | sed 's/\_/\-/g')
-          REPOSITORY_FULL_NAME="${ECR_REGISTRY}/${ECR_PREFIX}${REPOSITORY_FOLDER}"
-          echo "${REPOSITORY_FULL_NAME} is building..."
-          DOCKER_BUILDKIT=1 docker build --build-arg SERVICE=${MODULE} --build-arg PY_UTILS_PAT=${PY_UTILS_PAT} -t ${REPOSITORY_FULL_NAME}:${IMAGE_TAG} .
-          docker push ${REPOSITORY_FULL_NAME}:${IMAGE_TAG}
+          DOCKER_BUILDKIT=1 docker build \
+            --build-arg PY_UTILS_PAT=${PY_UTILS_PAT} \
+            -t ${ECR_REGISTRY}/${ECR_REPOSITORY}:${{ needs.init.outputs.image-tag }} \
+            .
 
-      - name: Check SonarCloud Code Analysis passed
-        if: inputs.skipTests != true && (success() || failure()) && inputs.useSonarCloud && inputs.blockPullRequestIfSonarFails
+      - name: Push image
+        if: ${{ github.workflow != 'pr' && steps.check-tag.outputs.tag_already_exists != 'true' }}
         env:
-          PR_NUMBER: ${{ github.event.number }}
-          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-          SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
-          SONAR_ORGANIZATION: ${{ secrets.SONAR_ORGANIZATION }}
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          ECR_REPOSITORY: ${{ fromJson(needs.init.outputs.metadata).ecr.repository }}
         run: |
-          PROJECT_KEY=$(grep '^sonar.projectKey=' sonar-project.properties | cut -d '=' -f 2)
-          RESPONSE=$(curl -s -H 'Authorization: Bearer ${{env.SONAR_TOKEN}}' ${{env.SONAR_HOST_URL}}/api/qualitygates/project_status?projectKey=${PROJECT_KEY}\&pullRequest=${{env.PR_NUMBER}})
-          STATUS=$(echo $RESPONSE | jq -r '.projectStatus.status')
-          echo "SonarQuality Status: $STATUS"
-
-          # Check if the status is "OK"
-          if [ "$STATUS" == "OK" ]; then
-            exit 0
-          else
-            exit 1
-          fi
-
-  check-if-all-builds-passed:
-    if: always()
-    needs: [ build ]
-    runs-on: [ "self-hosted", "small-builder" ]
-    steps:
-      - name: Check Build Job Failure
-        if: ${{ needs.build.result == 'failure' }}
-        run: exit 1
-
-      - name: Check Build Job Success
-        if: ${{ needs.build.result == 'success' }}
-        run: exit 0
+          docker push ${ECR_REGISTRY}/${ECR_REPOSITORY}:${{ needs.init.outputs.image-tag }}
 
       - name: Slack notification for failed build status
         uses: hawk-ai-aml/github-actions/send-slack-notification@master
@@ -272,7 +211,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
-      max-parallel: 10
+      max-parallel: 1
       matrix:
         image: ${{ fromJson(needs.init.outputs.ecr-images) }}
 
@@ -303,7 +242,7 @@ jobs:
           slack-access-token: ${{ secrets.SLACK_RELEASE_BOT_ACCESS_TOKEN }}
           github-users-access-token: ${{ secrets.USER_GITHUB_ACCESS }}
           overlays: ${{ needs.init.outputs.overlays }}
-          modules: ${{ needs.init.outputs.updated-modules-string }}
+          modules: ${{ needs.init.outputs.kustomize-modules-string }}
           component-name: ${{ inputs.component }}
           component-tag: ${{ needs.init.outputs.image-tag }}
           kustomize-repo: hawk-ai-aml/kustomize.git

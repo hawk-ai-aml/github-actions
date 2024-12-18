@@ -143,7 +143,7 @@ jobs:
           ARTIFACTORY_PASSWORD: ${{ secrets.ARTIFACTORY_DEPLOY_PASSWORD }}
         run: |
           publishTask="${{ inputs.publishTask }}"
-          
+
           if [ "${{ inputs.artifacts }}" == "" ]; then
             ./gradlew $publishTask
           else

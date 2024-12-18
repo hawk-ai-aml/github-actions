@@ -6,7 +6,7 @@ on:
       component:
         description: "Name of the repository"
         type: string
-        required: false    
+        required: false
 defaults:
   run:
     shell: bash -l -ET -eo pipefail {0}
