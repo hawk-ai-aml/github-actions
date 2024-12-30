@@ -12,7 +12,7 @@ inputs:
     default: master
 
   repository-user:
-    description: "User can access the repository"
+    description: "User that can access the repository"
     required: true
 
   repository-access-token:
@@ -20,22 +20,22 @@ inputs:
     required: true
 
   modules-string:
-    description: "Module nane in string"
+    description: "Module names as string"
     required: true
 
 outputs:
   updated-modules:
-    description: 'The list of modules has the code changes'
+    description: "The list of modules that have the code changes"
     value: ${{ steps.changes.outputs.updatedModules }}
 
   updated-modules-string:
-    description: 'The list of modules has the code changes in string'
+    description: "The list of modules that have the code changes, as string"
     value: ${{ steps.changes.outputs.updatedModulesString }}
 
 runs:
   using: composite
   steps:
-    - name: Checkout Kustomize
+    - name: Checkout repository
       uses: actions/checkout@v4
       with:
         repository: ${{ inputs.repository }}
@@ -137,5 +137,3 @@ runs:
         updatedModules=${MODULES}
         updatedModulesString=${MODULE_LIST_STRING}
         EOF
-
-# End of file
