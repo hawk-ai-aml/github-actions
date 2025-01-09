@@ -133,7 +133,7 @@ jobs:
           environment: ${{ inputs.environment }}
         continue-on-error: true
         run: |
-          ./gradlew :${{ inputs.test }}:check -Denvironment=${{ inputs.environment }} -isS
+          ./gradlew :${{ inputs.test }}:test -Denvironment=${{ inputs.environment }} -isS
           # ls *
           # ls ./${{ inputs.test }}/*
           # ls ./${{ inputs.test }}/allure*
