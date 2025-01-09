@@ -110,7 +110,6 @@ jobs:
 
       - name: Run <${{ inputs.test }} tests on ${{ inputs.environment }}>
         id: run-e2e-test
-        if: run-e2e-checkstyle-pmd.outcome == 'success'
         env:
           TEST_MAILBOX_PASSWORD: ${{ secrets.AUTH0_DEV_API_CLIENT_SECRET }}
           AUTH0_DEV_API_CLIENT_SECRET: ${{ secrets.AUTH0_DEV_API_CLIENT_SECRET }}
