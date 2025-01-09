@@ -103,7 +103,7 @@ jobs:
         env:
           environment: ${{ inputs.environment }}
         run: |
-          ./gradlew :${{ inputs.test }}:check -x -Denvironment=${{ inputs.environment }} -isS
+          ./gradlew :${{ inputs.test }}:checkQualityTest -Denvironment=${{ inputs.environment }} -isS
           # ls *
           # ls ./${{ inputs.test }}/*
           # ls ./${{ inputs.test }}/allure*
