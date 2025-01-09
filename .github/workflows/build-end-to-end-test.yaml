@@ -97,9 +97,20 @@ jobs:
         run: |
           ./gradlew :${{ inputs.test }}:clean :${{ inputs.test }}:assemble :${{ inputs.test }}:testClasses -isS
 
+      - name: Run <${{ inputs.test }} checkstyle and PMD on ${{ inputs.environment }}>
+        id: run-e2e-checkstyle-pmd
+        if: always()
+        env:
+          environment: ${{ inputs.environment }}
+        run: |
+          ./gradlew :${{ inputs.test }}:check -x -Denvironment=${{ inputs.environment }} -isS
+          # ls *
+          # ls ./${{ inputs.test }}/*
+          # ls ./${{ inputs.test }}/allure*
+
       - name: Run <${{ inputs.test }} tests on ${{ inputs.environment }}>
         id: run-e2e-test
-        if: always()
+        if: run-e2e-checkstyle-pmd.outcome == 'success'
         env:
           TEST_MAILBOX_PASSWORD: ${{ secrets.AUTH0_DEV_API_CLIENT_SECRET }}
           AUTH0_DEV_API_CLIENT_SECRET: ${{ secrets.AUTH0_DEV_API_CLIENT_SECRET }}
