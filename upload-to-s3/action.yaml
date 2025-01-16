@@ -29,6 +29,15 @@ runs:
       with:
         version: 2
 
+    - name: Set up secret file
+      shell: bash -l -ET -eo pipefail {0}
+      env:
+        AWS_ACCESS_KEY_ID: ${{ inputs.aws_access_key_id }}
+        AWS_SECRET_ACCESS_KEY: ${{ inputs.aws_secret_access_key }}
+      run: |
+        echo $AWS_ACCESS_KEY_ID >> secrets.txt
+        echo $AWS_SECRET_ACCESS_KEY >> secrets.txt
+
     - name: Upload to S3
       id: upload
       shell: bash -l -ET -eo pipefail {0}
