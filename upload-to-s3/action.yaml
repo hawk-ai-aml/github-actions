@@ -41,6 +41,7 @@ runs:
         DESTINATION_DIR: ${{ inputs.destination_dir }}
         AWS_DEFAULT_REGION: eu-central-1
       run: |
+        sleep 500
         cd ${SOURCE_DIR}
         S3_DESTINATION_DIR=${DESTINATION_DIR}
         if [[ ${MODULE} != null ]]; then
