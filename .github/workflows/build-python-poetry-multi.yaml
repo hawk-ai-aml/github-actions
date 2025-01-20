@@ -144,22 +144,9 @@ jobs:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_DEV_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_DEV_SECRET_ACCESS_KEY }}
         run: |
-          MIN_COVERAGE_OVERRIDE_FILE=${{ matrix.module }}/.min-coverage-override
-
-          if [ -f "$MIN_COVERAGE_OVERRIDE_FILE" ]; then
-            poetry run pytest \
-              --cov-reset \
-              --cov=${{ matrix.module }} \
-              --junitxml=${{ matrix.module }}/report.xml \
-              --cov-fail-under=$(cat "$MIN_COVERAGE_OVERRIDE_FILE") \
-              tests/${{ matrix.module }}
-          else
-            poetry run pytest \
-              --cov-reset \
-              --cov=${{ matrix.module }} \
-              --junitxml=${{ matrix.module }}/report.xml \
-              tests/${{ matrix.module }}
-          fi
+          poetry run pytest \
+            --config-file=${{ matrix.module }}/pytest.ini \
+            tests/${{ matrix.module }}
 
       - name: Generate reports for module
         if: inputs.skipTests != true && (success() || failure())
