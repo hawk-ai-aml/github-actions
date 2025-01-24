@@ -153,6 +153,11 @@ jobs:
       - name: Yarn test
         run: yarn run test:ci --shard=${{ matrix.shard }}/${{ strategy.job-total }}
 
+      - name: SonarQube Scan
+        uses: SonarSource/sonarqube-scan-action@v4
+        env:
+          SONAR_TOKEN: ${{ secrets. SONARCLOUD_TOKEN }}
+
 
   build:
     needs: [ init, setup-and-lint, tests ]
