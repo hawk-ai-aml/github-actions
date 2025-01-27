@@ -121,7 +121,17 @@ jobs:
       matrix:
         shard: [1, 2, 3, 4]
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout master
+        uses: actions/checkout@v4
+        with:
+          ref: master
+          fetch-depth: 1000
+
+      - name: Checkout current branch
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ env.GITHUB_REF_NAME }}
+          fetch-depth: 1000
 
       - name: Use Yarn cache
         uses: actions/cache@v3
@@ -153,6 +163,12 @@ jobs:
       - name: Yarn test
         run: yarn run test:ci --shard=${{ matrix.shard }}/${{ strategy.job-total }}
 
+      - name: SonarQube Cloud Scan
+        uses: SonarSource/sonarqube-scan-action@v4
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
+          SONAR_ORGANIZATION: ${{ secrets.SONAR_ORGANIZATION }}
 
   build:
     needs: [ init, setup-and-lint, tests ]
