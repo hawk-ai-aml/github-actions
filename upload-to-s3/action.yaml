@@ -47,7 +47,8 @@ runs:
           S3_DESTINATION_DIR=${DESTINATION_DIR}/${MODULE}
         fi
 
-        aws s3api put-object --bucket ${BUCKET_NAME} --key ${S3_DESTINATION_DIR} --content-length 0
+        # Removed below statement because it caused issue with Put Signature Request
+        # aws s3api put-object --bucket ${BUCKET_NAME} --key ${S3_DESTINATION_DIR} --content-length 0
         aws s3 cp . s3://${BUCKET_NAME}/${S3_DESTINATION_DIR} --recursive
 
         if [[ ${MODULE} != null ]]; then

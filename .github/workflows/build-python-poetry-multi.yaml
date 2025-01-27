@@ -145,8 +145,7 @@ jobs:
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_DEV_SECRET_ACCESS_KEY }}
         run: |
           poetry run pytest \
-            --cov=${{ matrix.module }} \
-            --junitxml=${{ matrix.module }}/report.xml \
+            --config-file=${{ matrix.module }}/pytest.ini \
             tests/${{ matrix.module }}
 
       - name: Generate reports for module
