@@ -54,6 +54,9 @@ runs:
       run: |
         echo "WORKFLOW_TYPE: $WORKFLOW_TYPE"
         SPACE=" "
+        FILES=""
+        MODULES=""
+        MODULE_LIST_STRING=""
 
         case $WORKFLOW_TYPE in
           "manual")
@@ -85,9 +88,26 @@ runs:
           "pr")
             PULL_NUMBER=$(jq --raw-output .pull_request.number "$GITHUB_EVENT_PATH")
             echo "PR: ${PULL_NUMBER}";
+        
+            PAGE=1
+            while true; do
+              echo "Page: $PAGE"
+            
+              FS=$(curl -s -H "Authorization: token $TOKEN" "https://api.github.com/repos/$REPOSITORY/pulls/${PULL_NUMBER}/files?per_page=100&page=${PAGE}" | jq -r '[.[] | .filename] | join(" ")')
+              FILES=${FILES}${SPACE}${FS}
+              COUNT=$(echo $FILES | wc -w)
+              echo "FILES: $COUNT"
 
-            FILES=$(curl -s https://api.github.com/repos/$REPOSITORY/pulls/${PULL_NUMBER}/files -u "$USER:$TOKEN" | jq -r '[.[] | .filename] | join(" ")')
-
+              NEXT_PAGE=$(curl -sI -H "Authorization: token $TOKEN" "https://api.github.com/repos/$REPOSITORY/pulls/$PULL_NUMBER/files?per_page=100&page=${PAGE}" | grep -i "^Link:" | grep -oP '(?<=<)[^>]+(?=>; rel="next")' | tr -d '[:space:]' || echo "")
+              echo "NEXT_PAGE: $NEXT_PAGE"
+            
+              if [ -z "$NEXT_PAGE" ]; then
+                break
+              fi
+            
+              ((PAGE++))
+            done
+        
             for module in $REPOSITORY_MODULES; do
               for file in $FILES; do
                 IFS='/' read -ra ADDR <<< "$file"
