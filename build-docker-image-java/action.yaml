@@ -1,0 +1,157 @@
+name: build-docker-image
+description: Build docker image for a repository
+
+inputs:
+  module:
+    description: Java module
+    required: true
+
+  multiple-modules:
+    description: Flag indicating that the Java project has multiple modules
+    required: true
+
+  image-tag:
+    description: Tag name
+    required: true
+
+  custom-image-tag:
+    description: Custom tag name
+    required: true
+
+  base-tag:
+    description: Base tag
+    required: false
+
+  ecr-repository-prefix:
+    description: ECR repository prefix
+    required: false
+
+  ecr-registry:
+    description: ECR registry
+    required: true
+
+  ecr-repository:
+    description: ECR repository
+    required: false
+
+  hawk-platform-repository:
+    description: The name of the ECR repository where all tagged images will be stored
+    required: true
+
+  aws-org-ecr-access-key-id:
+    description: AWS ORG ECR access key id
+    required: true
+
+  aws-org-ecr-secret-access-key:
+    description: AWS ORG ECR secret access key
+    required: true
+
+  ecr-region:
+    description: ECR region
+    required: true
+
+  ecr-registry-code:
+    description: ECR registry code
+    required: true
+
+  gradle-cache-username:
+    description: Gradle cache username
+    required: true
+
+  gradle-cache-password:
+    description: Gradle cache password
+    required: true
+
+  artifactory-context-url:
+    description: Artifactory context url
+    required: true
+
+  artifactory-username:
+    description: Artifactory username
+    required: true
+
+  artifactory-password:
+    description: Artifactory password
+    required: true
+
+runs:
+  using: composite
+  steps:
+    - name: Configure AWS credentials
+      uses: aws-actions/configure-aws-credentials@v1
+      with:
+        aws-access-key-id: ${{ inputs.aws-org-ecr-access-key-id }}
+        aws-secret-access-key: ${{ inputs.aws-org-ecr-secret-access-key }}
+        aws-region: ${{ inputs.ecr-region }}
+
+    - name: Login to Amazon ECR
+      id: login-ecr
+      uses: aws-actions/amazon-ecr-login@v2
+      with:
+        registries: ${{ inputs.ecr-registry-code }}
+
+    - name: Check if docker image tag exists in ECR
+      id: check-tag
+      uses: hawk-ai-aml/github-actions/check-docker-tag-exists@master
+      with:
+        ecr-registry: ${{ steps.login-ecr.outputs.registry }}
+        ecr-repository: ${{ inputs.ecr-repository }}
+        image-tag: ${{ inputs.image-tag }}
+
+    - name: Build Docker image
+      id: build-image
+      if: ${{ steps.check-tag.outputs.tag_already_exists != 'true' }}
+      shell: bash -l -ET -eo pipefail {0}
+      env:
+        MULTIPLE_MODULES: ${{ inputs.multiple-modules }}
+        ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+        ECR_REPOSITORY: ${{ inputs.ecr-repository }}
+        HAWK_PLATFORM_REPOSITORY: ${{ inputs.hawk-platform-repository }}
+        MODULE: ${{ inputs.module }}
+        IMAGE_TAG: ${{ inputs.image-tag }}
+        CUSTOM_IMAGE_TAG: ${{ inputs.custom-image-tag }}
+        BASE_TAG: ${{ inputs.base-tag }}
+        ECR_REPOSITORY_PREFIX: ${{ inputs.ecr-repository-prefix }}
+        GRADLE_CACHE_USERNAME: ${{ inputs.gradle-cache-username }}
+        GRADLE_CACHE_PASSWORD: ${{ inputs.gradle-cache-password }}
+        ARTIFACTORY_CONTEXT_URL: ${{ inputs.artifactory-context-url }}
+        ARTIFACTORY_USERNAME: ${{ inputs.artifactory-username }}
+        ARTIFACTORY_PASSWORD: ${{ inputs.artifactory-password }}
+      run: |
+        RED='\033[0;31m'
+        
+        # Build docker image for Java modules that have prefix names like the features project
+        if [[ "$MULTIPLE_MODULES" == "true" && -n "$MODULE" ]]; then
+          ./gradlew :${MODULE}:jib \
+            -DIMAGE_NAME="${ECR_REGISTRY}/${ECR_REPOSITORY_PREFIX}" \
+            -DTAG_COMMIT=${IMAGE_TAG}
+        
+          # Re-tag the image and upload to the hawk-platform ECR repo (only for tag images)
+          IMAGE_PATH=""
+          if [ -n "$ECR_REPOSITORY_PREFIX" ]; then
+            IMAGE_PATH="${ECR_REGISTRY}/${ECR_REPOSITORY_PREFIX}-${MODULE}"
+          else
+            IMAGE_PATH="${ECR_REGISTRY}/${ECR_REPOSITORY}"
+          fi
+          echo "IMAGE_PATH=$IMAGE_PATH"
+        
+          if [[ -n "$HAWK_PLATFORM_REPOSITORY" ]]; then
+            docker pull ${IMAGE_PATH}:${IMAGE_TAG}
+            docker tag ${IMAGE_PATH}:${IMAGE_TAG} "${ECR_REGISTRY}/$HAWK_PLATFORM_REPOSITORY":${CUSTOM_IMAGE_TAG}
+            docker push "${ECR_REGISTRY}/$HAWK_PLATFORM_REPOSITORY":${CUSTOM_IMAGE_TAG}
+          fi
+        else
+          # Build docker images for Java modules without prefix names or single Java projects
+          if [ -n "$ECR_REPOSITORY" ]; then
+            ./gradlew jib -DIMAGE_NAME="${ECR_REGISTRY}/${ECR_REPOSITORY}" -DTAG_COMMIT=${IMAGE_TAG}
+        
+            # Re-tag the image and upload to the hawk-platform ECR repo (only for tag images)
+            if [[ -n "$HAWK_PLATFORM_REPOSITORY" ]]; then
+              docker pull "${ECR_REGISTRY}/${MODULE}":${IMAGE_TAG}
+              docker tag "${ECR_REGISTRY}/${MODULE}":${IMAGE_TAG} "${ECR_REGISTRY}/$HAWK_PLATFORM_REPOSITORY":${CUSTOM_IMAGE_TAG}
+              docker push "${ECR_REGISTRY}/$HAWK_PLATFORM_REPOSITORY":${CUSTOM_IMAGE_TAG}
+            fi
+          else
+            echo -e "${RED}Missing the ECR repository"
+          fi
+        fi
