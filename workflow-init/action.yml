@@ -28,6 +28,10 @@ inputs:
     description: "Hint to use SonarCloud"
     required: false
     default: "false"
+  build-once:
+    description: "Use the temporal feature flag buildOnce"
+    required: false
+    default: "false"
 
 outputs:
   overlays:
@@ -78,6 +82,10 @@ outputs:
     description: 'Hint to use SonarCloud'
     value: ${{ steps.vars.outputs.use-sonarcloud }}
 
+  build-once:
+    description: 'Use the temporal feature flag buildOnce'
+    value: ${{ steps.vars.outputs.build-once }}
+
 runs:
   using: composite
   steps:
@@ -103,6 +111,7 @@ runs:
       shell: bash -l -ET -eo pipefail {0}
       env:
         METADATA: ${{ steps.profile.outputs.metadata }}
+        PR_NUMBER: ${{ github.event.number }}
       run: |
         cat <<EOF | tee -a ${GITHUB_STEP_SUMMARY}
         \`\`\`
@@ -132,7 +141,7 @@ runs:
           ;;
           "pr")
             BRANCH_NAME=$(echo ${GITHUB_HEAD_REF} | sed 's,\/,-,g; s,\#,,g')
-            IMAGE_TAG="pr-${BRANCH_NAME}-${GIT_SHA_SHORT}"
+            IMAGE_TAG="pull-request-${PR_NUMBER}-${GIT_SHA_SHORT}"
           ;;
           *)
             IMAGE_TAG=${BUILD_BRANCH}-${GIT_SHA_SHORT}
@@ -172,6 +181,7 @@ runs:
         OVERLAYS_STRING=$(echo ${OVERLAYS_JSON} | jq -r 'join(" ")')
 
         USE_SONARCLOUD=${{ inputs.use-sonarcloud }}
+        BUILD_ONCE=${{ inputs.build-once }}
 
         # Workflow outputs
         cat <<EOF | tee -a ${GITHUB_STEP_SUMMARY} | tee -a ${GITHUB_OUTPUT}
@@ -187,6 +197,7 @@ runs:
         ecr-region=${ECR_REGION}
         metadata=${METADATA}
         use-sonarcloud=${USE_SONARCLOUD}
+        build-once=${BUILD_ONCE}
         EOF
 
         cat <<EOF | tee -a ${GITHUB_STEP_SUMMARY}
