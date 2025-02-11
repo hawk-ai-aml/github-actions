@@ -164,7 +164,7 @@ jobs:
         run: yarn run test:ci --shard=${{ matrix.shard }}/${{ strategy.job-total }}
 
       - name: SonarQube Cloud Scan
-        uses: SonarSource/sonarqube-scan-action@v4
+        uses: SonarSource/sonarqube-scan-action@v4.2.1
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
           SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
