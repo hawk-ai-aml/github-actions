@@ -168,7 +168,7 @@ jobs:
 
       - name: SonarCloud scan
         if: inputs.skipTests != true && (success() || failure()) && inputs.useSonarCloud
-        uses: SonarSource/sonarcloud-github-action@master
+        uses: SonarSource/sonarqube-scan-action@v4.2.1
         with:
           args: >
             -Dsonar.python.version=${{ fromJson(needs.init.outputs.metadata).python-version }}
