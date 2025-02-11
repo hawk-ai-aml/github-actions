@@ -136,13 +136,10 @@ jobs:
 
       - name: Run SonarCloud scan
         if: ${{ needs.init.outputs.skip-tests != 'true' && needs.init.outputs.use-sonarcloud == 'true'}}
-        uses: SonarSource/sonarcloud-github-action@master
+        uses: hawk-ai-aml/github-actions/sonarqube@master
         with:
           args: >
             -Dsonar.python.version=${{ fromJson(needs.init.outputs.metadata).python-version }}
-        env:
-          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-          SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
 
       - name: Clean up workspace
         run: |
