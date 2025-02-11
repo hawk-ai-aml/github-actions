@@ -198,7 +198,7 @@ jobs:
         id: ecr-info
         env:
           CUSTOM_TAGS: ${{ needs.init.outputs.custom-tags }}
-          MODULE: ${{ inputs.component }}
+          MODULE: ${{ inputs.module }}
         run: |
           MATCHED_TAG=$(echo "$CUSTOM_TAGS" | tr ' ' '\n' | grep -E "(^|[-])${MODULE}([-]|$)" | head -n 1 || true)
           echo "matched_tag=$MATCHED_TAG" >> $GITHUB_OUTPUT
