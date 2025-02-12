@@ -141,6 +141,7 @@ runs:
           echo "IMAGE_PATH=$IMAGE_PATH"
         
           if [[ -n "$HAWK_PLATFORM_REPOSITORY" && $KUSTOMIZE_OVERLAYS == "prod" ]]; then
+            echo "Uploading images to the hawk-platform for multiple modules project..."
             docker pull ${IMAGE_PATH}:${IMAGE_TAG}
             docker tag ${IMAGE_PATH}:${IMAGE_TAG} "${ECR_REGISTRY}/$HAWK_PLATFORM_REPOSITORY":${CUSTOM_IMAGE_TAG}
             docker push "${ECR_REGISTRY}/$HAWK_PLATFORM_REPOSITORY":${CUSTOM_IMAGE_TAG}
@@ -151,7 +152,8 @@ runs:
             ./gradlew jib -DIMAGE_NAME="${ECR_REGISTRY}/${ECR_REPOSITORY}" -DTAG_COMMIT=${IMAGE_TAG}
         
             # Re-tag the image and upload to the hawk-platform ECR repo (only for tag images)
-            if [[ -n "$HAWK_PLATFORM_REPOSITORY" ]]; then
+            if [[ -n "$HAWK_PLATFORM_REPOSITORY" && $KUSTOMIZE_OVERLAYS == "prod" ]]; then
+              echo "Uploading images to the hawk-platform for single module project..."
               docker pull "${ECR_REGISTRY}/${MODULE}":${IMAGE_TAG}
               docker tag "${ECR_REGISTRY}/${MODULE}":${IMAGE_TAG} "${ECR_REGISTRY}/$HAWK_PLATFORM_REPOSITORY":${CUSTOM_IMAGE_TAG}
               docker push "${ECR_REGISTRY}/$HAWK_PLATFORM_REPOSITORY":${CUSTOM_IMAGE_TAG}

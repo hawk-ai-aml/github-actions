@@ -109,6 +109,7 @@ runs:
           docker push ${REPOSITORY_FULL_NAME}:${IMAGE_TAG}
         
           if [[ -n "$HAWK_PLATFORM_REPOSITORY" && $KUSTOMIZE_OVERLAYS == "prod" ]]; then
+            echo "Uploading images to the hawk-platform for multiple modules project..."
             # Re-tag the image and upload to the hawk-platform ECR repo
             docker pull ${REPOSITORY_FULL_NAME}:${IMAGE_TAG}
             docker tag ${REPOSITORY_FULL_NAME}:${IMAGE_TAG} "${ECR_REGISTRY}/$HAWK_PLATFORM_REPOSITORY":${CUSTOM_IMAGE_TAG}
@@ -121,7 +122,8 @@ runs:
             docker push ${ECR_REGISTRY}/${ECR_REPOSITORY}:${IMAGE_TAG}
         
             # Re-tag the image and upload to the hawk-platform ECR repo
-            if [[ -n "$HAWK_PLATFORM_REPOSITORY" ]]; then
+            if [[ -n "$HAWK_PLATFORM_REPOSITORY" && $KUSTOMIZE_OVERLAYS == "prod" ]]; then
+              echo "Uploading images to the hawk-platform for single module project..."
               docker pull "${ECR_REGISTRY}/${ECR_REPOSITORY}":${IMAGE_TAG}
               docker tag "${ECR_REGISTRY}/${ECR_REPOSITORY}":${IMAGE_TAG} "${ECR_REGISTRY}/$HAWK_PLATFORM_REPOSITORY":${CUSTOM_IMAGE_TAG}
               docker push "${ECR_REGISTRY}/$HAWK_PLATFORM_REPOSITORY":${CUSTOM_IMAGE_TAG}
