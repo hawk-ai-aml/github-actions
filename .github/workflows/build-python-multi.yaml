@@ -181,14 +181,13 @@ jobs:
 
       - name: SonarCloud Scan
         if: inputs.skipTests != true && (success() || failure()) && inputs.useSonarCloud
-        uses: SonarSource/sonarcloud-github-action@master
+        uses: hawk-ai-aml/github-actions/sonarqube@master
         with:
           args: >
             -Dsonar.python.version=${{ fromJson(needs.init.outputs.metadata).python-version }}
           projectBaseDir: ${{ matrix.module }}/
-        env:
-          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-          SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
+          sonarToken: ${{ secrets.SONAR_TOKEN }}
+          sonarHostUrl: ${{ secrets.SONAR_HOST_URL }}
 
       - name: Get ECR info
         id: ecr-info

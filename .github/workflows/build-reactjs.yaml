@@ -178,11 +178,10 @@ jobs:
         run: yarn run test:ci --shard=${{ matrix.shard }}/${{ strategy.job-total }}
 
       - name: SonarQube Cloud Scan
-        uses: SonarSource/sonarqube-scan-action@v4
-        env:
-          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-          SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
-          SONAR_ORGANIZATION: ${{ secrets.SONAR_ORGANIZATION }}
+        uses: hawk-ai-aml/github-actions/sonarqube@master
+        with:
+          sonarToken: ${{ secrets.SONAR_TOKEN }}
+          sonarHostUrl: ${{ secrets.SONAR_HOST_URL }}
 
   build:
     needs: [ init, setup-and-lint, tests ]
