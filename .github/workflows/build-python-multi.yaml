@@ -167,7 +167,7 @@ jobs:
 
       - name: SonarCloud Scan
         if: inputs.skipTests != true && (success() || failure()) && inputs.useSonarCloud
-        uses: hawk-ai-aml/github-actions/sonarqube@ci-update-sonar-scan-action
+        uses: hawk-ai-aml/github-actions/sonarqube@master
         with:
           args: >
             -Dsonar.python.version=${{ fromJson(needs.init.outputs.metadata).python-version }}
