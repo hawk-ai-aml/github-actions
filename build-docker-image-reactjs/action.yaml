@@ -1,0 +1,85 @@
+name: build-docker-image-reactjs
+description: Build docker image for ReactJS
+
+inputs:
+  image-tag:
+    description: Tag name
+    required: true
+
+  custom-image-tag:
+    description: Custom tag name
+    required: true
+
+  ecr-repository:
+    description: ECR repository
+    required: false
+
+  hawk-platform-repository:
+    description: The name of the ECR repository where all tagged images will be stored
+    required: true
+
+  aws-org-ecr-access-key-id:
+    description: AWS ORG ECR access key id
+    required: true
+
+  aws-org-ecr-secret-access-key:
+    description: AWS ORG ECR secret access key
+    required: true
+
+  ecr-region:
+    description: ECR region
+    required: true
+
+  ecr-registry-code:
+    description: ECR registry code
+    required: true
+
+runs:
+  using: composite
+  steps:
+    - name: Configure AWS credentials
+      uses: aws-actions/configure-aws-credentials@v1
+      with:
+        aws-access-key-id: ${{ inputs.aws-org-ecr-access-key-id }}
+        aws-secret-access-key: ${{ inputs.aws-org-ecr-secret-access-key }}
+        aws-region: ${{ inputs.ecr-region }}
+
+    - name: Login to Amazon ECR
+      id: login-ecr
+      uses: aws-actions/amazon-ecr-login@v2
+      with:
+        registries: ${{ inputs.ecr-registry-code }}
+
+    - name: Check if docker image tag exists in ECR
+      id: check-tag
+      uses: hawk-ai-aml/github-actions/check-docker-tag-exists@master
+      with:
+        ecr-registry: ${{ steps.login-ecr.outputs.registry }}
+        ecr-repository: ${{ inputs.ecr-repository }}
+        image-tag: ${{ inputs.image-tag }}
+
+    - name: Build Docker image
+      id: build-image
+      if: ${{ steps.check-tag.outputs.tag_already_exists != 'true' }}
+      shell: bash -l -ET -eo pipefail {0}
+      env:
+        ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+        ECR_REPOSITORY: ${{ inputs.ecr-repository }}
+        HAWK_PLATFORM_REPOSITORY: ${{ inputs.hawk-platform-repository }}
+        IMAGE_TAG: ${{ inputs.image-tag }}
+        CUSTOM_IMAGE_TAG: ${{ inputs.custom-image-tag }}
+      run: |
+        RED='\033[0;31m'
+        if [ -n "$ECR_REPOSITORY" ]; then
+          docker build -t ${ECR_REGISTRY}/${ECR_REPOSITORY}:${IMAGE_TAG} .
+          docker push ${ECR_REGISTRY}/${ECR_REPOSITORY}:${IMAGE_TAG}
+          
+          # Re-tag the image and upload to the hawk-platform ECR repo
+          if [[ -n "$HAWK_PLATFORM_REPOSITORY" ]]; then
+            docker pull "${ECR_REGISTRY}/${ECR_REPOSITORY}":${IMAGE_TAG}
+            docker tag "${ECR_REGISTRY}/${ECR_REPOSITORY}":${IMAGE_TAG} "${ECR_REGISTRY}/$HAWK_PLATFORM_REPOSITORY":${CUSTOM_IMAGE_TAG}
+            docker push "${ECR_REGISTRY}/$HAWK_PLATFORM_REPOSITORY":${CUSTOM_IMAGE_TAG}
+          fi
+        else
+          echo -e "${RED}Missing the ECR repository"
+        fi
