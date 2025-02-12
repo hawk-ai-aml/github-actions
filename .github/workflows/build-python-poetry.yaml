@@ -132,7 +132,7 @@ jobs:
           credentials_json: ${{ secrets.GCP_CLOUD_STORAGE_SERVICE_ACCOUNT_KEY }}
 
       - name: Authorize Poetry
-        if: ${{ needs.init.outputs.should-authorize-poetry == true }}
+        if: ${{ needs.init.inputs.shouldAuthorizePoetry == 'true' }}
         run: scripts/authorize_poetry.sh
         env:
           PY_UTILS_PAT: ${{ secrets.PY_UTILS_PAT }}
