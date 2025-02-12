@@ -30,9 +30,14 @@ on:
         type: boolean
         required: false
         default: false
+      shouldAuthorizePoetry:
+        description: "Authorize poetry to access private repositories"
+        type: boolean
+        required: false
+        default: true
 
 env:
-  POETRY_VERSION: 1.8.4
+  POETRY_VERSION: 2.0.1
 
 defaults:
   run:
@@ -55,6 +60,7 @@ jobs:
       metadata: ${{ steps.init.outputs.metadata }}
       use-sonarcloud: ${{ steps.init.outputs.use-sonarcloud }}
       custom-tags: ${{ steps.custom-tags.outputs.custom_tags }}
+      should-authorize-poetry: ${{ steps.init.outputs.should-authorize-poetry }}
 
     steps:
       - id: init
@@ -68,6 +74,7 @@ jobs:
           repository-ref: ${{ env.GITHUB_REF_NAME }}
           repository-access-token: ${{ secrets.REPO_ACCESS_PAT }}
           use-sonarcloud: ${{ inputs.useSonarCloud }}
+          should-authorize-poetry: ${{ inputs.shouldAuthorizePoetry }}
 
       - id: custom-tags
         name: Generate a list of Docker tags for all modules
@@ -111,21 +118,31 @@ jobs:
           python-version: ${{ fromJson(needs.init.outputs.metadata).python-version }}
           cache: poetry
 
+      - name: Cache dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pypoetry
+          key: ${{ runner.os }}-poetry-${{ hashFiles('**/poetry.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-poetry-
+
       - name: Authorize to GCP
         uses: google-github-actions/auth@v2
         with:
           credentials_json: ${{ secrets.GCP_CLOUD_STORAGE_SERVICE_ACCOUNT_KEY }}
 
       - name: Authorize Poetry
+        if: ${{ needs.init.outputs.should-authorize-poetry == 'true' }}
         run: scripts/authorize_poetry.sh
         env:
           PY_UTILS_PAT: ${{ secrets.PY_UTILS_PAT }}
 
       - name: Install dependencies
+        id: install-dependencies
         run: poetry install
 
       - name: Run tests
-        if: needs.init.outputs.skip-tests != 'true' && (success() || failure())
+        if: needs.init.outputs.skip-tests != 'true' && success()
         env:
           SCHEMA_REGISTRY_URL: "http://internal-aed0c439480b011ea821006d55bdfaa3-2040159056.eu-central-1.elb.amazonaws.com:8081"
           KAFKA_SERVICE: "kafka-service:9092"
@@ -136,10 +153,10 @@ jobs:
         run: |
           poetry run pytest --junitxml=report.xml
           poetry run junit2html report.xml report.html
-          mkdir report-dir && mv report.html report-dir
+          mkdir -p report-dir && mv report.html report-dir
 
       - name: Upload reports to S3
-        if: needs.init.outputs.skip-tests != 'true' && (success() || failure())
+        if: needs.init.outputs.skip-tests != 'true' && success()
         uses: hawk-ai-aml/github-actions/upload-to-s3@master
         with:
           aws_access_key_id: ${{ secrets.AWS_DEV_ACCESS_KEY_ID }}
