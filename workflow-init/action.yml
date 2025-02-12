@@ -86,6 +86,10 @@ outputs:
     description: 'Hint to use SonarCloud'
     value: ${{ steps.vars.outputs.use-sonarcloud }}
 
+  should-authorize-poetry:
+    description: 'Hint to authorize poetry'
+    value: ${{ steps.vars.outputs.should-authorize-poetry }}
+
 runs:
   using: composite
   steps:
@@ -124,6 +128,8 @@ runs:
 
         UPDATE_KUSTOMIZE=${{ inputs.update-kustomize }}
         UPDATE_KUSTOMIZE=${UPDATE_KUSTOMIZE:-false}
+
+        SHOUD_AUTHORIZE_POETRY=${{ inputs.should-authorize-poetry }}
 
         KUSTOMIZE_OVERLAYS=${{ inputs.overlays }}
         KUSTOMIZE_OVERLAYS=${KUSTOMIZE_OVERLAYS:-dev}
@@ -197,6 +203,7 @@ runs:
         ecr-region=${ECR_REGION}
         metadata=${METADATA}
         use-sonarcloud=${USE_SONARCLOUD}
+        should-authorize-poetry=${SHOUD_AUTHORIZE_POETRY}
         EOF
 
         cat <<EOF | tee -a ${GITHUB_STEP_SUMMARY}
