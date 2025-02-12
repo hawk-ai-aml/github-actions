@@ -28,6 +28,10 @@ inputs:
     description: "Hint to use SonarCloud"
     required: false
     default: "false"
+  should-authorize-poetry:
+    description: "Hint to authorize poetry"
+    required: false
+    default: "true"
 
 outputs:
   overlays:
