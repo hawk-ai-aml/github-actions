@@ -168,7 +168,6 @@ jobs:
         with:
           sonarToken: ${{ secrets.SONAR_TOKEN }}
           sonarHostUrl: ${{ secrets.SONAR_HOST_URL }}
-          sonarOrganization: ${{ secrets.SONAR_ORGANIZATION }}
 
   build:
     needs: [ init, setup-and-lint, tests ]

@@ -142,7 +142,6 @@ jobs:
             -Dsonar.python.version=${{ fromJson(needs.init.outputs.metadata).python-version }}
           sonarToken: ${{ secrets.SONAR_TOKEN }}
           sonarHostUrl: ${{ secrets.SONAR_HOST_URL }}
-          sonarOrganization: ${{ secrets.SONAR_ORGANIZATION }}
 
       - name: Clean up workspace
         run: |
