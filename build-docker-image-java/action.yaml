@@ -22,6 +22,10 @@ inputs:
     description: Base tag
     required: false
 
+  kustomize-overlays:
+    description: The indicated overlays (dev, test, qa, prod)
+    required: true
+
   ecr-repository-prefix:
     description: ECR repository prefix
     required: false
@@ -110,6 +114,7 @@ runs:
         MODULE: ${{ inputs.module }}
         IMAGE_TAG: ${{ inputs.image-tag }}
         CUSTOM_IMAGE_TAG: ${{ inputs.custom-image-tag }}
+        KUSTOMIZE_OVERLAYS: ${{ inputs.kustomize-overlays }}
         BASE_TAG: ${{ inputs.base-tag }}
         ECR_REPOSITORY_PREFIX: ${{ inputs.ecr-repository-prefix }}
         GRADLE_CACHE_USERNAME: ${{ inputs.gradle-cache-username }}
@@ -135,7 +140,7 @@ runs:
           fi
           echo "IMAGE_PATH=$IMAGE_PATH"
         
-          if [[ -n "$HAWK_PLATFORM_REPOSITORY" ]]; then
+          if [[ -n "$HAWK_PLATFORM_REPOSITORY" && $KUSTOMIZE_OVERLAYS == "prod" ]]; then
             docker pull ${IMAGE_PATH}:${IMAGE_TAG}
             docker tag ${IMAGE_PATH}:${IMAGE_TAG} "${ECR_REGISTRY}/$HAWK_PLATFORM_REPOSITORY":${CUSTOM_IMAGE_TAG}
             docker push "${ECR_REGISTRY}/$HAWK_PLATFORM_REPOSITORY":${CUSTOM_IMAGE_TAG}

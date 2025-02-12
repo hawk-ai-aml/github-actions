@@ -18,6 +18,10 @@ inputs:
     description: Custom tag name
     required: true
 
+  kustomize-overlays:
+    description: The indicated overlays (dev, test, qa, prod)
+    required: true
+
   ecr-repository-prefix:
     description: ECR repository prefix
     required: false
@@ -87,6 +91,7 @@ runs:
         ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
         ECR_REPOSITORY: ${{ inputs.ecr-repository }}
         ECR_REPOSITORY_PREFIX: ${{ inputs.ecr-repository-prefix }}
+        KUSTOMIZE_OVERLAYS: ${{ inputs.kustomize-overlays }}
         HAWK_PLATFORM_REPOSITORY: ${{ inputs.hawk-platform-repository }}
         MODULE: ${{ inputs.module }}
         IMAGE_TAG: ${{ inputs.image-tag }}
@@ -103,7 +108,7 @@ runs:
           DOCKER_BUILDKIT=1 docker build --build-arg SERVICE=${MODULE} --build-arg PY_UTILS_PAT=${PY_UTILS_PAT} -t ${REPOSITORY_FULL_NAME}:${IMAGE_TAG} .
           docker push ${REPOSITORY_FULL_NAME}:${IMAGE_TAG}
         
-          if [[ -n "$HAWK_PLATFORM_REPOSITORY" ]]; then
+          if [[ -n "$HAWK_PLATFORM_REPOSITORY" && $KUSTOMIZE_OVERLAYS == "prod" ]]; then
             # Re-tag the image and upload to the hawk-platform ECR repo
             docker pull ${REPOSITORY_FULL_NAME}:${IMAGE_TAG}
             docker tag ${REPOSITORY_FULL_NAME}:${IMAGE_TAG} "${ECR_REGISTRY}/$HAWK_PLATFORM_REPOSITORY":${CUSTOM_IMAGE_TAG}

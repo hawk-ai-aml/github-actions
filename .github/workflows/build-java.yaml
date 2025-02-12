@@ -229,6 +229,7 @@ jobs:
           image-tag: ${{ needs.init.outputs.image-tag }}
           custom-image-tag: ${{ steps.ecr-info.outputs.matched_tag }}
           base-tag: ${{ inputs.base-tag }}
+          kustomize-overlays: ${{ inputs.kustomizeOverlays }}
           ecr-registry: ${{ steps.login-ecr.outputs.registry }}
           ecr-repository: ${{ fromJson(needs.init.outputs.metadata).ecr.repository }}
           hawk-platform-repository: "hawk-platform"
