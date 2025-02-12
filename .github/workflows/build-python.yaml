@@ -132,10 +132,14 @@ jobs:
 
       - name: SonarCloud Scan
         if: ${{ needs.init.outputs.skip-tests != 'true' && needs.init.outputs.use-sonarcloud == 'true'}}
-        uses: hawk-ai-aml/github-actions/sonarqube@master
+        uses: hawk-ai-aml/github-actions/sonarqube@ci-update-sonar-scan-action
         with:
           args: >
             -Dsonar.python.version=${{ fromJson(needs.init.outputs.metadata).python-version }}
+          projectBaseDir: ${{ matrix.module }}/
+          sonarToken: ${{ secrets.SONAR_TOKEN }}
+          sonarHostUrl: ${{ secrets.SONAR_HOST_URL }}
+          sonarOrganization: ${{ secrets.SONAR_ORGANIZATION }}
 
       - name: Clean up workspace
         run: |

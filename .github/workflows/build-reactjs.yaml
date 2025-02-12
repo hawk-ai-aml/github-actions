@@ -164,7 +164,14 @@ jobs:
         run: yarn run test:ci --shard=${{ matrix.shard }}/${{ strategy.job-total }}
 
       - name: SonarQube Cloud Scan
-        uses: hawk-ai-aml/github-actions/sonarqube@master
+        uses: hawk-ai-aml/github-actions/sonarqube@ci-update-sonar-scan-action
+        with:
+          args: >
+            -Dsonar.python.version=${{ fromJson(needs.init.outputs.metadata).python-version }}
+          projectBaseDir: ${{ matrix.module }}/
+          sonarToken: ${{ secrets.SONAR_TOKEN }}
+          sonarHostUrl: ${{ secrets.SONAR_HOST_URL }}
+          sonarOrganization: ${{ secrets.SONAR_ORGANIZATION }}
 
   build:
     needs: [ init, setup-and-lint, tests ]

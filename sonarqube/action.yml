@@ -7,6 +7,15 @@ inputs:
   projectBaseDir:
     description: "Project base directory"
     required: false
+  sonarToken:
+    description: "SonarQube token"
+    required: true
+  sonarHostUrl:
+    description: "SonarQube host URL"
+    required: true
+  sonarOrganization:
+    description: "SonarQube organization"
+    required: true
 runs:
   using: "composite"
   steps:
@@ -16,6 +25,6 @@ runs:
         args: ${{ inputs.args }}
         projectBaseDir: ${{ inputs.projectBaseDir }}
       env:
-        SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-        SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
-        SONAR_ORGANIZATION: ${{ secrets.SONAR_ORGANIZATION }}
+        SONAR_TOKEN: ${{ inputs.sonarToken }}
+        SONAR_HOST_URL: ${{ inputs.sonarHostUrl }}
+        SONAR_ORGANIZATION: ${{ inputs.sonarOrganization }}
