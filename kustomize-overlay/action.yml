@@ -147,7 +147,7 @@ runs:
                   CURRENT_TAG=$(kustomize build . | grep -E "${IMAGE_NAME}:" | awk -F':' '{print $NF}' | tr -d '[:space:]')
 
                   # Check if the new tag is greater than the current tag
-                  if [[ $CURRENT_TAG =~ $semver_regex ]] && [[ $TAG =~ $semver_regex ]]; then
+                  if [[ $CURRENT_TAG =~ $TAG_REGEX ]] && [[ $TAG =~ $TAG_REGEX ]]; then
                     echo "Both tags are valid SemVer. Comparing versions..."
 
                     if compare_versions "$TAG" "$CURRENT_TAG"; then
