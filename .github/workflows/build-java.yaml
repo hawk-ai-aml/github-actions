@@ -55,10 +55,12 @@ jobs:
       kustomize-modules: ${{ steps.init.outputs.kustomize-modules }}
       kustomize-modules-string: ${{ steps.init.outputs.kustomize-modules-string }}
       ecr-images: ${{ steps.init.outputs.ecr-images }}
+      ecr-repositories: ${{ steps.init.outputs.ecr-repositories }}
       ecr-registry-code: ${{ steps.init.outputs.ecr-registry-code }}
       ecr-region: ${{ steps.init.outputs.ecr-region }}
       metadata: ${{ steps.init.outputs.metadata }}
       use-sonarcloud: ${{ steps.init.outputs.use-sonarcloud }}
+      custom-tags: ${{ steps.custom-tags.outputs.custom_tags }}
 
     steps:
       - id: init
@@ -73,9 +75,24 @@ jobs:
           repository-access-token: ${{ secrets.REPO_ACCESS_PAT }}
           use-sonarcloud: ${{ inputs.useSonarCloud }}
 
+      - id: custom-tags
+        name: Generate a list of Docker tags for all modules
+        env:
+          ECR_REPOSITORIES: ${{ steps.init.outputs.ecr-repositories }}
+          IMAGE_TAG: ${{ steps.init.outputs.image-tag }}
+        run: |
+          CUSTOM_TAGS=""
+          for repo in $ECR_REPOSITORIES; do
+            NEW_TAG=${repo}-${IMAGE_TAG}
+            CUSTOM_TAGS="$CUSTOM_TAGS $NEW_TAG"
+          done
+          echo "custom_tags=$CUSTOM_TAGS" >> $GITHUB_OUTPUT
+
   build:
     needs: [ init ]
     runs-on: [ "self-hosted", "builder" ]
+    outputs:
+      new-image-tag: ${{ steps.build-docker-image.outputs.new_tag }}
 
     steps:
       - name: Checkout master
@@ -193,44 +210,37 @@ jobs:
           source_dir: reports
           destination_dir: ${{ github.event.repository.name }}-${{ github.run_id }}
 
-      - name: Configure AWS credentials
-        if: ${{ github.workflow != 'pr' }}
-        uses: aws-actions/configure-aws-credentials@v1
-        with:
-          aws-access-key-id: ${{ secrets.AWS_ORG_ECR_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_ORG_ECR_SECRET_ACCESS_KEY }}
-          aws-region: ${{ needs.init.outputs.ecr-region }}
+      - name: Get ECR info
+        id: ecr-info
+        env:
+          CUSTOM_TAGS: ${{ needs.init.outputs.custom-tags }}
+          MODULE: ${{ inputs.component }}
+        run: |
+          MATCHED_TAG=$(echo "$CUSTOM_TAGS" | tr ' ' '\n' | grep -E "(^|[-])${MODULE}([-]|$)" | head -n 1)
+          echo "matched_tag=$MATCHED_TAG" >> $GITHUB_OUTPUT
 
-      - name: Login to Amazon ECR
-        id: login-ecr
+      - name: Build Docker Image
+        id: build-docker-image
         if: ${{ github.workflow != 'pr' }}
-        uses: aws-actions/amazon-ecr-login@v2
+        uses: hawk-ai-aml/github-actions/build-docker-image-java@master
         with:
-          registries: ${{ needs.init.outputs.ecr-registry-code }}
-
-      - name: check if docker image tag exists in ECR
-        id: check-tag
-        if: ${{ github.workflow != 'pr' }}
-        uses: hawk-ai-aml/github-actions/check-docker-tag-exists@master
-        with:
+          multiple-modules: "false"
+          module: ${{ inputs.component }}
+          image-tag: ${{ needs.init.outputs.image-tag }}
+          custom-image-tag: ${{ steps.ecr-info.outputs.matched_tag }}
+          base-tag: ${{ inputs.base-tag }}
           ecr-registry: ${{ steps.login-ecr.outputs.registry }}
           ecr-repository: ${{ fromJson(needs.init.outputs.metadata).ecr.repository }}
-          image-tag: ${{ needs.init.outputs.image-tag }}
-
-      - name: Build Docker image
-        if: ${{ github.workflow != 'pr' && steps.check-tag.outputs.tag_already_exists != 'true' }}
-        env:
-          ARTIFACTORY_CONTEXT_URL: ${{ secrets.ARTIFACTORY_CONTEXT_URL }}
-          ARTIFACTORY_USERNAME: ${{ secrets.ARTIFACTORY_USERNAME }}
-          ARTIFACTORY_PASSWORD: ${{ secrets.ARTIFACTORY_PASSWORD }}
-          GRADLE_CACHE_USERNAME: ${{ secrets.GRADLE_CACHE_USERNAME }}
-          GRADLE_CACHE_PASSWORD: ${{ secrets.GRADLE_CACHE_PASSWORD }}
-          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
-          ECR_REPOSITORY: ${{ fromJson(needs.init.outputs.metadata).ecr.repository }}
-          BASE_TAG: ${{ inputs.base-tag }}
-          IMAGE_TAG: ${{ needs.init.outputs.image-tag }}
-        run: |
-          ./gradlew jib -DIMAGE_NAME="${ECR_REGISTRY}/${ECR_REPOSITORY}" -DTAG_COMMIT=${IMAGE_TAG}
+          hawk-platform-repository: "hawk-platform"
+          aws-org-ecr-access-key-id: ${{ secrets.AWS_ORG_ECR_ACCESS_KEY_ID }}
+          aws-org-ecr-secret-access-key: ${{ secrets.AWS_ORG_ECR_SECRET_ACCESS_KEY }}
+          ecr-region: ${{ needs.init.outputs.ecr-region }}
+          ecr-registry-code: ${{ needs.init.outputs.ecr-registry-code }}
+          gradle-cache-username: ${{ secrets.GRADLE_CACHE_USERNAME }}
+          gradle-cache-password: ${{ secrets.GRADLE_CACHE_PASSWORD }}
+          artifactory-context-url: ${{ secrets.ARTIFACTORY_CONTEXT_URL }}
+          artifactory-username: ${{ secrets.ARTIFACTORY_USERNAME }}
+          artifactory-password: ${{ secrets.ARTIFACTORY_PASSWORD }}
 
       - name: Slack notification for failed build status
         uses: hawk-ai-aml/github-actions/send-slack-notification@master
@@ -278,9 +288,11 @@ jobs:
           slack-access-token: ${{ secrets.SLACK_RELEASE_BOT_ACCESS_TOKEN }}
           github-users-access-token: ${{ secrets.USER_GITHUB_ACCESS }}
           overlays: ${{ needs.init.outputs.overlays }}
+          kustomize-overlays: ${{ inputs.kustomizeOverlays }}
           modules: ${{ needs.init.outputs.kustomize-modules-string }}
           component-name: ${{ inputs.component }}
           component-tag: ${{ needs.init.outputs.image-tag }}
+          component-custom-tags: ${{ needs.init.outputs.custom-tags }}
           kustomize-repo: hawk-ai-aml/kustomize.git
           kustomize-access-token: ${{ secrets.REPO_ACCESS_PAT }}
           ecr-region: ${{ needs.init.outputs.ecr-region }}
