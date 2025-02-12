@@ -269,6 +269,7 @@ jobs:
           ecr-repository-prefix: ${{ fromJson(needs.init.outputs.metadata).ecr.repository-prefix }}
           ecr-registry: ${{ steps.login-ecr.outputs.registry }}
           ecr-repository: ${{ fromJson(steps.ecr-info.outputs.module_ecr).repository }}
+          kustomize-overlays: ${{ inputs.kustomizeOverlays }}
           hawk-platform-repository: "hawk-platform"
           aws-org-ecr-access-key-id: ${{ secrets.AWS_ORG_ECR_ACCESS_KEY_ID }}
           aws-org-ecr-secret-access-key: ${{ secrets.AWS_ORG_ECR_SECRET_ACCESS_KEY }}
