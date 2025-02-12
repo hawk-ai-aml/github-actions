@@ -114,8 +114,12 @@ runs:
 
               (
                 cd ${KUSTOMIZE_OVERLAY_PATH}
- 
-                MATCHED_TAG=$(echo "$CUSTOM_TAGS" | tr ' ' '\n' | grep -E "(^|[-])${module}([-]|$)" | head -n 1 || true)
+                MODULE=$module
+                if [[ "$module" == *"_"* ]]; then
+                  MODULE="${module//_/-}"
+                fi
+
+                MATCHED_TAG=$(echo "$CUSTOM_TAGS" | tr ' ' '\n' | grep -E "(^|[-])${MODULE}([-]|$)" | head -n 1 || true)
                 # When MATCHED_TAG is empty, which means we are trying to find the tag name for the single module Java project  
                 if [[ -z "$MATCHED_TAG" ]]; then
                   MATCHED_TAG="${CUSTOM_TAGS// /}"
@@ -127,7 +131,7 @@ runs:
                 while read -r item; do
                   OVERLAY_NAME=$(echo "$item" | jq -r '.overlay')
                   NEW_IMAGE_NAME=$(echo "$item" | jq -r '."image-path"')
-                
+
                   # Update tag if external overlay matches current overlay
                   if [[ "$OVERLAY_NAME" == "$overlay" && -n "$MATCHED_TAG" && $KUSTOMIZE_OVERLAYS == "prod" ]]; then
                     kustomize edit set image ${IMAGE_NAME}=${NEW_IMAGE_NAME}:${MATCHED_TAG}
@@ -136,16 +140,16 @@ runs:
                     break
                   fi
                 done < <(echo "$EXTERNAL_OVERLAYS_JSON" | jq -c '.[]')
-  
+
                 # Update tag if external overlay is not matched with current overlay (dev, test, prod, ...)
                 echo "MATCHED_EXTERNAL_OVERLAY=$MATCHED_EXTERNAL_OVERLAY"
                 if [ "$MATCHED_EXTERNAL_OVERLAY" -eq 0 ]; then
                   CURRENT_TAG=$(kustomize build . | grep -E "${IMAGE_NAME}:" | awk -F':' '{print $NF}' | tr -d '[:space:]')
-                  
+
                   # Check if the new tag is greater than the current tag
                   if [[ $CURRENT_TAG =~ $semver_regex ]] && [[ $TAG =~ $semver_regex ]]; then
                     echo "Both tags are valid SemVer. Comparing versions..."
-  
+
                     if compare_versions "$TAG" "$CURRENT_TAG"; then
                         kustomize edit set image ${IMAGE_NAME}:${TAG}
                         echo "Updated overlay ${overlay} of ${ECR_REPOSITORY} from $CURRENT_TAG to ${TAG}"
