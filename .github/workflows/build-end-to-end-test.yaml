@@ -92,6 +92,8 @@ jobs:
       - name: Run <${{ inputs.test }} checkstyle on ${{ inputs.environment }}>
         id: run-checkstyle
         if: always()
+        env:
+          environment: ${{ inputs.environment }}
         run: |
           ./gradlew :${{ inputs.test }}:checkstyleTest -Denvironment=${{ inputs.environment }} -isS
 
