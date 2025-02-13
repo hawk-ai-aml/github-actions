@@ -95,7 +95,7 @@ jobs:
         env:
           environment: ${{ inputs.environment }}
         run: |
-          ./gradlew :${{ inputs.test }}:checkstyleTest -Denvironment=${{ inputs.environment }} -isS
+          ./gradlew :${{ inputs.test }}:checkQualityTest -Denvironment=${{ inputs.environment }} -isS
 
       - name: Run <${{ inputs.test }} tests on ${{ inputs.environment }}>
         id: run-e2e-test
