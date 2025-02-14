@@ -248,12 +248,12 @@ jobs:
         env:
           METADATA: ${{ needs.init.outputs.metadata }}
           CUSTOM_TAGS: ${{ needs.init.outputs.custom-tags }}
-          MODULE: ${{ matrix.module }}
         run: |
           RED='\033[0;31m'
           MODULE_ECR=$(echo ${METADATA} | jq -cr --arg MODULE ${{ matrix.module }} '.modules[$MODULE].ecr')
           echo "ECR=$MODULE_ECR"
-          MATCHED_TAG=$(echo "$CUSTOM_TAGS" | tr ' ' '\n' | grep -E "(^|[-])${MODULE}([-]|$)" | head -n 1 || true)
+          ECR_REPO=$(echo "$ECR" | jq -r '.repository')
+          MATCHED_TAG=$(echo "$CUSTOM_TAGS" | tr ' ' '\n' | grep -E "(^|[-])${ECR_REPO}([-]|$)" | head -n 1 || true)
           echo -e "${RED}MATCHED_TAG=$MATCHED_TAG"
           echo "module_ecr=$MODULE_ECR" >> $GITHUB_OUTPUT
           echo "matched_tag=$MATCHED_TAG" >> $GITHUB_OUTPUT
