@@ -57,12 +57,12 @@ jobs:
           ref: ${{ inputs.ref }}
 
       # +++++++++++++++++++++++++++++++++++++ START-SETUP +++++++++++++++++++++++++++++++++++++
-      - name: Generate cache ID
+      - name: Generate test history cache ID
         run: |
           echo CACHE_ID=$(date +'%Y-%m-%dT%H:%M:%S') >> $GITHUB_ENV
           echo CACHE_PATH="$GITHUB_WORKSPACE/${{ inputs.environment }}-${{ inputs.test }}-test-histories/" >> $GITHUB_ENV
 
-      - name: Create cache folder
+      - name: Create test history cache folder
         continue-on-error: true
         run: |
           pwd
@@ -80,14 +80,6 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-${{ inputs.environment }}-${{ inputs.test }}-test-histories-
 
-      - name: Cache Gradle
-        uses: actions/cache@v4
-        with:
-          path: /home/builder/.gradle/
-          key: ${{ runner.os }}-gradle-
-          restore-keys: |
-            ${{ runner.os }}-gradle-
-
       # ------------------------------------- END-SETUP --------------------------------------
       # +++++++++++++++++++++++++++++++++++++ START-TEST +++++++++++++++++++++++++++++++++++++
       - name: Build <${{ inputs.test }}> tests
@@ -97,9 +89,16 @@ jobs:
         run: |
           ./gradlew :${{ inputs.test }}:clean :${{ inputs.test }}:assemble :${{ inputs.test }}:testClasses -isS
 
+      - name: Run <${{ inputs.test }} checkstyle on ${{ inputs.environment }}>
+        id: run-checkstyle
+        if: always()
+        env:
+          environment: ${{ inputs.environment }}
+        run: |
+          ./gradlew :${{ inputs.test }}:check -x test -Denvironment=${{ inputs.environment }} -isS
+
       - name: Run <${{ inputs.test }} tests on ${{ inputs.environment }}>
         id: run-e2e-test
-        if: always()
         env:
           TEST_MAILBOX_PASSWORD: ${{ secrets.AUTH0_DEV_API_CLIENT_SECRET }}
           AUTH0_DEV_API_CLIENT_SECRET: ${{ secrets.AUTH0_DEV_API_CLIENT_SECRET }}
@@ -134,7 +133,7 @@ jobs:
           environment: ${{ inputs.environment }}
         continue-on-error: true
         run: |
-          ./gradlew :${{ inputs.test }}:check -Denvironment=${{ inputs.environment }} -isS
+          ./gradlew :${{ inputs.test }}:test -Denvironment=${{ inputs.environment }} -isS
           # ls *
           # ls ./${{ inputs.test }}/*
           # ls ./${{ inputs.test }}/allure*
@@ -171,13 +170,13 @@ jobs:
           name: test-results-${{ inputs.test }}
           path: github-artifact
 
-      - name: Check cache
+      - name: Check test history cache
         if: always()
         run: |
           pwd
           ls ${{ inputs.environment }}-${{ inputs.test }}-test-histories/*
 
-      - name: Init/Update cache
+      - name: Init/Update test history cache
         if: always()
         run: |
           pwd
@@ -190,7 +189,7 @@ jobs:
           # ls ${{ inputs.test }}/allure-report2/*
           cp -a -r ${{ inputs.test }}/allure-report2/history ${{ inputs.environment }}-${{ inputs.test }}-test-histories
 
-      - name: Check cache after generating new report
+      - name: Check test history cache after generating new report
         if: always()
         run: |
           pwd
@@ -203,7 +202,7 @@ jobs:
           name: allure-results-${{ inputs.test }}
           path: ${{ inputs.test }}/allure-results
 
-      - name: Upload reports to S3
+      - name: Upload Allure reports to S3
         if: always()
         uses: hawk-ai-aml/github-actions/upload-to-s3@master
         with:
@@ -213,7 +212,7 @@ jobs:
           source_dir: ${{ inputs.test }}/allure-report2
           destination_dir: e2e-${{ inputs.test }}-test-${{ env.CACHE_ID }}
 
-      - name: Provide test result URL
+      - name: Provide Allure report URL
         id: report-url
         if: always()
         run: |
