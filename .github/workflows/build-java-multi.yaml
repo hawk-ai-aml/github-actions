@@ -250,16 +250,15 @@ jobs:
           CUSTOM_TAGS: ${{ needs.init.outputs.custom-tags }}
         run: |
           RED='\033[0;31m'
-          MODULE_ECR=$(echo ${METADATA} | jq -cr --arg MODULE ${{ matrix.module }} '.modules[$MODULE].ecr')
-          echo "ECR=$MODULE_ECR"
-          ECR_REPO=$(echo "$ECR" | jq -r '.repository')
-          MATCHED_TAG=$(echo "$CUSTOM_TAGS" | tr ' ' '\n' | grep -E "(^|[-])${ECR_REPO}([-]|$)" | head -n 1 || true)
+          MODULE_ECR_REPO=$(echo ${METADATA} | jq -cr --arg MODULE ${{ matrix.module }} '.modules[$MODULE].ecr.repository')
+          echo "ECR_REPO=$MODULE_ECR_REPO"
+          MATCHED_TAG=$(echo "$CUSTOM_TAGS" | tr ' ' '\n' | grep -E "(^|[-])${MODULE_ECR_REPO}([-]|$)" | head -n 1 || true)
           echo -e "${RED}MATCHED_TAG=$MATCHED_TAG"
-          echo "module_ecr=$MODULE_ECR" >> $GITHUB_OUTPUT
+          echo "module_ecr_repo=$MODULE_ECR_REPO" >> $GITHUB_OUTPUT
           echo "matched_tag=$MATCHED_TAG" >> $GITHUB_OUTPUT
 
       - name: Build Docker Image
-        if: ${{ github.workflow != 'pr' && steps.ecr-info.outputs.module_ecr != 'null' }}
+        if: ${{ github.workflow != 'pr' && steps.ecr-info.outputs.module_ecr_repo != 'null' }}
         uses: hawk-ai-aml/github-actions/build-docker-image-java@master
         with:
           multiple-modules: "true"
@@ -268,7 +267,7 @@ jobs:
           custom-image-tag: ${{ steps.ecr-info.outputs.matched_tag }}
           ecr-repository-prefix: ${{ fromJson(needs.init.outputs.metadata).ecr.repository-prefix }}
           ecr-registry: ${{ steps.login-ecr.outputs.registry }}
-          ecr-repository: ${{ fromJson(steps.ecr-info.outputs.module_ecr).repository }}
+          ecr-repository: ${{ steps.ecr-info.outputs.module_ecr_repo }}
           kustomize-overlays: ${{ inputs.kustomizeOverlays }}
           hawk-platform-repository: "hawk-platform"
           aws-org-ecr-access-key-id: ${{ secrets.AWS_ORG_ECR_ACCESS_KEY_ID }}
