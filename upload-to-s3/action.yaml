@@ -28,6 +28,8 @@ runs:
       uses: unfor19/install-aws-cli-action@v1
       with:
         version: 2
+        rootdir: "/tmp"                        # Move to tmp because issue permission denied, rmdir
+        workdir: "/tmp/unfor19-awscli"         # Move to tmp because issue permission denied, rmdir
 
     - name: Upload to S3
       id: upload
