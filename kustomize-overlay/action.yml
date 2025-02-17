@@ -114,12 +114,8 @@ runs:
 
               (
                 cd ${KUSTOMIZE_OVERLAY_PATH}
-                MODULE=$module
-                if [[ "$module" == *"_"* ]]; then
-                  MODULE="${module//_/-}"
-                fi
 
-                MATCHED_TAG=$(echo "$CUSTOM_TAGS" | tr ' ' '\n' | grep -E "(^|[-])${MODULE}([-]|$)" | head -n 1 || true)
+                MATCHED_TAG=$(echo "$CUSTOM_TAGS" | tr ' ' '\n' | grep -E "(^|[-])${ECR_REPOSITORY}([-]|$)" | head -n 1 || true)
                 # When MATCHED_TAG is empty, which means we are trying to find the tag name for the single module Java project  
                 if [[ -z "$MATCHED_TAG" ]]; then
                   MATCHED_TAG="${CUSTOM_TAGS// /}"
