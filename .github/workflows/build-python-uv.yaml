@@ -137,8 +137,8 @@ jobs:
           FILES_STORAGE: "files.dev.aml-ai.net"
           APP_CONFIG_YAML_PATH: "tests"
         run: |
-          uv run python -m pytest tests --junitxml=report.xml && \
-          uv run junit2html report.xml report.html && \
+          uv run python -m pytest tests --junitxml=report.xml
+          uv run junit2html report.xml report.html
           mkdir -p report-dir && mv report.html report-dir
 
 
