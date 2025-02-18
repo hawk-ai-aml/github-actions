@@ -161,15 +161,15 @@ jobs:
           sonarToken: ${{ secrets.SONAR_TOKEN }}
           sonarHostUrl: ${{ secrets.SONAR_HOST_URL }}
 
-      - name: Clean up workspace
-        run: |
-          echo "Current virtualenv size:"
-          du -hcs $(uv env info --path)
-          uv env remove --all
-          echo "Clearing cache..."
-          uv cache clean
-          echo "Current disk usage:"
-          df -h
+      # - name: Clean up workspace
+      #   run: |
+      #     echo "Current virtualenv size:"
+      #     du -hcs $(uv env info --path)
+      #     uv env remove --all
+      #     echo "Clearing cache..."
+      #     uv cache clean
+      #     echo "Current disk usage:"
+      #     df -h
 
       - name: Get ECR info
         id: ecr-info
