@@ -123,9 +123,9 @@ jobs:
         with:
           credentials_json: ${{ secrets.GCP_CLOUD_STORAGE_SERVICE_ACCOUNT_KEY }}
 
-      - name: Install dependencies
-        id: install-dependencies
-        run: uv pip install -r pyproject.toml
+      # - name: Install dependencies
+      #   id: install-dependencies
+      #   run: uv pip install -r pyproject.toml
 
       - name: Run tests
         if: needs.init.outputs.skip-tests != 'true' && success()
