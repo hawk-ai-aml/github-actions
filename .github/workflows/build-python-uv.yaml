@@ -106,7 +106,6 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: ${{ fromJson(needs.init.outputs.metadata).python-version }}
-          cache: uv
 
       - name: Install uv
         run: pipx install uv==${{ env.UV_VERSION }}
