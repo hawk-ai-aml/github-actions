@@ -123,10 +123,6 @@ jobs:
         with:
           credentials_json: ${{ secrets.GCP_CLOUD_STORAGE_SERVICE_ACCOUNT_KEY }}
 
-      # - name: Install dependencies
-      #   id: install-dependencies
-      #   run: uv pip install -r pyproject.toml
-
       - name: Run tests
         if: needs.init.outputs.skip-tests != 'true' && success()
         env:
@@ -160,16 +156,6 @@ jobs:
             -Dsonar.python.version=${{ fromJson(needs.init.outputs.metadata).python-version }}
           sonarToken: ${{ secrets.SONAR_TOKEN }}
           sonarHostUrl: ${{ secrets.SONAR_HOST_URL }}
-
-      # - name: Clean up workspace
-      #   run: |
-      #     echo "Current virtualenv size:"
-      #     du -hcs $(uv env info --path)
-      #     uv env remove --all
-      #     echo "Clearing cache..."
-      #     uv cache clean
-      #     echo "Current disk usage:"
-      #     df -h
 
       - name: Get ECR info
         id: ecr-info
