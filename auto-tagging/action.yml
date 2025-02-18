@@ -35,10 +35,14 @@ runs:
 
         PR_LABELS=$(get_pr_labels "$GITHUB_REPOSITORY" "$PR_NUMBER" "$GITHUB_TOKEN")
 
-        # Get the latest available tag
-        LATEST_TAG=$(git describe --tags --abbrev=0)
-
-        echo "latest!: $LATEST_TAG"
+        # Get the latest available tag and ensures that the command doesn't fail if no tags exist
+        LATEST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || true)
+          if [ -z "$LATEST_TAG" ]; then
+            echo "No tags found. Creating tag 0.0.1"
+            LATEST_TAG=0.0.1
+          else
+            echo "latest!: $LATEST_TAG"
+          fi
 
         # Extract major, minor, and patch versions from the latest tag
         MAJOR_VERSION=$(echo "$LATEST_TAG" | awk -F. '{print $1}')
