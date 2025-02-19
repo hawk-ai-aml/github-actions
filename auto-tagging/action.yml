@@ -39,7 +39,7 @@ runs:
         LATEST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || true)
           if [ -z "$LATEST_TAG" ]; then
             echo "No tags found. Creating tag 0.0.1"
-            LATEST_TAG=0.0.1
+            LATEST_TAG=0.0.0
           else
             echo "latest!: $LATEST_TAG"
           fi
