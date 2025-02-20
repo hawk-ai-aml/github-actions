@@ -35,7 +35,7 @@ on:
         description: "Use SonarCloud for code quality checks"
         type: boolean
         required: false
-        default: false
+        default: true
       blockPullRequestIfSonarFails:
         description: "Block the pull request if SonarCloud check fails"
         type: boolean

@@ -28,7 +28,7 @@ on:
         description: "Use SonarCloud for code quality checks"
         type: boolean
         required: false
-        default: false
+        default: true
 
 defaults:
   run:
