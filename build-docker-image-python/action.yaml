@@ -54,6 +54,10 @@ inputs:
     description: ECR registry code
     required: true
 
+  pushGHCR:
+    description: Flag indicating that the image should be pushed to GHCR
+    required: false
+
   ghcr-pat:
     description: PAT to push and pull from hawk github container registry
     required: false
@@ -108,13 +112,11 @@ runs:
       shell: bash -l -ET -eo pipefail {0}
       env:
         MULTIPLE_MODULES: ${{ inputs.multiple-modules }}
-        GHCR_REGISTRY: ghcr.io/hawk-ai-aml
         ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
         ECR_REPOSITORY: ${{ inputs.ecr-repository }}
         ECR_REPOSITORY_PREFIX: ${{ inputs.ecr-repository-prefix }}
         KUSTOMIZE_OVERLAYS: ${{ inputs.kustomize-overlays }}
         HAWK_PLATFORM_REPOSITORY: ${{ inputs.hawk-platform-repository }}
-        HAWK_GHCR_REPOSITORY_ENABLED: ${{ inputs.hawk-platform-repository }}
         MODULE: ${{ inputs.module }}
         IMAGE_TAG: ${{ inputs.image-tag }}
         CUSTOM_IMAGE_TAG: ${{ inputs.custom-image-tag }}
@@ -139,17 +141,16 @@ runs:
       if: ${{ steps.check-tag.outputs.tag_already_exists != 'true' && inputs.multiple-modules == 'false' }}
       shell: bash -l -ET -eo pipefail {0}
       env:
-        GHCR_REGISTRY: ghcr.io/hawk-ai-aml
         ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
         ECR_REPOSITORY: ${{ inputs.ecr-repository }}
-        ECR_REPOSITORY_PREFIX: ${{ inputs.ecr-repository-prefix }}
         KUSTOMIZE_OVERLAYS: ${{ inputs.kustomize-overlays }}
         HAWK_PLATFORM_REPOSITORY: ${{ inputs.hawk-platform-repository }}
-        HAWK_GHCR_REPOSITORY_ENABLED: ${{ inputs.hawk-platform-repository }}
         IMAGE_TAG: ${{ inputs.image-tag }}
         CUSTOM_IMAGE_TAG: ${{ inputs.custom-image-tag }}
         PY_UTILS_PAT: ${{ inputs.py-utils-pat}}
+        GHCR_REPOSITORY_ENABLED: ${{ inputs.pushGHCR }}
         GHCR_PAT: ${{ inputs.ghcr-pat }}
+        GHCR_REGISTRY: ghcr.io/hawk-ai-aml
       run: |
         source ./action.sh
         echo -e "${GREEN}✅ Building images for single build...${NC}"
@@ -158,7 +159,7 @@ runs:
           IMAGE_NAME="${ECR_REGISTRY}/${ECR_REPOSITORY}"
           build_and_push "${IMAGE_NAME}" "--build-arg PY_UTILS_PAT=${PY_UTILS_PAT}"
 
-          if [[ -n "$HAWK_GHCR_REPOSITORY_ENABLED" ]]; then
+          if [[ -n "$GHCR_REPOSITORY_ENABLED" ]]; then
               tag_and_push "${IMAGE_NAME}" "${GHCR_REGISTRY}/${ECR_REPOSITORY}" "${IMAGE_TAG}"
           fi
 
