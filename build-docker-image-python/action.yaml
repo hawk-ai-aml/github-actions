@@ -54,6 +54,10 @@ inputs:
     description: ECR registry code
     required: true
 
+  ghcr-pat:
+    description: PAT to push and pull from hawk github container registry
+    required: false
+
   py-utils-pat:
     description: Python utils pat
     required: true
@@ -61,6 +65,15 @@ inputs:
 runs:
   using: composite
   steps:
+    - name: Download Action Script
+      shell: bash -l -ET -eo pipefail {0}
+      run: |
+        curl -o action.sh \
+        -H "Authorization: token ${{ inputs.py-utils-pat}}" \
+        -L "https://raw.githubusercontent.com/hawk-ai-aml/github-actions/master/build-docker-image-python/action.sh"
+
+        chmod +x action.sh
+
     - name: Configure AWS credentials
       uses: aws-actions/configure-aws-credentials@v1
       with:
@@ -82,53 +95,79 @@ runs:
         ecr-repository: ${{ inputs.ecr-repository }}
         image-tag: ${{ inputs.image-tag }}
 
-    - name: Build Docker image
-      id: build-image
-      if: ${{ steps.check-tag.outputs.tag_already_exists != 'true' }}
+    - name: Login to GitHub Container Registry
+      uses: docker/login-action@v3
+      with:
+        registry: ghcr.io
+        username: ${{ github.actor }}
+        password: ${{ inputs.ghcr-pat }}
+
+    - name: Build docker image for multiple modules
+      id: build-image-modules
+      if: ${{ steps.check-tag.outputs.tag_already_exists != 'true' && inputs.multiple-modules == 'true' }}
       shell: bash -l -ET -eo pipefail {0}
       env:
         MULTIPLE_MODULES: ${{ inputs.multiple-modules }}
+        GHCR_REGISTRY: ghcr.io/hawk-ai-aml
         ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
         ECR_REPOSITORY: ${{ inputs.ecr-repository }}
         ECR_REPOSITORY_PREFIX: ${{ inputs.ecr-repository-prefix }}
         KUSTOMIZE_OVERLAYS: ${{ inputs.kustomize-overlays }}
         HAWK_PLATFORM_REPOSITORY: ${{ inputs.hawk-platform-repository }}
+        HAWK_GHCR_REPOSITORY_ENABLED: ${{ inputs.hawk-platform-repository }}
         MODULE: ${{ inputs.module }}
         IMAGE_TAG: ${{ inputs.image-tag }}
         CUSTOM_IMAGE_TAG: ${{ inputs.custom-image-tag }}
-        PY_UTILS_PAT: ${{ inputs.py-utils-pat}}
+        PY_UTILS_PAT: ${{ inputs.py-utils-pat }}
       run: |
-        RED='\033[0;31m'
-        
-        # Build docker image for Python modules that have prefix names like the features project
-        if [[ "$MULTIPLE_MODULES" == "true" && -n "$MODULE" ]]; then
-          REPOSITORY_FOLDER=$(echo ${MODULE} | sed 's/\_/\-/g')
-          REPOSITORY_FULL_NAME="${ECR_REGISTRY}/${ECR_REPOSITORY_PREFIX}${REPOSITORY_FOLDER}"
-          echo "${REPOSITORY_FULL_NAME} is building..."
-          DOCKER_BUILDKIT=1 docker build --build-arg SERVICE=${MODULE} --build-arg PY_UTILS_PAT=${PY_UTILS_PAT} -t ${REPOSITORY_FULL_NAME}:${IMAGE_TAG} .
-          docker push ${REPOSITORY_FULL_NAME}:${IMAGE_TAG}
-        
-          if [[ -n "$HAWK_PLATFORM_REPOSITORY" && $KUSTOMIZE_OVERLAYS == "prod" ]]; then
-            echo "Uploading images to the hawk-platform for multiple modules project..."
-            # Re-tag the image and upload to the hawk-platform ECR repo
-            docker pull ${REPOSITORY_FULL_NAME}:${IMAGE_TAG}
-            docker tag ${REPOSITORY_FULL_NAME}:${IMAGE_TAG} "${ECR_REGISTRY}/$HAWK_PLATFORM_REPOSITORY":${CUSTOM_IMAGE_TAG}
-            docker push "${ECR_REGISTRY}/$HAWK_PLATFORM_REPOSITORY":${CUSTOM_IMAGE_TAG}
+        source ./action.sh
+        echo -e "${GREEN}✅ Building images for modules...${NC}"
+
+        REPOSITORY_FOLDER=$(echo "${MODULE}" | sed 's/_/-/g')
+        REPOSITORY_FULL_NAME="${ECR_REGISTRY}/${ECR_REPOSITORY_PREFIX}${REPOSITORY_FOLDER}"
+
+        build_and_push "${REPOSITORY_FULL_NAME}" "--build-arg SERVICE=${MODULE} --build-arg PY_UTILS_PAT=${PY_UTILS_PAT}"
+
+        if [[ -n "$HAWK_PLATFORM_REPOSITORY" && "$KUSTOMIZE_OVERLAYS" == "prod" ]]; then
+            tag_and_push "${REPOSITORY_FULL_NAME}" "${ECR_REGISTRY}/${HAWK_PLATFORM_REPOSITORY}" "${CUSTOM_IMAGE_TAG}"
+        fi
+
+        echo -e "${GREEN}✅ All operations completed successfully!${NC}"
+
+    - name: Build docker image for single build
+      id: build-image-single
+      if: ${{ steps.check-tag.outputs.tag_already_exists != 'true' && inputs.multiple-modules == 'false' }}
+      shell: bash -l -ET -eo pipefail {0}
+      env:
+        GHCR_REGISTRY: ghcr.io/hawk-ai-aml
+        ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+        ECR_REPOSITORY: ${{ inputs.ecr-repository }}
+        ECR_REPOSITORY_PREFIX: ${{ inputs.ecr-repository-prefix }}
+        KUSTOMIZE_OVERLAYS: ${{ inputs.kustomize-overlays }}
+        HAWK_PLATFORM_REPOSITORY: ${{ inputs.hawk-platform-repository }}
+        HAWK_GHCR_REPOSITORY_ENABLED: ${{ inputs.hawk-platform-repository }}
+        IMAGE_TAG: ${{ inputs.image-tag }}
+        CUSTOM_IMAGE_TAG: ${{ inputs.custom-image-tag }}
+        PY_UTILS_PAT: ${{ inputs.py-utils-pat}}
+        GHCR_PAT: ${{ inputs.ghcr-pat }}
+      run: |
+        source ./action.sh
+        echo -e "${GREEN}✅ Building images for single build...${NC}"
+
+        if [ -n "$ECR_REPOSITORY" ]; then
+          IMAGE_NAME="${ECR_REGISTRY}/${ECR_REPOSITORY}"
+          build_and_push "${IMAGE_NAME}" "--build-arg PY_UTILS_PAT=${PY_UTILS_PAT}"
+
+          if [[ -n "$HAWK_GHCR_REPOSITORY_ENABLED" ]]; then
+              tag_and_push "${IMAGE_NAME}" "${GHCR_REGISTRY}/${ECR_REPOSITORY}" "${IMAGE_TAG}"
+          fi
+
+          if [[ -n "$HAWK_PLATFORM_REPOSITORY" && "$KUSTOMIZE_OVERLAYS" == "prod" ]]; then
+              tag_and_push "${IMAGE_NAME}" "${ECR_REGISTRY}/${HAWK_PLATFORM_REPOSITORY}" "${CUSTOM_IMAGE_TAG}"
           fi
         else
-          # Build docker images for Python modules without prefix names or single Python projects
-          if [ -n "$ECR_REPOSITORY" ]; then
-            DOCKER_BUILDKIT=1 docker build --build-arg PY_UTILS_PAT=${PY_UTILS_PAT} -t ${ECR_REGISTRY}/${ECR_REPOSITORY}:${IMAGE_TAG} .
-            docker push ${ECR_REGISTRY}/${ECR_REPOSITORY}:${IMAGE_TAG}
-        
-            # Re-tag the image and upload to the hawk-platform ECR repo
-            if [[ -n "$HAWK_PLATFORM_REPOSITORY" && $KUSTOMIZE_OVERLAYS == "prod" ]]; then
-              echo "Uploading images to the hawk-platform for single module project..."
-              docker pull "${ECR_REGISTRY}/${ECR_REPOSITORY}":${IMAGE_TAG}
-              docker tag "${ECR_REGISTRY}/${ECR_REPOSITORY}":${IMAGE_TAG} "${ECR_REGISTRY}/$HAWK_PLATFORM_REPOSITORY":${CUSTOM_IMAGE_TAG}
-              docker push "${ECR_REGISTRY}/$HAWK_PLATFORM_REPOSITORY":${CUSTOM_IMAGE_TAG}
-            fi
-          else
-            echo -e "${RED}Missing the ECR repository"
-          fi
+            echo -e "${RED}❌ Missing the ECR repository. Aborting!${NC}"
+            exit 1
         fi
+
+        echo -e "${GREEN}✅ All operations completed successfully!${NC}"

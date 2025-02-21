@@ -86,14 +86,6 @@ jobs:
     needs: init
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout master
-        uses: actions/checkout@v4
-        with:
-          ref: master
-          # From SonarCloud Scan GitHub Action
-          # Disabling shallow clone is recommended for improving relevancy of reporting
-          fetch-depth: 1000
-
       - name: Checkout current branch
         uses: actions/checkout@v4
         with:
@@ -192,6 +184,7 @@ jobs:
           ecr-region: ${{ needs.init.outputs.ecr-region }}
           ecr-registry-code: ${{ needs.init.outputs.ecr-registry-code }}
           py-utils-pat: ${{ secrets.PY_UTILS_PAT }}
+          ghcr-pat: ${{ secrets.GHCR_PAT }}
 
       - name: Slack notification for failed build status
         uses: hawk-ai-aml/github-actions/send-slack-notification@master
