@@ -11,6 +11,8 @@ Usage
           ecr-registry: ${{ steps.login-ecr.outputs.registry }}
           ecr-repository: ${{ fromJson(needs.init.outputs.metadata).ecr.repository }}
           hawk-platform-repository: "ecr-repo-name"
+          pushGHCR: "true/false"
+          ghcr-pat: ${{ secrets.GHCR_PAT }}
           aws-org-ecr-access-key-id: ${{ secrets.AWS_ORG_ECR_ACCESS_KEY_ID }}
           aws-org-ecr-secret-access-key: ${{ secrets.AWS_ORG_ECR_SECRET_ACCESS_KEY }}
           ecr-region: ${{ needs.init.outputs.ecr-region }}

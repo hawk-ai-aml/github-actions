@@ -30,6 +30,11 @@ on:
         type: boolean
         required: false
         default: true
+      pushGHCR:
+        description: "Push the image to GHCR"
+        type: boolean
+        required: false
+        default: false
 
 env:
   UV_VERSION: 0.6.1
@@ -192,6 +197,8 @@ jobs:
           ecr-region: ${{ needs.init.outputs.ecr-region }}
           ecr-registry-code: ${{ needs.init.outputs.ecr-registry-code }}
           py-utils-pat: ${{ secrets.PY_UTILS_PAT }}
+          pushGHCR: ${{ inputs.pushGHCR }}
+          ghcr-pat: ${{ secrets.GHCR_PAT }}
 
       - name: Slack notification for failed build status
         uses: hawk-ai-aml/github-actions/send-slack-notification@master
