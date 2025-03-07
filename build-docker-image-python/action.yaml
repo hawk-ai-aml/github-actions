@@ -112,7 +112,6 @@ runs:
       if: ${{ steps.check-tag.outputs.tag_already_exists != 'true' && inputs.multiple-modules == 'true' }}
       shell: bash -l -ET -eo pipefail {0}
       env:
-        MULTIPLE_MODULES: ${{ inputs.multiple-modules }}
         ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
         ECR_REPOSITORY: ${{ inputs.ecr-repository }}
         ECR_REPOSITORY_PREFIX: ${{ inputs.ecr-repository-prefix }}
@@ -150,7 +149,6 @@ runs:
         CUSTOM_IMAGE_TAG: ${{ inputs.custom-image-tag }}
         PY_UTILS_PAT: ${{ inputs.py-utils-pat}}
         GHCR_REPOSITORY_ENABLED: ${{ inputs.pushGHCR }}
-        GHCR_PAT: ${{ inputs.ghcr-pat }}
         GHCR_REGISTRY: ghcr.io/hawk-ai-aml
       run: |
         source ./action.sh
@@ -160,7 +158,7 @@ runs:
           IMAGE_NAME="${ECR_REGISTRY}/${ECR_REPOSITORY}"
           build_and_push "${IMAGE_NAME}" "--build-arg PY_UTILS_PAT=${PY_UTILS_PAT}"
 
-          if [[ -n "$GHCR_REPOSITORY_ENABLED" ]]; then
+          if [[ "$GHCR_REPOSITORY_ENABLED" == "true" ]]; then
               tag_and_push "${IMAGE_NAME}" "${GHCR_REGISTRY}/${ECR_REPOSITORY}" "${IMAGE_TAG}"
           fi
 
