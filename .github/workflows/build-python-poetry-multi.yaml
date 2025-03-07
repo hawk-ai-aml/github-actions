@@ -196,6 +196,7 @@ jobs:
           METADATA: ${{ needs.init.outputs.metadata }}
           CUSTOM_TAGS: ${{ needs.init.outputs.custom-tags }}
           MODULE: ${{ matrix.module }}
+          KUSTOMIZE_OVERLAYS: ${{ inputs.kustomizeOverlays }}
         run: |
           MODULE_ECR=$(echo ${METADATA} | jq -cr --arg MODULE ${{ matrix.module }} '.modules[$MODULE].ecr')
           echo "ECR=$MODULE_ECR"
@@ -205,7 +206,11 @@ jobs:
             MODULE="${MODULE//_/-}"
           fi
           
-          MATCHED_TAG=$(echo "$CUSTOM_TAGS" | tr ' ' '\n' | grep -E "(^|[-])${MODULE}([-]|$)" | head -n 1 || true)
+          if [[ $KUSTOMIZE_OVERLAYS == "prod" ]]; then
+            MATCHED_TAG=$(echo "$CUSTOM_TAGS" | tr ' ' '\n' | grep "^$MODULE-[0-9]"  | head -n 1 || true)
+          else
+            MATCHED_TAG=$(echo "$CUSTOM_TAGS" | tr ' ' '\n' | grep -E "(^|[-])${MODULE}([-]|$)" | head -n 1 || true)
+          fi
           if [[ -z "$MATCHED_TAG" ]]; then
             MATCHED_TAG="${CUSTOM_TAGS// /}"
           fi

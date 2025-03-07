@@ -102,12 +102,10 @@ runs:
         ecr-repository: ${{ inputs.ecr-repository }}
         image-tag: ${{ inputs.image-tag }}
 
-    - name: Build Docker image
-      id: build-image
-      if: ${{ steps.check-tag.outputs.tag_already_exists != 'true' }}
+    - name: Build docker image for multiple modules
+      if: ${{ steps.check-tag.outputs.tag_already_exists != 'true' && inputs.multiple-modules == 'true' }}
       shell: bash -l -ET -eo pipefail {0}
       env:
-        MULTIPLE_MODULES: ${{ inputs.multiple-modules }}
         ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
         ECR_REPOSITORY: ${{ inputs.ecr-repository }}
         HAWK_PLATFORM_REPOSITORY: ${{ inputs.hawk-platform-repository }}
@@ -122,15 +120,12 @@ runs:
         ARTIFACTORY_CONTEXT_URL: ${{ inputs.artifactory-context-url }}
         ARTIFACTORY_USERNAME: ${{ inputs.artifactory-username }}
         ARTIFACTORY_PASSWORD: ${{ inputs.artifactory-password }}
-      run: |
-        RED='\033[0;31m'
-        
-        # Build docker image for Java modules that have prefix names like the features project
-        if [[ "$MULTIPLE_MODULES" == "true" && -n "$MODULE" ]]; then
-          ./gradlew :${MODULE}:jib \
-            -DIMAGE_NAME="${ECR_REGISTRY}/${ECR_REPOSITORY_PREFIX}" \
-            -DTAG_COMMIT=${IMAGE_TAG}
-        
+      run: |        
+        ./gradlew :${MODULE}:jib \
+          -DIMAGE_NAME="${ECR_REGISTRY}/${ECR_REPOSITORY_PREFIX}" \
+          -DTAG_COMMIT=${IMAGE_TAG}
+
+        if [[ -n "$HAWK_PLATFORM_REPOSITORY" && $KUSTOMIZE_OVERLAYS == "prod" ]]; then
           # Re-tag the image and upload to the hawk-platform ECR repo (only for tag images)
           IMAGE_PATH=""
           if [ -n "$ECR_REPOSITORY_PREFIX" ]; then
@@ -140,25 +135,38 @@ runs:
           fi
           echo "IMAGE_PATH=$IMAGE_PATH"
         
+          docker pull ${IMAGE_PATH}:${IMAGE_TAG}
+          docker tag ${IMAGE_PATH}:${IMAGE_TAG} "${ECR_REGISTRY}/$HAWK_PLATFORM_REPOSITORY":${CUSTOM_IMAGE_TAG}
+          docker push "${ECR_REGISTRY}/$HAWK_PLATFORM_REPOSITORY":${CUSTOM_IMAGE_TAG}
+        fi
+
+    - name: Build docker image for single build
+      if: ${{ steps.check-tag.outputs.tag_already_exists != 'true' && inputs.multiple-modules == 'false' }}
+      shell: bash -l -ET -eo pipefail {0}
+      env:
+        ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+        ECR_REPOSITORY: ${{ inputs.ecr-repository }}
+        HAWK_PLATFORM_REPOSITORY: ${{ inputs.hawk-platform-repository }}
+        IMAGE_TAG: ${{ inputs.image-tag }}
+        CUSTOM_IMAGE_TAG: ${{ inputs.custom-image-tag }}
+        KUSTOMIZE_OVERLAYS: ${{ inputs.kustomize-overlays }}
+        BASE_TAG: ${{ inputs.base-tag }}
+        GRADLE_CACHE_USERNAME: ${{ inputs.gradle-cache-username }}
+        GRADLE_CACHE_PASSWORD: ${{ inputs.gradle-cache-password }}
+        ARTIFACTORY_CONTEXT_URL: ${{ inputs.artifactory-context-url }}
+        ARTIFACTORY_USERNAME: ${{ inputs.artifactory-username }}
+        ARTIFACTORY_PASSWORD: ${{ inputs.artifactory-password }}
+      run: |
+        RED='\033[0;31m'
+        if [ -n "$ECR_REPOSITORY" ]; then
+          ./gradlew jib -DIMAGE_NAME="${ECR_REGISTRY}/${ECR_REPOSITORY}" -DTAG_COMMIT=${IMAGE_TAG}
+      
+          # Re-tag the image and upload to the hawk-platform ECR repo (only for tag images)
           if [[ -n "$HAWK_PLATFORM_REPOSITORY" && $KUSTOMIZE_OVERLAYS == "prod" ]]; then
-            echo "Uploading images to the hawk-platform for multiple modules project..."
-            docker pull ${IMAGE_PATH}:${IMAGE_TAG}
-            docker tag ${IMAGE_PATH}:${IMAGE_TAG} "${ECR_REGISTRY}/$HAWK_PLATFORM_REPOSITORY":${CUSTOM_IMAGE_TAG}
+            docker pull "${ECR_REGISTRY}/${ECR_REPOSITORY}":${IMAGE_TAG}
+            docker tag "${ECR_REGISTRY}/${ECR_REPOSITORY}":${IMAGE_TAG} "${ECR_REGISTRY}/$HAWK_PLATFORM_REPOSITORY":${CUSTOM_IMAGE_TAG}
             docker push "${ECR_REGISTRY}/$HAWK_PLATFORM_REPOSITORY":${CUSTOM_IMAGE_TAG}
           fi
         else
-          # Build docker images for Java modules without prefix names or single Java projects
-          if [ -n "$ECR_REPOSITORY" ]; then
-            ./gradlew jib -DIMAGE_NAME="${ECR_REGISTRY}/${ECR_REPOSITORY}" -DTAG_COMMIT=${IMAGE_TAG}
-        
-            # Re-tag the image and upload to the hawk-platform ECR repo (only for tag images)
-            if [[ -n "$HAWK_PLATFORM_REPOSITORY" && $KUSTOMIZE_OVERLAYS == "prod" ]]; then
-              echo "Uploading images to the hawk-platform for single module project..."
-              docker pull "${ECR_REGISTRY}/${ECR_REPOSITORY}":${IMAGE_TAG}
-              docker tag "${ECR_REGISTRY}/${ECR_REPOSITORY}":${IMAGE_TAG} "${ECR_REGISTRY}/$HAWK_PLATFORM_REPOSITORY":${CUSTOM_IMAGE_TAG}
-              docker push "${ECR_REGISTRY}/$HAWK_PLATFORM_REPOSITORY":${CUSTOM_IMAGE_TAG}
-            fi
-          else
-            echo -e "${RED}Missing the ECR repository"
-          fi
+          echo -e "${RED}Missing the ECR repository"
         fi

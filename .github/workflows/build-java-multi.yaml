@@ -248,11 +248,17 @@ jobs:
         env:
           METADATA: ${{ needs.init.outputs.metadata }}
           CUSTOM_TAGS: ${{ needs.init.outputs.custom-tags }}
+          KUSTOMIZE_OVERLAYS: ${{ inputs.kustomizeOverlays }}
         run: |
           RED='\033[0;31m'
           MODULE_ECR_REPO=$(echo ${METADATA} | jq -cr --arg MODULE ${{ matrix.module }} '.modules[$MODULE].ecr.repository')
           echo "ECR_REPO=$MODULE_ECR_REPO"
-          MATCHED_TAG=$(echo "$CUSTOM_TAGS" | tr ' ' '\n' | grep -E "(^|[-])${MODULE_ECR_REPO}([-]|$)" | head -n 1 || true)
+          
+          if [[ $KUSTOMIZE_OVERLAYS == "prod" ]]; then
+            MATCHED_TAG=$(echo "$CUSTOM_TAGS" | tr ' ' '\n' | grep "^$MODULE_ECR_REPO-[0-9]"  | head -n 1 || true)
+          else
+            MATCHED_TAG=$(echo "$CUSTOM_TAGS" | tr ' ' '\n' | grep -E "(^|[-])${MODULE_ECR_REPO}([-]|$)" | head -n 1 || true)
+          fi
           echo -e "${RED}MATCHED_TAG=$MATCHED_TAG"
           echo "module_ecr_repo=$MODULE_ECR_REPO" >> $GITHUB_OUTPUT
           echo "matched_tag=$MATCHED_TAG" >> $GITHUB_OUTPUT
