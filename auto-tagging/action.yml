@@ -36,6 +36,7 @@ runs:
         PR_LABELS=$(get_pr_labels "$GITHUB_REPOSITORY" "$PR_NUMBER" "$GITHUB_TOKEN")
 
         # Get the latest available tag and ensures that the command doesn't fail if no tags exist
+        # The command `git describe --tags --abbrev=0 2>/dev/null || true` cannot handle multiple tags for the same commit
         LATEST_TAG=$(git tag --sort=committerdate | tail -1 || true)
         if [ -z "$LATEST_TAG" ]; then
           echo "No tags found. Creating tag 0.0.1"
