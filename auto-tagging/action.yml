@@ -37,12 +37,12 @@ runs:
 
         # Get the latest available tag and ensures that the command doesn't fail if no tags exist
         LATEST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || true)
-          if [ -z "$LATEST_TAG" ]; then
-            echo "No tags found. Creating tag 0.0.1"
-            LATEST_TAG=0.0.0
-          else
-            echo "latest!: $LATEST_TAG"
-          fi
+        if [ -z "$LATEST_TAG" ]; then
+          echo "No tags found. Creating tag 0.0.1"
+          LATEST_TAG=0.0.0
+        else
+          echo "latest!: $LATEST_TAG"
+        fi
 
         # Extract major, minor, and patch versions from the latest tag
         MAJOR_VERSION=$(echo "$LATEST_TAG" | awk -F. '{print $1}')
@@ -72,8 +72,19 @@ runs:
         # Create the new tag and push it
         NEW_TAG="$NEW_MAJOR_VERSION.$NEW_MINOR_VERSION.$NEW_PATCH_VERSION"
 
-        echo "Detected label: $PR_LABELS"
-        echo "Old tag: $LATEST_TAG | Proposing tag: $NEW_TAG."
+        echo "Pull request version type: $PR_LABELS"
+        echo "Checking if $NEW_TAG is valid..."
+
+        # Check if the new tag already exists; usually happens when someone manually created tag
+        # only try once to increment the patch version
+        if git show-ref --tags --quiet --verify "refs/tags/$NEW_TAG"; then
+          echo "❌ Error: Tag $NEW_TAG already exists. Creating new tag with incremented patch version."
+
+          NEW_PATCH_VERSION=$((PATCH_VERSION + 1))
+          NEW_TAG="$NEW_MAJOR_VERSION.$NEW_MINOR_VERSION.$NEW_PATCH_VERSION"
+        else
+          echo "✅ Tag $NEW_TAG is valid. Proceeding to create the tag."
+        fi
 
         # Workflow outputs
         cat <<EOF | tee -a ${GITHUB_STEP_SUMMARY} | tee -a ${GITHUB_OUTPUT}
