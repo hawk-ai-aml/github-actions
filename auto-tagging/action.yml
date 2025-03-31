@@ -36,13 +36,14 @@ runs:
         PR_LABELS=$(get_pr_labels "$GITHUB_REPOSITORY" "$PR_NUMBER" "$GITHUB_TOKEN")
 
         # Get the latest available tag and ensures that the command doesn't fail if no tags exist
-        LATEST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || true)
-          if [ -z "$LATEST_TAG" ]; then
-            echo "No tags found. Creating tag 0.0.1"
-            LATEST_TAG=0.0.0
-          else
-            echo "latest!: $LATEST_TAG"
-          fi
+        # The command `git describe --tags --abbrev=0 2>/dev/null || true` cannot handle multiple tags for the same commit
+        LATEST_TAG=$(git tag --sort=committerdate | tail -1 || true)
+        if [ -z "$LATEST_TAG" ]; then
+          echo "No tags found. Creating tag 0.0.1"
+          LATEST_TAG=0.0.0
+        else
+          echo "latest!: $LATEST_TAG"
+        fi
 
         # Extract major, minor, and patch versions from the latest tag
         MAJOR_VERSION=$(echo "$LATEST_TAG" | awk -F. '{print $1}')
@@ -72,8 +73,7 @@ runs:
         # Create the new tag and push it
         NEW_TAG="$NEW_MAJOR_VERSION.$NEW_MINOR_VERSION.$NEW_PATCH_VERSION"
 
-        echo "Detected label: $PR_LABELS"
-        echo "Old tag: $LATEST_TAG | Proposing tag: $NEW_TAG."
+        echo "Pull request version type: $PR_LABELS"
 
         # Workflow outputs
         cat <<EOF | tee -a ${GITHUB_STEP_SUMMARY} | tee -a ${GITHUB_OUTPUT}
