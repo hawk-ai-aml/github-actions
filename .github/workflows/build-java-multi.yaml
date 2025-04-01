@@ -255,7 +255,7 @@ jobs:
           echo "ECR_REPO=$MODULE_ECR_REPO"
           
           if [[ $KUSTOMIZE_OVERLAYS == "prod" ]]; then
-            MATCHED_TAG=$(echo "$CUSTOM_TAGS" | tr ' ' '\n' | grep "^$MODULE_ECR_REPO-[0-9]"  | head -n 1 || true)
+            MATCHED_TAG=$(echo "$CUSTOM_TAGS" | tr ' ' '\n' | grep -E "(^|[-])$MODULE_ECR_REPO-[0-9]"  | head -n 1 || true)
           else
             MATCHED_TAG=$(echo "$CUSTOM_TAGS" | tr ' ' '\n' | grep -E "(^|[-])${MODULE_ECR_REPO}([-]|$)" | head -n 1 || true)
           fi
