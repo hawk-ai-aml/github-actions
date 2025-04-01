@@ -213,16 +213,21 @@ jobs:
       - name: Get ECR info
         id: ecr-info
         env:
+          METADATA: ${{ needs.init.outputs.metadata }}
           CUSTOM_TAGS: ${{ needs.init.outputs.custom-tags }}
-          MODULE: ${{ inputs.component }}
           KUSTOMIZE_OVERLAYS: ${{ inputs.kustomizeOverlays }}
         run: |
-          if [[ $KUSTOMIZE_OVERLAYS == "prod" ]]; then
-            MATCHED_TAG=$(echo "$CUSTOM_TAGS" | tr ' ' '\n' | grep "^$MODULE-[0-9]"  | head -n 1 || true)
-          else
-            MATCHED_TAG=$(echo "$CUSTOM_TAGS" | tr ' ' '\n' | grep -E "(^|[-])${MODULE}([-]|$)" | head -n 1 || true)
-          fi
+          MODULE_ECR_REPO=$(echo ${METADATA} | jq -cr --arg MODULE ${{ inputs.component }} '.modules[$MODULE].ecr.repository')
+          echo "ECR_REPO=$MODULE_ECR_REPO"
           
+          if [[ $KUSTOMIZE_OVERLAYS == "prod" ]]; then
+            MATCHED_TAG=$(echo "$CUSTOM_TAGS" | tr ' ' '\n' | grep -E "(^|[-])$MODULE_ECR_REPO-[0-9]"  | head -n 1 || true)
+          else
+            MATCHED_TAG=$(echo "$CUSTOM_TAGS" | tr ' ' '\n' | grep -E "(^|[-])${MODULE_ECR_REPO}([-]|$)" | head -n 1 || true)
+          fi
+
+          RED='\033[0;31m'
+          echo -e "${RED}MATCHED_TAG=$MATCHED_TAG"
           echo "matched_tag=$MATCHED_TAG" >> $GITHUB_OUTPUT
 
       - name: Build Docker Image
