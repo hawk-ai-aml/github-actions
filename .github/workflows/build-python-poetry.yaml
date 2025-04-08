@@ -148,7 +148,7 @@ jobs:
         run: poetry install
 
       - name: Build Rust libraries
-        if: ${{ inputs.buildRustLibraries == 'true' }}
+        if: ${{ inputs.buildRustLibraries == true }}
         run: source scripts/build_rust_libraries.sh
 
       - name: Run tests
