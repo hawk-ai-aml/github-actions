@@ -129,7 +129,7 @@ runs:
         UPDATE_KUSTOMIZE=${{ inputs.update-kustomize }}
         UPDATE_KUSTOMIZE=${UPDATE_KUSTOMIZE:-false}
 
-        SHOUD_AUTHORIZE_POETRY=${{ inputs.should-authorize-poetry }}
+        SHOULD_AUTHORIZE_POETRY=${{ inputs.should-authorize-poetry }}
 
         KUSTOMIZE_OVERLAYS=${{ inputs.overlays }}
         KUSTOMIZE_OVERLAYS=${KUSTOMIZE_OVERLAYS:-dev}
@@ -203,7 +203,7 @@ runs:
         ecr-region=${ECR_REGION}
         metadata=${METADATA}
         use-sonarcloud=${USE_SONARCLOUD}
-        should-authorize-poetry=${SHOUD_AUTHORIZE_POETRY}
+        should-authorize-poetry=${SHOULD_AUTHORIZE_POETRY}
         EOF
 
         cat <<EOF | tee -a ${GITHUB_STEP_SUMMARY}
