@@ -39,7 +39,7 @@ on:
         description: "Build rust libraries into python"
         type: boolean
         required: false
-        default: false
+        default: true
 
 
 env:
