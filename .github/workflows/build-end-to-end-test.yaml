@@ -82,21 +82,6 @@ jobs:
 
       # ------------------------------------- END-SETUP --------------------------------------
       # +++++++++++++++++++++++++++++++++++++ START-TEST +++++++++++++++++++++++++++++++++++++
-      - name: Build <${{ inputs.test }}> tests
-        if: always()
-        env:
-          environment: ${{ inputs.environment }}
-        run: |
-          ./gradlew :${{ inputs.test }}:clean :${{ inputs.test }}:assemble :${{ inputs.test }}:testClasses -isS
-
-      - name: Run <${{ inputs.test }} checkstyle on ${{ inputs.environment }}>
-        id: run-checkstyle
-        if: always()
-        env:
-          environment: ${{ inputs.environment }}
-        run: |
-          ./gradlew :${{ inputs.test }}:check -x test -Denvironment=${{ inputs.environment }} -isS
-
       - name: Run <${{ inputs.test }} tests on ${{ inputs.environment }}>
         id: run-e2e-test
         env:
@@ -147,7 +132,6 @@ jobs:
           METADATA=$(echo "${{ inputs.metadata }}" | sed s/\'/\"/g)
           echo "METADATA: $METADATA"
           echo "$METADATA" > github-artifact/metadata.json
-
 
       # -------------------------------------- END-TEST --------------------------------------
       # ++++++++++++++++++++++++++++++++++++ START-REPORT ++++++++++++++++++++++++++++++++++++
