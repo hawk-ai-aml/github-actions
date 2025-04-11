@@ -35,6 +35,12 @@ on:
         type: boolean
         required: false
         default: true
+      buildRustLibraries:
+        description: "Build rust libraries into python"
+        type: boolean
+        required: false
+        default: false
+
 
 env:
   POETRY_VERSION: 2.0.1
@@ -140,6 +146,10 @@ jobs:
       - name: Install dependencies
         id: install-dependencies
         run: poetry install
+
+      - name: Build Rust libraries
+        if: ${{ inputs.buildRustLibraries == true }}
+        run: source scripts/build_rust_libraries.sh
 
       - name: Run tests
         if: needs.init.outputs.skip-tests != 'true' && success()
