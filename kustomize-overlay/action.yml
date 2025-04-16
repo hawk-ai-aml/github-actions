@@ -113,6 +113,10 @@ runs:
               echo "OVERLAY=$overlay"
 
               (
+                if [ ! -d "$KUSTOMIZE_OVERLAY_PATH" ]; then
+                  continue
+                fi
+                
                 cd ${KUSTOMIZE_OVERLAY_PATH}
 
                 MATCHED_TAG=$(echo "$CUSTOM_TAGS" | tr ' ' '\n' | grep -E "(^|[-])${ECR_REPOSITORY}([-]|$)" | head -n 1 || true)
