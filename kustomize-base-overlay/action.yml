@@ -91,6 +91,10 @@ runs:
               echo "OVERLAY=$overlay"
 
               (
+                if [ ! -d "$KUSTOMIZE_OVERLAY_PATH" ]; then
+                  continue
+                fi
+        
                 cd ${KUSTOMIZE_OVERLAY_PATH}
 
                 CURRENT_TAG=$(kustomize build . | grep -E "${IMAGE_NAME}:" | awk -F':' '{print $NF}' | tr -d '[:space:]')
