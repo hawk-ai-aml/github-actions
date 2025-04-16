@@ -121,7 +121,7 @@ jobs:
     runs-on: [ "self-hosted", "small-builder" ]
 
     steps:
-      - name: Update kustomize overlay
+      - name: Update kustomize-base overlay
         uses: hawk-ai-aml/github-actions/kustomize-base-overlay@master
         with:
           slack-access-token: ${{ secrets.SLACK_RELEASE_BOT_ACCESS_TOKEN }}
