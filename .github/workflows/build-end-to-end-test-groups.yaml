@@ -152,14 +152,14 @@ jobs:
         if: always()
         run: |
           pwd
-          cp -a -r ${{ inputs.environment }}-${{ inputs.group }}-test-histories/* ${{ inputs.group }}/allure-results
+          cp -a -r ${{ inputs.environment }}-${{ inputs.group }}-test-histories/* ${{ inputs.group }}-allure-results
           echo "----------------------------------->>> Allure-results after merged"
-          # ls ${{ inputs.group }}/allure-results/*
-          mkdir ${{ inputs.group }}/allure-report2
-          allure generate ${{ inputs.group }}/allure-results -o ${{ inputs.group }}/allure-report2 --clean
+          # ls ${{ inputs.group }}-allure-results/*
+          mkdir ${{ inputs.group }}-allure-report2
+          allure generate ${{ inputs.group }}-allure-results -o ${{ inputs.group }}-allure-report2 --clean
           echo "----------------------------------->>> New Allure report"
-          # ls ${{ inputs.group }}/allure-report2/*
-          cp -a -r ${{ inputs.group }}/allure-report2/history ${{ inputs.environment }}-${{ inputs.group }}-test-histories
+          # ls ${{ inputs.group }}-allure-report2/*
+          cp -a -r ${{ inputs.group }}-allure-report2/history ${{ inputs.environment }}-${{ inputs.group }}-test-histories
 
       - name: Check test history cache after generating new report
         if: always()
