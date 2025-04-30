@@ -6,7 +6,7 @@ on:
         type: string
         description: Environment
         required: true
-      test:
+      group:
         type: string
         description: Test group name
         required: true
@@ -60,14 +60,14 @@ jobs:
       - name: Generate test history cache ID
         run: |
           echo CACHE_ID=$(date +'%Y-%m-%dT%H:%M:%S') >> $GITHUB_ENV
-          echo CACHE_PATH="$GITHUB_WORKSPACE/${{ inputs.environment }}-${{ inputs.test }}-test-histories/" >> $GITHUB_ENV
+          echo CACHE_PATH="$GITHUB_WORKSPACE/${{ inputs.environment }}-${{ inputs.group }}-test-histories/" >> $GITHUB_ENV
 
       - name: Create test history cache folder
         continue-on-error: true
         run: |
           pwd
-          mkdir ${{ inputs.environment }}-${{ inputs.test }}-test-histories
-          echo "init at - $(date +'%Y-%m-%dT%H:%M:%S')" >> ${{ inputs.environment }}-${{ inputs.test }}-test-histories/init-cache.txt
+          mkdir ${{ inputs.environment }}-${{ inputs.group }}-test-histories
+          echo "init at - $(date +'%Y-%m-%dT%H:%M:%S')" >> ${{ inputs.environment }}-${{ inputs.group }}-test-histories/init-cache.txt
 
       - name: Caching test history
         id: cache-test-history
@@ -76,13 +76,13 @@ jobs:
         continue-on-error: true
         with:
           path: ${{ env.CACHE_PATH }}
-          key: ${{ runner.os }}-${{ inputs.environment }}-${{ inputs.test }}-test-histories-${{ env.CACHE_ID }}
+          key: ${{ runner.os }}-${{ inputs.environment }}-${{ inputs.group }}-test-histories-${{ env.CACHE_ID }}
           restore-keys: |
-            ${{ runner.os }}-${{ inputs.environment }}-${{ inputs.test }}-test-histories-
+            ${{ runner.os }}-${{ inputs.environment }}-${{ inputs.group }}-test-histories-
 
       # ------------------------------------- END-SETUP --------------------------------------
       # +++++++++++++++++++++++++++++++++++++ START-TEST +++++++++++++++++++++++++++++++++++++
-      - name: Run <${{ inputs.test }} tests on ${{ inputs.environment }}>
+      - name: Run <${{ inputs.group }} tests on ${{ inputs.environment }}>
         id: run-e2e-test
         env:
           TEST_MAILBOX_PASSWORD: ${{ secrets.AUTH0_DEV_API_CLIENT_SECRET }}
@@ -118,20 +118,7 @@ jobs:
           environment: ${{ inputs.environment }}
         continue-on-error: true
         run: |
-          ./gradlew test -Dgroups=${{ inputs.test }} -Denvironment=${{ inputs.environment }} -isS
-          # ls *
-          # ls ./${{ inputs.test }}/*
-          # ls ./${{ inputs.test }}/allure*
-
-      - name: Copy result files for upload to GitHub Artifact
-        if: always()
-        run: |
-          pwd
-          mkdir github-artifact
-          mv ${{ inputs.test }}/build/reports/tests/* github-artifact
-          METADATA=$(echo "${{ inputs.metadata }}" | sed s/\'/\"/g)
-          echo "METADATA: $METADATA"
-          echo "$METADATA" > github-artifact/metadata.json
+          ./gradlew test -Dgroups=${{ inputs.group }} -Denvironment=${{ inputs.environment }} -isS
 
       # -------------------------------------- END-TEST --------------------------------------
       # ++++++++++++++++++++++++++++++++++++ START-REPORT ++++++++++++++++++++++++++++++++++++
@@ -140,51 +127,52 @@ jobs:
         if: always()
         run: |
           pwd
-          mkdir ${{ inputs.test }}/allure-report
+          mkdir github-artifact
+          mkdir "${{ inputs.group }}-allure-report"
           echo "allure-results+++++++++++"
-          ls ${{ inputs.test }}/allure-results/*
+          ls ${{ inputs.group }}-allure-results/*
           echo "allure-results-----------"
-          allure generate ${{ inputs.test }}/allure-results -o ${{ inputs.test }}/allure-report --clean
-          ls ${{ inputs.test }}/allure-report/*
+          allure generate ${{ inputs.group }}-allure-results -o ${{ inputs.group }}-allure-report --clean
+          ls ${{ inputs.group }}-allure-report/*
 
       - name: Upload plain test results to GitHub Artifact
         uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: test-results-${{ inputs.test }}
+          name: test-results-${{ inputs.group }}
           path: github-artifact
 
       - name: Check test history cache
         if: always()
         run: |
           pwd
-          ls ${{ inputs.environment }}-${{ inputs.test }}-test-histories/*
+          ls ${{ inputs.environment }}-${{ inputs.group }}-test-histories/*
 
       - name: Init/Update test history cache
         if: always()
         run: |
           pwd
-          cp -a -r ${{ inputs.environment }}-${{ inputs.test }}-test-histories/* ${{ inputs.test }}/allure-results
+          cp -a -r ${{ inputs.environment }}-${{ inputs.group }}-test-histories/* ${{ inputs.group }}/allure-results
           echo "----------------------------------->>> Allure-results after merged"
-          # ls ${{ inputs.test }}/allure-results/*
-          mkdir ${{ inputs.test }}/allure-report2
-          allure generate ${{ inputs.test }}/allure-results -o ${{ inputs.test }}/allure-report2 --clean
+          # ls ${{ inputs.group }}/allure-results/*
+          mkdir ${{ inputs.group }}/allure-report2
+          allure generate ${{ inputs.group }}/allure-results -o ${{ inputs.group }}/allure-report2 --clean
           echo "----------------------------------->>> New Allure report"
-          # ls ${{ inputs.test }}/allure-report2/*
-          cp -a -r ${{ inputs.test }}/allure-report2/history ${{ inputs.environment }}-${{ inputs.test }}-test-histories
+          # ls ${{ inputs.group }}/allure-report2/*
+          cp -a -r ${{ inputs.group }}/allure-report2/history ${{ inputs.environment }}-${{ inputs.group }}-test-histories
 
       - name: Check test history cache after generating new report
         if: always()
         run: |
           pwd
-          ls ${{ inputs.environment }}-${{ inputs.test }}-test-histories/*
+          ls ${{ inputs.environment }}-${{ inputs.group }}-test-histories/*
 
       - name: Upload Allure results to GitHub Artifact
         uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: allure-results-${{ inputs.test }}
-          path: ${{ inputs.test }}/allure-results
+          name: allure-results-${{ inputs.group }}
+          path: ${{ inputs.group }}/allure-results
 
       - name: Upload Allure reports to S3
         if: always()
@@ -193,14 +181,14 @@ jobs:
           aws_access_key_id: ${{ secrets.AWS_DEV_ACCESS_KEY_ID }}
           aws_secret_access_key: ${{ secrets.AWS_DEV_SECRET_ACCESS_KEY }}
           aws_bucket: github-actions-static-html-2
-          source_dir: ${{ inputs.test }}/allure-report2
-          destination_dir: e2e-${{ inputs.test }}-test-${{ env.CACHE_ID }}
+          source_dir: ${{ inputs.group }}/allure-report2
+          destination_dir: e2e-${{ inputs.group }}-test-${{ env.CACHE_ID }}
 
       - name: Provide Allure report URL
         id: report-url
         if: always()
         run: |
-          echo "url=https://github-actions-static-html-2.s3.eu-central-1.amazonaws.com/e2e-${{ inputs.test }}-test-${{ env.CACHE_ID }}/index.html" >> $GITHUB_OUTPUT
+          echo "url=https://github-actions-static-html-2.s3.eu-central-1.amazonaws.com/e2e-${{ inputs.group }}-test-${{ env.CACHE_ID }}/index.html" >> $GITHUB_OUTPUT
 
       - name: Check test status
         id: status
