@@ -172,7 +172,7 @@ jobs:
         if: always()
         with:
           name: allure-results-${{ inputs.group }}
-          path: ${{ inputs.group }}/allure-results
+          path: ${{ inputs.group }}-allure-results
 
       - name: Upload Allure reports to S3
         if: always()
