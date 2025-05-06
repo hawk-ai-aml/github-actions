@@ -118,7 +118,7 @@ jobs:
           environment: ${{ inputs.environment }}
         continue-on-error: true
         run: |
-          ./gradlew test -Dgroups=${{ inputs.group }} -Denvironment=${{ inputs.environment }} -isS
+          ./gradlew test -Dgroups=${{ inputs.group }} -Denvironment=${{ inputs.environment }} --continue -isS
 
       # -------------------------------------- END-TEST --------------------------------------
       # ++++++++++++++++++++++++++++++++++++ START-REPORT ++++++++++++++++++++++++++++++++++++
