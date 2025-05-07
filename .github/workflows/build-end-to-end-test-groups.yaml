@@ -187,7 +187,3 @@ jobs:
         if: steps.run-e2e-test.outcome != 'success'
         run: |
           exit 1
-
-    environment:
-      name: ${{ inputs.environment }}
-      url: ${{ steps.report-url.outputs.url }}
