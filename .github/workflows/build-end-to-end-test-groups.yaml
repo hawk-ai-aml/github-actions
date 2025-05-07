@@ -190,7 +190,7 @@ jobs:
 
   send-slack-notification:
     needs: [ test ]
-    if: needs.test.steps.run-e2e-test.outcome != 'success'
+    if: failure()
     uses: hawk-ai-aml/github-actions/.github/workflows/send-slack-notification.yaml@master
     secrets: inherit
     with:
