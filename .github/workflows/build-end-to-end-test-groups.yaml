@@ -195,7 +195,7 @@ jobs:
     secrets: inherit
     with:
       notify-pr-author: true
-      slack-message: ":x: The :github: dev-e2e-nfr-tests for ${{ inputs.environment }} environment failed.
+      slack-message: ":x: :github: The `${{ inputs.groups }} E2E Tests` for `${{ inputs.environment }}` environment failed.
        \nPlease check the reason for it.
        \nThe Allure report is available at: ${{ needs.test.outputs.url }}
        "
