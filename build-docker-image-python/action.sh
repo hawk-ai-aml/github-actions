@@ -15,6 +15,7 @@ build_and_push() {
     local build_args=$2
 
     echo -e "${GREEN} Building Docker image: ${image_name}${NC}"
+    echo -e "${GREEN} Building Docker image: ${image_name}${NC}"
 
     # In your shell script
     echo -e "🔧 Starting Docker build"
