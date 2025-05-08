@@ -15,7 +15,7 @@ build_and_push() {
     local build_args=$2
 
     echo -e "${GREEN} Building Docker image: ${image_name}${NC}"
-    DOCKER_BUILDKIT=1 docker build --progress=plain $build_args -t "${image_name}:${IMAGE_TAG}" . | tee /dev/stdout
+    DOCKER_BUILDKIT=0 docker build --progress=plain $build_args -t "${image_name}:${IMAGE_TAG}" . | tee /dev/stdout
     docker push "${image_name}:${IMAGE_TAG}"
 }
 
