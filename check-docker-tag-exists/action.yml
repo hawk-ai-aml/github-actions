@@ -38,10 +38,14 @@ runs:
         fi
 
         # Check if docker tag already exists
-        docker_pull_output=$(docker pull "${ECR_REGISTRY}/${ECR_REPOSITORY}:${IMAGE_TAG}" 2>&1 || echo "")
-        echo $docker_pull_output
+        tag_exists=$(aws ecr describe-images \
+          --repository-name "$ECR_REPOSITORY" \
+          --image-ids imageTag="$IMAGE_TAG" \
+          --region eu-central-1 > /dev/null 2>&1 && echo "true" || echo "false")
+
+        echo "Tag already exists : $tag_exists"
 
         # Workflow outputs
         cat <<EOF | tee -a ${GITHUB_STEP_SUMMARY} | tee -a ${GITHUB_OUTPUT}
-        tag_already_exists=$(echo $docker_pull_output | grep -q 'Pull complete' && echo 'true' || echo 'false')
+        tag_already_exists=$tag_exists
         EOF
