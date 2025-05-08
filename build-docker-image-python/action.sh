@@ -1,5 +1,4 @@
 #!/bin/bash
-set -euo pipefail
 
 # Colors
 RED='\033[0;31m'
@@ -19,10 +18,10 @@ build_and_push() {
 
     # In your shell script
     echo -e "🔧 Starting Docker build"
-    script -q -e -c "DOCKER_BUILDKIT=1 docker build --progress=plain $build_args -t '${image_name}:${IMAGE_TAG}' ." /dev/null
+    # script -q -e -c "DOCKER_BUILDKIT=1 docker build --progress=plain $build_args -t '${image_name}:${IMAGE_TAG}' ." /dev/null
     echo "✅ Docker build completed"
 
-    docker push "${image_name}:${IMAGE_TAG}"
+    # docker push "${image_name}:${IMAGE_TAG}"
 }
 
 # Tag and push Docker image to another registry

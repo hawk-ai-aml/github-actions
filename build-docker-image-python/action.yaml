@@ -159,6 +159,8 @@ runs:
           IMAGE_NAME="${ECR_REGISTRY}/${ECR_REPOSITORY}"
           build_and_push "${IMAGE_NAME}" "--build-arg PY_UTILS_PAT=${PY_UTILS_PAT}"
 
+          exit 0
+
           if [[ "$GHCR_REPOSITORY_ENABLED" == "true" ]]; then
               tag_and_push "${IMAGE_NAME}" "${GHCR_REGISTRY}/${ECR_REPOSITORY}" "${IMAGE_TAG}"
           fi
