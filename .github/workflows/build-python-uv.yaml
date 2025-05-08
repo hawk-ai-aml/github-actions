@@ -179,7 +179,7 @@ jobs:
           else
             MATCHED_TAG=$(echo "$CUSTOM_TAGS" | tr ' ' '\n' | grep -E "(^|[-])${MODULE}([-]|$)" | head -n 1 || true)
           fi
-          
+
           if [[ -z "$MATCHED_TAG" ]]; then
             MATCHED_TAG="${CUSTOM_TAGS// /}"
           fi
@@ -187,7 +187,7 @@ jobs:
 
       - name: Build Docker Image
         if: ${{ github.workflow != 'pr' }}
-        uses: hawk-ai-aml/github-actions/build-docker-image-python@master
+        uses: hawk-ai-aml/github-actions/build-docker-image-python@chore-dockerfile-updates
         with:
           multiple-modules: "false"
           module: ${{ inputs.component }}
