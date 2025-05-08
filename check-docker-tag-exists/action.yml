@@ -43,8 +43,6 @@ runs:
           --image-ids imageTag="$IMAGE_TAG" \
           --region eu-central-1 > /dev/null 2>&1 && echo "true" || echo "false")
 
-        echo "Tag already exists : $tag_exists"
-
         # Workflow outputs
         cat <<EOF | tee -a ${GITHUB_STEP_SUMMARY} | tee -a ${GITHUB_OUTPUT}
         tag_already_exists=$tag_exists

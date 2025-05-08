@@ -93,7 +93,7 @@ runs:
 
     - name: Check if docker image tag exists in ECR
       id: check-tag
-      uses: hawk-ai-aml/github-actions/check-docker-tag-exists@chore-dockerfile-updates
+      uses: hawk-ai-aml/github-actions/check-docker-tag-exists@master
       with:
         ecr-registry: ${{ steps.login-ecr.outputs.registry }}
         ecr-repository: ${{ inputs.ecr-repository }}
@@ -138,7 +138,8 @@ runs:
 
     - name: Build docker image for single build
       id: build-image-single
-      if: ${{ steps.check-tag.outputs.tag_already_exists != 'true' && inputs.multiple-modules == 'false' }}
+      # TODO remove comment
+      # if: ${{ steps.check-tag.outputs.tag_already_exists != 'true' && inputs.multiple-modules == 'false' }}
       shell: bash -l -ET -eo pipefail {0}
       env:
         ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
