@@ -95,6 +95,28 @@ runs:
           [ "$(printf '%s\n' "$1" "$2" | sort -V | head -n 1)" != "$1" ]
         }
         
+        get_tag() {
+          local metadata="$1"
+          local module="$2"
+          local kustomize_overlays="$3"
+          local custom_tags="$4"
+        
+          local module_ecr_repo
+          module_ecr_repo=$(echo "$metadata" | jq -cr --arg MODULE "$module" '.modules[$MODULE].ecr.repository')
+          echo "ECR_REPO=$module_ecr_repo" >&2
+        
+          local matched_tag
+          if [[ "$kustomize_overlays" == "prod" ]]; then
+            matched_tag=$(echo "$custom_tags" | tr ' ' '\n' | grep -E "(^|[-])$module_ecr_repo-[0-9]" | head -n 1 || true)
+          else
+            matched_tag=$(echo "$custom_tags" | tr ' ' '\n' | grep -E "(^|[-])${module_ecr_repo}([-]|$)" | head -n 1 || true)
+          fi
+        
+          RED='\033[0;31m'
+          echo -e "${RED}MATCHED_TAG=$matched_tag"
+          echo "$matched_tag"
+        }
+        
         # Remove 'qa' from KUSTOMIZE_OVERLAYS if it contains it
         OVERLAYS=${OVERLAYS//qa/}
 
@@ -120,7 +142,7 @@ runs:
               (
                 cd ${KUSTOMIZE_OVERLAY_PATH}
 
-                MATCHED_TAG=$(echo "$CUSTOM_TAGS" | tr ' ' '\n' | grep -E "(^|[-])${ECR_REPOSITORY}([-]|$)" | head -n 1 || true)
+                MATCHED_TAG=$(get_tag "$METADATA" "$module" "$KUSTOMIZE_OVERLAYS" "$CUSTOM_TAGS")
                 # When MATCHED_TAG is empty, which means we are trying to find the tag name for the single module Java project  
                 if [[ -z "$MATCHED_TAG" ]]; then
                   MATCHED_TAG="${CUSTOM_TAGS// /}"
