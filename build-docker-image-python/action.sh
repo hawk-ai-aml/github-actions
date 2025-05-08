@@ -10,8 +10,10 @@ build_and_push() {
     local image_name=$1
     local build_args=$2
 
+    set -euo pipefail
+
     echo -e "${GREEN} Building Docker image: ${image_name}${NC}"
-    DOCKER_BUILDKIT=1 docker build $build_args -t "${image_name}:${IMAGE_TAG}" .
+    DOCKER_BUILDKIT=1 docker build --progress=plain $build_args -t "${image_name}:${IMAGE_TAG}" .
     docker push "${image_name}:${IMAGE_TAG}"
 }
 
