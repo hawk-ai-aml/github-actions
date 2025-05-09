@@ -5,23 +5,16 @@ RED='\033[0;31m'
 GREEN='\033[0;32m'
 NC='\033[0m' # No color
 
-export PYTHONUNBUFFERED=1
-export DOCKER_BUILDKIT=1
-
 # Build and push Docker image
 build_and_push() {
     local image_name=$1
     local build_args=$2
 
     echo -e "${GREEN} Building Docker image: ${image_name}${NC}"
-    echo -e "${GREEN} Building Docker image: ${image_name}${NC}"
 
-    # In your shell script
-    echo -e "🔧 Starting Docker build"
-    # script -q -e -c "DOCKER_BUILDKIT=1 docker build --progress=plain $build_args -t '${image_name}:${IMAGE_TAG}' ." /dev/null
-    echo "✅ Docker build completed"
+    DOCKER_BUILDKIT=1 docker build $build_args -t '${image_name}:${IMAGE_TAG}' ." /dev/null
 
-    # docker push "${image_name}:${IMAGE_TAG}"
+    docker push "${image_name}:${IMAGE_TAG}"
 }
 
 # Tag and push Docker image to another registry
