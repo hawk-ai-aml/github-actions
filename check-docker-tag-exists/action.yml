@@ -44,5 +44,4 @@ runs:
         # Workflow outputs
         cat <<EOF | tee -a ${GITHUB_STEP_SUMMARY} | tee -a ${GITHUB_OUTPUT}
         tag_already_exists=$(echo $docker_pull_output | grep -q 'Pull complete' && echo 'true' || echo 'false')
-        tag_already_exists=$tag_exists
         EOF
