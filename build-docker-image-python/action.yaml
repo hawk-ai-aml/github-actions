@@ -95,7 +95,6 @@ runs:
       id: check-tag
       uses: hawk-ai-aml/github-actions/check-docker-tag-exists-v2@master
       with:
-        ecr-registry: ${{ steps.login-ecr.outputs.registry }}
         ecr-repository: ${{ inputs.ecr-repository }}
         image-tag: ${{ inputs.image-tag }}
 
