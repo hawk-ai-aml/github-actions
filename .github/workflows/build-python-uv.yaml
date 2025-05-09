@@ -187,7 +187,7 @@ jobs:
 
       - name: Build Docker Image
         if: ${{ github.workflow != 'pr' }}
-        uses: hawk-ai-aml/github-actions/build-docker-image-python@chore-dockerfile-updates
+        uses: hawk-ai-aml/github-actions/build-docker-image-python@master
         with:
           multiple-modules: "false"
           module: ${{ inputs.component }}
