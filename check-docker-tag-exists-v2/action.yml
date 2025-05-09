@@ -2,9 +2,6 @@ name: check-docker-tag-exists
 description: Check if the docker tag exists or not
 
 inputs:
-  ecr-registry:
-    description: "URI of the ecr registry"
-    required: true
   ecr-repository:
     description: "Name of the ECR repository"
     required: true
