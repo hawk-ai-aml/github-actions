@@ -23,18 +23,18 @@ runs:
     - shell: bash -l -ET -eo pipefail {0}
       id: check-tag
       env:
-        ECR_REGISTRY: ${{ inputs.ecr-registry }}
+        ECR_REPOSITORY: ${{ inputs.ecr-repository }}
         IMAGE_TAG: ${{ inputs.image-tag }}
       run: |
 
         # Check if 'repository' field exists in the JSON data
-        if [ "$(echo '${{ inputs.ecr-repository }}' | jq -e 'has("repository")' 2>/dev/null)" == "true" ]; then
+        if [ "$(echo '$ECR_REPOSITORY' | jq -e 'has("repository")' 2>/dev/null)" == "true" ]; then
             # If 'repository' exists, assign it to ECR_REPOSITORY
             # Extract the repository name using jq
-            ECR_REPOSITORY=$(echo '${{ inputs.ecr-repository }}' | jq -r '.repository')
+            ECR_REPOSITORY=$(echo '$ECR_REPOSITORY' | jq -r '.repository')
         else
             # If 'repository' doesn't exist, do nothing
-            ECR_REPOSITORY=$(echo '${{ inputs.ecr-repository }}')
+            ECR_REPOSITORY=$(echo '$ECR_REPOSITORY')
         fi
 
         # Check if docker tag already exists
