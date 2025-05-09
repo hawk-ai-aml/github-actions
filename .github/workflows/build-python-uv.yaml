@@ -179,7 +179,7 @@ jobs:
           else
             MATCHED_TAG=$(echo "$CUSTOM_TAGS" | tr ' ' '\n' | grep -E "(^|[-])${MODULE}([-]|$)" | head -n 1 || true)
           fi
-          
+
           if [[ -z "$MATCHED_TAG" ]]; then
             MATCHED_TAG="${CUSTOM_TAGS// /}"
           fi
