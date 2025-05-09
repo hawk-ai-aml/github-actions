@@ -32,9 +32,6 @@ runs:
             # If 'repository' exists, assign it to ECR_REPOSITORY
             # Extract the repository name using jq
             ECR_REPOSITORY=$(echo '$ECR_REPOSITORY' | jq -r '.repository')
-        else
-            # If 'repository' doesn't exist, do nothing
-            ECR_REPOSITORY=$(echo '$ECR_REPOSITORY')
         fi
 
         # Check if docker tag already exists
