@@ -1,0 +1,86 @@
+name: update-jira-labels
+description: Checks if new labels should be added to the jira ticket for this PR
+
+inputs:
+  repository-ref:
+    description: "Repository ref"
+    required: false
+    default: master
+
+  repository-access-token:
+    description: "Repository access token"
+    required: true
+
+  jira-user:
+    description: "used for jira api"
+    required: true
+
+  jira-token:
+    description: "used for jira api"
+    required: true
+
+  default-labels:
+    description: "Jira default labels. format: label1;label2;"
+    required: true
+
+runs:
+  using: composite
+  steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+
+    - name: Get Jira ticket from PR title
+      shell: bash
+      id: extract_ticket
+      run: |
+        PR_TITLE="${{ github.event.pull_request.title }}"
+        TICKET_NUMBER=$(echo $PR_TITLE | grep -oE '[A-Z]+-[0-9]+')
+        if [[ -n "$TICKET_NUMBER" ]]; then
+          echo "Found Jira ticket number: $TICKET_NUMBER"
+          echo "::set-output name=ticket::${TICKET_NUMBER}"
+        else
+          echo "No Jira ticket number found in PR title"
+          exit 1
+        fi
+
+    - name: Add PR labels to Jira ticket ${{ steps.extract_ticket.outputs.ticket }}
+      shell: bash
+      env:
+        JIRA_USER: ${{ inputs.jira-user }}
+        JIRA_TOKEN: ${{ inputs.jira-token }}
+        JIRA_DEFAULT_LABELS: ${{ inputs.default-labels }}
+        GITHUB_TOKEN: ${{ inputs.repository-access-token }}
+        GITHUB_REF: ${{ inputs.repository-ref }}
+      run: |
+        get_pr_labels() {
+            local repo=$1
+            local token=$2
+
+            local number=$(echo $repo | awk 'BEGIN { FS = "/" } ; { print $3 }')
+            curl -s -H "Authorization: token $token" \
+                -H "Accept: application/vnd.github.v3+json" \
+                "https://api.github.com/repos/$repo/issues/$number/labels" | jq -r '.[].name'
+        }
+
+        pr_labels=$(get_pr_labels "$GITHUB_REPOSITORY" "$GITHUB_TOKEN")
+
+        echo "adding labels to https://hawkai.atlassian.net/browse/${{ steps.extract_ticket.outputs.ticket }}"
+
+        echo "Labels: $pr_labels"
+
+        # Convert default labels from semicolon separated to array
+        IFS=';' read -ra default_labels <<< "$JIRA_DEFAULT_LABELS"
+
+        all_labels=("${existing_labels[@]}" "${default_labels[@]}" "NewLabel1" "NewLabel3")
+        unique_labels=($(echo "${all_labels[@]}" | tr ' ' '\n' | sort -u | tr '\n' ' '))
+
+        payload=$(printf '%s\n' "${unique_labels[@]}" | jq -R . | jq -s .)
+
+        echo $payload
+
+        # Use the payload in the curl request
+        curl -u $JIRA_USER:$JIRA_TOKEN -X PUT \
+            -H "Content-Type: application/json" \
+            -d "{\"fields\": {\"labels\":$payload}}" \
+            "https://hawkai.atlassian.net/rest/api/3/issue/${{ steps.extract_ticket.outputs.ticket }}"
+
