@@ -147,6 +147,7 @@ runs:
                 # When MATCHED_TAG is empty, which means we are trying to find the tag name for the single module Java project  
                 if [[ -z "$MATCHED_TAG" ]]; then
                   MATCHED_TAG="${CUSTOM_TAGS// /}"
+                  echo -e "${RED}Matching tag for single module"
                 fi
 
                 echo "MATCHED_TAG=$MATCHED_TAG"
