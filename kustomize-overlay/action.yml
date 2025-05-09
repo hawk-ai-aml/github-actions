@@ -88,6 +88,7 @@ runs:
         EXTERNAL_OVERLAYS_JSON: ${{ steps.external-overlays-info.outputs.external_overlays_info }}
       run: |
         TAG_REGEX='^([0-9]+)\.([0-9]+)\.([0-9]+)$'
+        RED='\033[0;31m'
 
         # Function to compare semantic versions
         compare_versions() {
@@ -112,8 +113,6 @@ runs:
             matched_tag=$(echo "$custom_tags" | tr ' ' '\n' | grep -E "(^|[-])${module_ecr_repo}([-]|$)" | head -n 1 || true)
           fi
         
-          RED='\033[0;31m'
-          echo -e "${RED}MATCHED_TAG=$matched_tag"
           echo "$matched_tag"
         }
         
@@ -143,6 +142,8 @@ runs:
                 cd ${KUSTOMIZE_OVERLAY_PATH}
 
                 MATCHED_TAG=$(get_tag "$METADATA" "$module" "$KUSTOMIZE_OVERLAYS" "$CUSTOM_TAGS")
+                echo -e "${RED}MATCHED_TAG=$MATCHED_TAG"
+
                 # When MATCHED_TAG is empty, which means we are trying to find the tag name for the single module Java project  
                 if [[ -z "$MATCHED_TAG" ]]; then
                   MATCHED_TAG="${CUSTOM_TAGS// /}"
