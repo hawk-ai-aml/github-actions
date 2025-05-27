@@ -35,6 +35,11 @@ on:
         type: boolean
         required: false
         default: false
+      skipDockerBuild:
+        description: "Skip the Docker build step"
+        type: boolean
+        required: false
+        default: false
 
 env:
   UV_VERSION: 0.6.1
@@ -186,7 +191,7 @@ jobs:
           echo "matched_tag=$MATCHED_TAG" >> $GITHUB_OUTPUT
 
       - name: Build Docker Image
-        if: ${{ github.workflow != 'pr' }}
+        if: ${{ github.workflow != 'pr' && inputs.skipDockerBuild != true }}
         uses: hawk-ai-aml/github-actions/build-docker-image-python@master
         with:
           multiple-modules: "false"
