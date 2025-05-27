@@ -44,6 +44,7 @@ on:
         description: "Authorized private repositories"
         type: string
         required: false
+        default: ""
 
 env:
   UV_VERSION: 0.6.1
@@ -140,9 +141,9 @@ jobs:
           credentials_json: ${{ secrets.GCP_CLOUD_STORAGE_SERVICE_ACCOUNT_KEY }}
 
       - name: Authorize UV
-        if: ${{ needs.init.outputs.authorized-repos != '' }}
+        if: ${{ inputs.authorizedRepos != '' }}
         run: |
-          IFS=',' read -ra REPOS <<< "${{ needs.init.outputs.authorized-repos }}"
+          IFS=',' read -ra REPOS <<< "${{ inputs.authorizedRepos }}"
           for REPO in "${REPOS[@]}"; do
             echo "Setting credentials for $REPO"
             git config --global url."https://${{ secrets.PY_UTILS_PAT }}@github.com/hawk-ai-aml/${REPO}".insteadOf "https://github.com/hawk-ai-aml/${REPO}"
