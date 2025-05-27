@@ -32,6 +32,10 @@ inputs:
     description: "Hint to authorize poetry"
     required: false
     default: "true"
+  authorized-repos:
+    description: "List of authorized repositories"
+    required: false
+    default: ""
 
 outputs:
   overlays:
@@ -89,6 +93,10 @@ outputs:
   should-authorize-poetry:
     description: 'Hint to authorize poetry'
     value: ${{ steps.vars.outputs.should-authorize-poetry }}
+
+  authorized-repos:
+    description: 'List of authorized repositories'
+    value: ${{ steps.vars.outputs.authorized-repos }}
 
 runs:
   using: composite
@@ -187,6 +195,7 @@ runs:
         OVERLAYS_STRING=$(echo ${OVERLAYS_JSON} | jq -r 'join(" ")')
 
         USE_SONARCLOUD=${{ inputs.use-sonarcloud }}
+        AUTHORIZED_REPOS=${{ inputs.authorized-repos }}
 
         # Workflow outputs
         cat <<EOF | tee -a ${GITHUB_STEP_SUMMARY} | tee -a ${GITHUB_OUTPUT}
@@ -204,6 +213,7 @@ runs:
         metadata=${METADATA}
         use-sonarcloud=${USE_SONARCLOUD}
         should-authorize-poetry=${SHOUD_AUTHORIZE_POETRY}
+        authorized-repos=${AUTHORIZED_REPOS}
         EOF
 
         cat <<EOF | tee -a ${GITHUB_STEP_SUMMARY}
