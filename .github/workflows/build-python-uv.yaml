@@ -151,11 +151,13 @@ jobs:
 
       - name: Check git config
         if: ${{ inputs.authorizedRepos != '' }}
+        env:
+          PY_UTILS_PAT: ${{ secrets.PY_UTILS_PAT }}
         run: |
           echo "Displaying git config"
           git config --list
-          git ls-remote https://${{ secrets.PY_UTILS_PAT }}@github.com/hawk-ai-aml/hawkai-py-utils.git
-          git ls-remote https://${{ secrets.PY_UTILS_PAT }}@github.com/hawk-ai-aml/typologies.git
+          git ls-remote https://${PY_UTILS_PAT}@github.com/hawk-ai-aml/hawkai-py-utils.git
+          git ls-remote https://${PY_UTILS_PAT}@github.com/hawk-ai-aml/typologies.git
 
       - name: Run tests
         if: needs.init.outputs.skip-tests != 'true' && success()
