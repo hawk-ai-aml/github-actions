@@ -70,7 +70,6 @@ jobs:
       metadata: ${{ steps.init.outputs.metadata }}
       use-sonarcloud: ${{ steps.init.outputs.use-sonarcloud }}
       custom-tags: ${{ steps.custom-tags.outputs.custom_tags }}
-      authorized-repos: ${{ steps.init.outputs.authorized-repos }}
 
     steps:
       - id: init
@@ -84,7 +83,6 @@ jobs:
           repository-ref: ${{ env.GITHUB_REF_NAME }}
           repository-access-token: ${{ secrets.REPO_ACCESS_PAT }}
           use-sonarcloud: ${{ inputs.useSonarCloud }}
-          authorized-repos: ${{ inputs.authorizedRepos }}
 
       - id: custom-tags
         name: Generate a list of Docker tags for all modules
@@ -110,7 +108,7 @@ jobs:
           # From SonarCloud Scan GitHub Action
           # Disabling shallow clone is recommended for improving relevancy of reporting
           fetch-depth: 1000
-          persist-credentials: ${{ needs.init.outputs.authorized-repos == '' }}
+          persist-credentials: ${{ inputs.authorizedRepos == '' }}
 
       - name: Checkout current branch
         uses: actions/checkout@v4
@@ -119,7 +117,7 @@ jobs:
           # From SonarCloud Scan GitHub Action
           # Disabling shallow clone is recommended for improving relevancy of reporting
           fetch-depth: 1000
-          persist-credentials: ${{ needs.init.outputs.authorized-repos == '' }}
+          persist-credentials: ${{ inputs.authorizedRepos == '' }}
 
       - name: Set up Python
         uses: actions/setup-python@v5
