@@ -152,7 +152,7 @@ jobs:
       - name: Check git config
         if: ${{ inputs.authorizedRepos != '' }}
         env:
-          GITHUB_TOKEN: ${{ secrets.PY_UTILS_PAT }}
+          PY_UTILS_PAT: ${{ secrets.PY_UTILS_PAT }}
         run: |
           echo "Displaying git config"
           git config --list
