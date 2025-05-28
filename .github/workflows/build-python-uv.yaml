@@ -110,7 +110,7 @@ jobs:
           # From SonarCloud Scan GitHub Action
           # Disabling shallow clone is recommended for improving relevancy of reporting
           fetch-depth: 1000
-          persist-credentials: false
+          persist-credentials: ${{ needs.init.outputs.authorized-repos == '' }}
 
       - name: Checkout current branch
         uses: actions/checkout@v4
@@ -119,7 +119,7 @@ jobs:
           # From SonarCloud Scan GitHub Action
           # Disabling shallow clone is recommended for improving relevancy of reporting
           fetch-depth: 1000
-          persist-credentials: false
+          persist-credentials: ${{ needs.init.outputs.authorized-repos == '' }}
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -150,16 +150,6 @@ jobs:
             echo "Setting credentials for $REPO"
             git config --global url."https://${{ secrets.PY_UTILS_PAT }}@github.com/hawk-ai-aml/${REPO}".insteadOf "https://github.com/hawk-ai-aml/${REPO}"
           done
-
-      - name: Check git config
-        if: ${{ inputs.authorizedRepos != '' }}
-        env:
-          PY_UTILS_PAT: ${{ secrets.PY_UTILS_PAT }}
-        run: |
-          echo "Displaying git config"
-          git config --list
-          git ls-remote "https://${PY_UTILS_PAT}:x-oauth-basic@github.com/hawk-ai-aml/hawkai-py-utils.git"
-          git ls-remote "https://${PY_UTILS_PAT}:x-oauth-basic@github.com/hawk-ai-aml/typologies.git"
 
       - name: Run tests
         if: needs.init.outputs.skip-tests != 'true' && success()
