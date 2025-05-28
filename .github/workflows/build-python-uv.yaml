@@ -140,7 +140,7 @@ jobs:
         with:
           credentials_json: ${{ secrets.GCP_CLOUD_STORAGE_SERVICE_ACCOUNT_KEY }}
 
-      - name: Authorize UV
+      - name: Authorize uv
         if: ${{ inputs.authorizedRepos != '' }}
         run: |
           IFS=',' read -ra REPOS <<< "${{ inputs.authorizedRepos }}"
@@ -148,6 +148,12 @@ jobs:
             echo "Setting credentials for $REPO"
             git config --global url."https://${{ secrets.PY_UTILS_PAT }}@github.com/hawk-ai-aml/${REPO}".insteadOf "https://github.com/hawk-ai-aml/${REPO}"
           done
+
+      - name: Check git config
+        if: ${{ inputs.authorizedRepos != '' }}
+        run: |
+          echo "Displaying git config"
+          git config --list
 
       - name: Run tests
         if: needs.init.outputs.skip-tests != 'true' && success()
