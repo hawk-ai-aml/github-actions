@@ -110,6 +110,7 @@ jobs:
           # From SonarCloud Scan GitHub Action
           # Disabling shallow clone is recommended for improving relevancy of reporting
           fetch-depth: 1000
+          persist-credentials: false
 
       - name: Checkout current branch
         uses: actions/checkout@v4
@@ -118,6 +119,7 @@ jobs:
           # From SonarCloud Scan GitHub Action
           # Disabling shallow clone is recommended for improving relevancy of reporting
           fetch-depth: 1000
+          persist-credentials: false
 
       - name: Set up Python
         uses: actions/setup-python@v5
