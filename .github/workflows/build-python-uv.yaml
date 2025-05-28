@@ -158,8 +158,8 @@ jobs:
           git config --list
           echo "PAT is: $PY_UTILS_PAT"
           echo "PAT is ${{ secrets.PY_UTILS_PAT }}"
-          git ls-remote https://${PY_UTILS_PAT}:x-oauth-basic@github.com/hawk-ai-aml/hawkai-py-utils.git
-          git ls-remote https://${PY_UTILS_PAT}:x-oauth-basic@github.com/hawk-ai-aml/typologies.git
+          git ls-remote "https://${PY_UTILS_PAT}:x-oauth-basic@github.com/hawk-ai-aml/hawkai-py-utils.git"
+          git ls-remote "https://${PY_UTILS_PAT}:x-oauth-basic@github.com/hawk-ai-aml/typologies.git"
 
       - name: Run tests
         if: needs.init.outputs.skip-tests != 'true' && success()
