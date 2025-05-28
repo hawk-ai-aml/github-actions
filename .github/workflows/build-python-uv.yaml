@@ -148,7 +148,6 @@ jobs:
           IFS=',' read -ra REPOS <<< "${{ inputs.authorizedRepos }}"
           for REPO in "${REPOS[@]}"; do
             echo "Setting credentials for $REPO"
-            git config --global url."https://${{ secrets.PY_UTILS_PAT }}@github.com/hawk-ai-aml/${REPO}".insteadOf "https://github.com/hawk-ai-aml/${REPO}"
           done
 
       - name: Check git config
@@ -158,8 +157,6 @@ jobs:
         run: |
           echo "Displaying git config"
           git config --list
-          echo "PAT is: $PY_UTILS_PAT"
-          echo "PAT is ${{ secrets.PY_UTILS_PAT }}"
           git ls-remote "https://${PY_UTILS_PAT}:x-oauth-basic@github.com/hawk-ai-aml/hawkai-py-utils.git"
           git ls-remote "https://${PY_UTILS_PAT}:x-oauth-basic@github.com/hawk-ai-aml/typologies.git"
 
