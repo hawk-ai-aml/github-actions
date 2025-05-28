@@ -154,6 +154,7 @@ jobs:
         run: |
           echo "Displaying git config"
           git config --list
+          git ls-remote https://github.com/hawk-ai-aml/typologies.git
 
       - name: Run tests
         if: needs.init.outputs.skip-tests != 'true' && success()
