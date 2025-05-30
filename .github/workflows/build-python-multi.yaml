@@ -216,7 +216,7 @@ jobs:
 
       - name: Build Docker Image
         if: ${{ github.workflow != 'pr' && steps.ecr-info.outputs.module_ecr != 'null' }}
-        uses: hawk-ai-aml/github-actions/build-docker-image-python@master
+        uses: hawk-ai-aml/github-actions/build-docker-image-python@pe-fix
         with:
           multiple-modules: "true"
           module: ${{ matrix.module }}

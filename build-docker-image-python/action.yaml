@@ -69,14 +69,13 @@ inputs:
 runs:
   using: composite
   steps:
+
+    - uses: actions/checkout@v4
+
     - name: Download Action Script
       shell: bash -l -ET -eo pipefail {0}
       run: |
-        curl -o action.sh \
-        -H "Authorization: token ${{ inputs.py-utils-pat}}" \
-        -L "https://raw.githubusercontent.com/hawk-ai-aml/github-actions/master/build-docker-image-python/action.sh"
-
-        chmod +x action.sh
+        chmod +x ./action.sh
 
     - name: Configure AWS credentials
       uses: aws-actions/configure-aws-credentials@v1
