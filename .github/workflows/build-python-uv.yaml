@@ -138,11 +138,12 @@ jobs:
       - name: Install sub-packages (if defined)
         if: ${{ inputs.subPackagesDirs != '' }}
         run: |
-          echo "Installing packages: ${{ inputs.subPackagesDirs }}"
+          echo "Installing packages:"
           while read -r package; do
-            if [[ -n "package" ]]; then
-              echo "Installing package"
-              uv pip install -e "package"[dev]
+            if [[ -n "$package" ]]; then
+              resolved_path=$(realpath --relative-to=. "$package")
+              echo "  → $resolved_path"
+              uv pip install -e "$resolved_path"[dev]
             fi
           done <<< "${{ inputs.subPackagesDirs }}"
 
