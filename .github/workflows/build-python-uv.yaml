@@ -45,6 +45,11 @@ on:
         type: string
         required: false
         default: ""
+      subPackagesDirs:
+        description: "List of relative paths to sub-packages to install"
+        type: string
+        required: false
+        default: ""
 
 env:
   UV_VERSION: 0.6.1
@@ -126,6 +131,21 @@ jobs:
 
       - name: Install uv
         run: pipx install uv==${{ env.UV_VERSION }}
+
+      - name: Create virtual environment
+        run: uv venv
+
+      - name: Install sub-packages (if defined)
+        if: ${{ inputs.subPackagesDirs != '' }}
+        run: |
+          echo "Installing packages:"
+          while read -r package; do
+            if [[ -n "$package" ]]; then
+              resolved_path=$(realpath --relative-to=. "$package")
+              echo "  → $resolved_path"
+              uv pip install -e "$resolved_path"[dev]
+            fi
+          done <<< "${{ inputs.subPackagesDirs }}"
 
       - name: Cache dependencies
         uses: actions/cache@v4
