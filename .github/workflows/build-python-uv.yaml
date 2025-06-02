@@ -45,6 +45,11 @@ on:
         type: string
         required: false
         default: ""
+      toolSubdirs:
+        description: "List of relative paths to sub-packages to install"
+        type: string
+        required: false
+        default: ""
 
 env:
   UV_VERSION: 0.6.1
@@ -126,6 +131,17 @@ jobs:
 
       - name: Install uv
         run: pipx install uv==${{ env.UV_VERSION }}
+
+      - name: Install tool sub-packages (if defined)
+        if: ${{ inputs.toolSubdirs != '' }}
+        run: |
+          echo "Installing tool packages: ${{ inputs.toolSubdirs }}"
+          while read -r tool; do
+            if [[ -n "$tool" ]]; then
+              echo "Installing $tool"
+              uv pip install -e "$tool"[dev]
+            fi
+          done <<< "${{ inputs.toolSubdirs }}"
 
       - name: Cache dependencies
         uses: actions/cache@v4
