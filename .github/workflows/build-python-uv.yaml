@@ -132,6 +132,9 @@ jobs:
       - name: Install uv
         run: pipx install uv==${{ env.UV_VERSION }}
 
+      - name: Create virtual environment
+        run: uv venv
+
       - name: Install sub-packages (if defined)
         if: ${{ inputs.subPackagesDirs != '' }}
         run: |
