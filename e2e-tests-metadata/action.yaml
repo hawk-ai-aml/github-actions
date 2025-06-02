@@ -15,7 +15,7 @@ runs:
   using: composite
   steps:
     - name: Checkout Kustomize
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
       with:
         repository: hawk-ai-aml/kustomize.git
         ref: master
@@ -36,20 +36,20 @@ runs:
       run: |
         SERVICES=$(echo ${METADATA} | jq -cr '.services | keys | join(" ")')
         echo "SERVICES=${SERVICES}"
-        
+
         E2E_METADATA="{'user': '${{ github.actor }}', 'head_ref': '${{ github.head_ref }}', 'services': {"
         for service in $SERVICES; do
           KUSTOMIZATION_PATH=$(echo ${METADATA} | jq -cr --arg SERVICE ${service} '.services[$SERVICE].overlays.test.kustomization')
           KUSTOMIZATION_FULL_PATH="plattform/${KUSTOMIZATION_PATH}/overlays/test/kustomization.yaml"
           TAG=$(yq '.images[0].newTag' < $KUSTOMIZATION_FULL_PATH)
-        
+
           NODE=" '$service': { 'tag': '$TAG' }"
           E2E_METADATA="$E2E_METADATA$NODE,"
         done
-        
+
         LENGTH_OF_E2E_METADATA=$(echo ${#E2E_METADATA})
         E2E_METADATA=${E2E_METADATA:0:${LENGTH_OF_E2E_METADATA}-1}
-        
+
         E2E_METADATA="$E2E_METADATA}}"
 
         # Workflow outputs

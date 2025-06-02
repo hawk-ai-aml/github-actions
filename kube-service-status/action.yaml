@@ -29,18 +29,18 @@ runs:
         TIMEOUT=5
         SECONDS=0
         RED='\033[0;31m'
-        
+
         while true
         do
           READY_REPLICAS=$(kubectl get deployment ${{ inputs.deployment }} -n default -o=jsonpath='{.status.readyReplicas}')
           echo "READY_REPLICAS=$READY_REPLICAS"
-          
+
           REPLICAS=$(kubectl get deployment ${{ inputs.deployment }} -n default -o=jsonpath='{.status.replicas}')
           echo "REPLICAS=$REPLICAS"
-          
+
           IMAGE=$(kubectl get deployment ${{ inputs.deployment }} -n default -o=jsonpath='{$.spec.template.spec.containers[:1].image}')
           echo "IMAGE=$IMAGE"
-          
+
           IFS=':' read -ra ELS <<< "$IMAGE"
           STATUS=false
           if [[ ${ELS[1]} == "$TAG" && $READY_REPLICAS == $REPLICAS ]]; then
@@ -48,16 +48,16 @@ runs:
             STATUS=true
             break
           fi
-        
+
           ELAPSED=$(($SECONDS / 60))
-          
+
           if [[ $ELAPSED -ge $TIMEOUT ]]; then
             echo -e "${RED}Deploy process timeout (longer than 5 minutes). Please check the tag '$TAG' of '${{ inputs.deployment }}'"
             exit 1
           fi
           sleep 5
         done
-                
+
         # Workflow outputs
         cat <<EOF | tee -a ${GITHUB_STEP_SUMMARY} | tee -a ${GITHUB_OUTPUT}
         status=$STATUS

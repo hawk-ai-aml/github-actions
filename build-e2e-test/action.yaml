@@ -82,6 +82,22 @@ inputs:
     description: DEV redis auth token
     required: true
 
+  gmail-client-id:
+    description: Gmail client id
+    required: true
+
+  gmail-client-secret:
+    description: Gmail client secret
+    required: true
+
+  elasticsearch-username:
+    description: DEV ES username
+    required: true
+
+  elasticsearch-password:
+    description: DEV ES password
+    required: true
+
   aws-key-id:
     description: DEV redis auth token
     required: true
@@ -102,7 +118,7 @@ outputs:
 runs:
   using: composite
   steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
       with:
         repository: hawk-ai-aml/end-to-end-tests
         token: ${{ inputs.repository-access-token }}
@@ -143,13 +159,13 @@ runs:
         sudo apt-get update -qqy
         sudo apt-get -qqy install google-chrome-stable
         sudo rm /etc/apt/sources.list.d/google-chrome.list
-        
+
         echo Installing Chrome driver
         export CHROMEDRIVER_VERSION=`curl -s https://googlechromelabs.github.io/chrome-for-testing/last-known-good-versions-with-downloads.json | jq -r '.channels.Stable.version'`
         curl -L -O "https://edgedl.me.gvt1.com/edgedl/chrome/chrome-for-testing/${CHROMEDRIVER_VERSION}/linux64/chromedriver-linux64.zip"
         ls -ahl
         unzip chromedriver-linux64.zip && chmod +x chromedriver-linux64/chromedriver && sudo mv chromedriver-linux64/chromedriver /usr/local/bin/chromedriver
-        
+
         echo "chromeDriver version: $(chromedriver --version)"
         echo "chromeDriver location: $(which chromedriver)"
         echo "chromeBrowser version: $(google-chrome --version)"
@@ -163,8 +179,8 @@ runs:
         if [[ $TEST_NAME == *"ci"* ]]; then
           TEST_NAME=$(echo "${TEST_NAME}" | sed s/"ci"/"cy"/g)
         fi
-        
-        echo TEST_NAME="${TEST_NAME}" >> $GITHUB_ENV        
+
+        echo TEST_NAME="${TEST_NAME}" >> $GITHUB_ENV
         echo CACHE_ID=$(date +'%Y-%m-%dT%H:%M:%S') >> $GITHUB_ENV
         echo CACHE_PATH="$GITHUB_WORKSPACE/${{ inputs.environment }}-${{ inputs.test }}-test-histories/" >> $GITHUB_ENV
 
@@ -226,6 +242,12 @@ runs:
         DEV_REDIS_PORT: ${{ inputs.dev-redis-port }}
         DEV_REDIS_AUTH_TOKEN: ${{ inputs.dev-redis-auth-token }}
 
+        E2E_GMAIL_CLIENT_ID: ${{ inputs.E2E_GMAIL_CLIENT_ID }}
+        E2E_GMAIL_CLIENT_SECRET: ${{ inputs.E2E_GMAIL_CLIENT_SECRET }}
+
+        ELASTICSEARCH_USERNAME: ${{ inputs.elasticsearch-username }}
+        ELASTICSEARCH_PASSWORD: ${{ inputs.elasticsearch-password }}
+
         environment: ${{ inputs.environment }}
       continue-on-error: true
       run: |
@@ -241,7 +263,7 @@ runs:
         echo "$METADATA" > github-artifact/metadata.json
 
     - name: Upload metadata to GitHub Artifact
-      uses: actions/upload-artifact@v2
+      uses: actions/upload-artifact@v4
       if: always()
       with:
         name: metadata
@@ -283,7 +305,7 @@ runs:
         if [[ ${{ steps.run-e2e-test.outcome }} != 'success' ]]; then
           TEST_STATUS="failures"
         fi
-        
+
         cat <<EOF | tee -a ${GITHUB_STEP_SUMMARY} | tee -a ${GITHUB_OUTPUT}
         test_status=$TEST_STATUS
         allure_report_url=https://github-actions-static-html-2.s3.eu-central-1.amazonaws.com/e2e-${{ env.TEST_NAME }}-test-${{ env.CACHE_ID }}/index.html

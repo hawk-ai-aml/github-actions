@@ -24,10 +24,19 @@ on:
         description: "Name of the module"
         type: string
         required: true
+      useSonarCloud:
+        description: "Use SonarCloud for code quality checks"
+        type: boolean
+        required: false
+        default: true
 
 defaults:
   run:
     shell: bash -l -ET -eo pipefail {0}
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
 
 jobs:
   init:
@@ -44,6 +53,8 @@ jobs:
       ecr-registry-code: ${{ steps.init.outputs.ecr-registry-code }}
       ecr-region: ${{ steps.init.outputs.ecr-region }}
       metadata: ${{ steps.init.outputs.metadata }}
+      use-sonarcloud: ${{ steps.init.outputs.use-sonarcloud }}
+      custom-tags: ${{ steps.custom-tags.outputs.custom_tags }}
 
     steps:
       - id: init
@@ -56,13 +67,27 @@ jobs:
           repository-name: hawk-ai-aml/${{ inputs.component }}
           repository-ref: ${{ env.GITHUB_REF_NAME }}
           repository-access-token: ${{ secrets.REPO_ACCESS_PAT }}
+          use-sonarcloud: ${{ inputs.useSonarCloud }}
+
+      - id: custom-tags
+        name: Generate a list of Docker tags for all modules
+        env:
+          ECR_REPOSITORIES: ${{ steps.init.outputs.ecr-repositories }}
+          IMAGE_TAG: ${{ steps.init.outputs.image-tag }}
+        run: |
+          CUSTOM_TAGS=""
+          for repo in $ECR_REPOSITORIES; do
+            NEW_TAG=${repo}-${IMAGE_TAG}
+            CUSTOM_TAGS="$CUSTOM_TAGS $NEW_TAG"
+          done
+          echo "custom_tags=$CUSTOM_TAGS" >> $GITHUB_OUTPUT
 
   build:
     needs: [ init ]
     runs-on: [ "self-hosted", "builder" ]
     steps:
 
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
       - name: Login to Docker Hub
         uses: docker/login-action@v2
@@ -103,16 +128,36 @@ jobs:
         run: ./gradlew :${{ inputs.module }}:checkQualityMain
 
       - name: Run Tests for <${{ inputs.component }}/${{ inputs.module }}>
-        if: ${{ needs.init.outputs.skip-tests != 'true' }}
+        if: ${{ needs.init.outputs.skip-tests != 'true' && needs.init.outputs.use-sonarcloud != 'true'}}
         env:
           ARTIFACTORY_CONTEXT_URL: ${{ secrets.ARTIFACTORY_CONTEXT_URL }}
           ARTIFACTORY_USERNAME: ${{ secrets.ARTIFACTORY_USERNAME }}
           ARTIFACTORY_PASSWORD: ${{ secrets.ARTIFACTORY_PASSWORD }}
           GRADLE_CACHE_USERNAME: ${{ secrets.GRADLE_CACHE_USERNAME }}
           GRADLE_CACHE_PASSWORD: ${{ secrets.GRADLE_CACHE_PASSWORD }}
+          ELASTICSEARCH_USERNAME: ${{ secrets.ELASTICSEARCH_USERNAME }}
+          ELASTICSEARCH_PASSWORD: ${{ secrets.ELASTICSEARCH_PASSWORD }}
           DISABLE_SLACK: true
         run: |
           ./gradlew :${{ inputs.module }}:check :${{ inputs.module }}:jacocoTestReport :${{ inputs.module }}:jacocoTestCoverageVerification -isS
+
+      - name: Run Tests for <${{ inputs.component }}/${{ inputs.module }} With Sonar>
+        if: ${{ needs.init.outputs.skip-tests != 'true' && needs.init.outputs.use-sonarcloud == 'true'}}
+        env:
+          ARTIFACTORY_CONTEXT_URL: ${{ secrets.ARTIFACTORY_CONTEXT_URL }}
+          ARTIFACTORY_USERNAME: ${{ secrets.ARTIFACTORY_USERNAME }}
+          ARTIFACTORY_PASSWORD: ${{ secrets.ARTIFACTORY_PASSWORD }}
+          GRADLE_CACHE_USERNAME: ${{ secrets.GRADLE_CACHE_USERNAME }}
+          GRADLE_CACHE_PASSWORD: ${{ secrets.GRADLE_CACHE_PASSWORD }}
+          ELASTICSEARCH_USERNAME: ${{ secrets.ELASTICSEARCH_USERNAME }}
+          ELASTICSEARCH_PASSWORD: ${{ secrets.ELASTICSEARCH_PASSWORD }}
+          DISABLE_SLACK: true
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
+          SONAR_ORGANIZATION: ${{ secrets.SONAR_ORGANIZATION }}
+        run: |
+          ./gradlew :${{ inputs.module }}:check :${{ inputs.module }}:jacocoTestReport sonar -isS
+
 
       - name: License Report for <${{ inputs.component }}/${{ inputs.module }}>
         env:
@@ -132,7 +177,7 @@ jobs:
             if [[ -d ${module}/build/reports ]]; then
               cp -r ${module}/build/reports reports/${module}/build/reports
             fi
-          
+
             if [[ -d ${module}/build/jacocoHtml ]]; then
               cp -r ${module}/build/jacocoHtml reports/${module}/build/jacocoHtml
             fi
@@ -149,32 +194,51 @@ jobs:
           source_dir: reports
           destination_dir: ${{ github.event.repository.name }}-${{ github.run_id }}
 
-      - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v1
-        with:
-          aws-access-key-id: ${{ secrets.AWS_ORG_ECR_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_ORG_ECR_SECRET_ACCESS_KEY }}
-          aws-region: ${{ needs.init.outputs.ecr-region }}
-
-      - name: Login to Amazon ECR
-        id: login-ecr
-        uses: aws-actions/amazon-ecr-login@v2
-        with:
-          registries: ${{ needs.init.outputs.ecr-registry-code }}
+      - name: Get ECR info
+        id: ecr-info
+        env:
+          CUSTOM_TAGS: ${{ needs.init.outputs.custom-tags }}
+          MODULE: ${{ inputs.module }}
+          KUSTOMIZE_OVERLAYS: ${{ inputs.kustomizeOverlays }}
+        run: |
+          if [[ $KUSTOMIZE_OVERLAYS == "prod" ]]; then
+            MATCHED_TAG=$(echo "$CUSTOM_TAGS" | tr ' ' '\n' | grep "^$MODULE-[0-9]"  | head -n 1 || true)
+          else
+            MATCHED_TAG=$(echo "$CUSTOM_TAGS" | tr ' ' '\n' | grep -E "(^|[-])${MODULE}([-]|$)" | head -n 1 || true)
+          fi
+          echo "matched_tag=$MATCHED_TAG" >> $GITHUB_OUTPUT
 
       - name: Build Docker Images for <${{ inputs.component }}/${{ inputs.module }}>
-        env:
-          ARTIFACTORY_CONTEXT_URL: ${{ secrets.ARTIFACTORY_CONTEXT_URL }}
-          ARTIFACTORY_USERNAME: ${{ secrets.ARTIFACTORY_USERNAME }}
-          ARTIFACTORY_PASSWORD: ${{ secrets.ARTIFACTORY_PASSWORD }}
-          GRADLE_CACHE_USERNAME: ${{ secrets.GRADLE_CACHE_USERNAME }}
-          GRADLE_CACHE_PASSWORD: ${{ secrets.GRADLE_CACHE_PASSWORD }}
-          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
-          ECR_REPOSITORY_PREFIX: ${{ fromJson(needs.init.outputs.metadata).ecr.repository-prefix }}
-        run: |
-          ./gradlew :${{ inputs.module }}:jib \
-            -DIMAGE_NAME="${ECR_REGISTRY}/${ECR_REPOSITORY_PREFIX}" \
-            -DTAG_COMMIT=${{ needs.init.outputs.image-tag }}
+        id: build-docker-image
+        uses: hawk-ai-aml/github-actions/build-docker-image-java@master
+        with:
+          multiple-modules: "true"
+          module: ${{ inputs.module }}
+          image-tag: ${{ needs.init.outputs.image-tag }}
+          custom-image-tag: ${{ steps.ecr-info.outputs.matched_tag }}
+          ecr-repository-prefix: ${{ fromJson(needs.init.outputs.metadata).ecr.repository-prefix }}
+          ecr-registry: ${{ steps.login-ecr.outputs.registry }}
+          ecr-repository: ${{ fromJson(needs.init.outputs.metadata).ecr.repository }}
+          kustomize-overlays: ${{ inputs.kustomizeOverlays }}
+          hawk-platform-repository: "hawk-platform"
+          aws-org-ecr-access-key-id: ${{ secrets.AWS_ORG_ECR_ACCESS_KEY_ID }}
+          aws-org-ecr-secret-access-key: ${{ secrets.AWS_ORG_ECR_SECRET_ACCESS_KEY }}
+          ecr-region: ${{ needs.init.outputs.ecr-region }}
+          ecr-registry-code: ${{ needs.init.outputs.ecr-registry-code }}
+          gradle-cache-username: ${{ secrets.GRADLE_CACHE_USERNAME }}
+          gradle-cache-password: ${{ secrets.GRADLE_CACHE_PASSWORD }}
+          artifactory-context-url: ${{ secrets.ARTIFACTORY_CONTEXT_URL }}
+          artifactory-username: ${{ secrets.ARTIFACTORY_USERNAME }}
+          artifactory-password: ${{ secrets.ARTIFACTORY_PASSWORD }}
+
+      - name: Slack notification for failed build status
+        uses: hawk-ai-aml/github-actions/send-slack-notification@master
+        if: failure()
+        with:
+          notify-pr-author: true
+          slack-message: ":x: Your build failed. Please check the reason for it."
+          slack-access-token: ${{ secrets.SLACK_RELEASE_BOT_ACCESS_TOKEN }}
+          github-users-access-token: ${{ secrets.USER_GITHUB_ACCESS }}
 
   update-overlays:
     needs: [ init, build ]
@@ -185,10 +249,14 @@ jobs:
       - name: Update kustomize overlay
         uses: hawk-ai-aml/github-actions/kustomize-overlay@master
         with:
+          slack-access-token: ${{ secrets.SLACK_RELEASE_BOT_ACCESS_TOKEN }}
+          github-users-access-token: ${{ secrets.USER_GITHUB_ACCESS }}
           overlays: ${{ needs.init.outputs.overlays }}
+          kustomize-overlays: ${{ inputs.kustomizeOverlays }}
           modules: ${{ inputs.module }}
           component-name: ${{ inputs.component }}
           component-tag: ${{ needs.init.outputs.image-tag }}
+          component-custom-tags: ${{ needs.init.outputs.custom-tags }}
           kustomize-repo: hawk-ai-aml/kustomize.git
           kustomize-access-token: ${{ secrets.REPO_ACCESS_PAT }}
           ecr-region: ${{ needs.init.outputs.ecr-region }}

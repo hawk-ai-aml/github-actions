@@ -1,0 +1,43 @@
+name: check-docker-tag-exists
+description: Check if the docker tag exists or not
+
+inputs:
+  ecr-repository:
+    description: "Name of the ECR repository"
+    required: true
+  image-tag:
+    description: "Repository access token"
+    required: true
+
+outputs:
+  tag_already_exists:
+    description: 'Boolean value indicating if the docker image already exists in given ECR registry'
+    value: ${{ steps.check-tag.outputs.tag_already_exists }}
+
+runs:
+  using: composite
+  steps:
+    - shell: bash -l -ET -eo pipefail {0}
+      id: check-tag
+      env:
+        ECR_REPOSITORY: ${{ inputs.ecr-repository }}
+        IMAGE_TAG: ${{ inputs.image-tag }}
+      run: |
+
+        # Check if 'repository' field exists in the JSON data
+        if [ "$(echo '$ECR_REPOSITORY' | jq -e 'has("repository")' 2>/dev/null)" == "true" ]; then
+            # If 'repository' exists, assign it to ECR_REPOSITORY
+            # Extract the repository name using jq
+            ECR_REPOSITORY=$(echo '$ECR_REPOSITORY' | jq -r '.repository')
+        fi
+
+        # Check if docker tag already exists
+        tag_exists=$(aws ecr describe-images \
+          --repository-name "$ECR_REPOSITORY" \
+          --image-ids imageTag="$IMAGE_TAG" \
+          --region eu-central-1 > /dev/null 2>&1 && echo "true" || echo "false")
+
+        # Workflow outputs
+        cat <<EOF | tee -a ${GITHUB_STEP_SUMMARY} | tee -a ${GITHUB_OUTPUT}
+        tag_already_exists=$tag_exists
+        EOF

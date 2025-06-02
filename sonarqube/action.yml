@@ -1,0 +1,27 @@
+name: sonarqube
+description: "Run SonarQube Cloud Scan"
+inputs:
+  args:
+    description: "Arguments for SonarQube scan"
+    required: false
+  projectBaseDir:
+    description: "Project base directory"
+    required: false
+  sonarToken:
+    description: "SonarQube token"
+    required: true
+  sonarHostUrl:
+    description: "SonarQube host URL"
+    required: true
+runs:
+  using: "composite"
+  steps:
+    - name: SonarQube Cloud Scan
+      uses: SonarSource/sonarqube-scan-action@v4.2.1
+      with:
+        args: >
+          ${{ inputs.args }}
+        projectBaseDir: ${{ inputs.projectBaseDir }}
+      env:
+        SONAR_TOKEN: ${{ inputs.sonarToken }}
+        SONAR_HOST_URL: ${{ inputs.sonarHostUrl }}

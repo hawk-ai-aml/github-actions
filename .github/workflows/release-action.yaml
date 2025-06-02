@@ -31,12 +31,12 @@ jobs:
       max-parallel: 2
       matrix:
         environment: ${{fromJson(inputs.environments)}}
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-latest
     steps:
       - name: Sync Argo CD
         run: echo "Here we will refresh and sync Argo CD in the first environment"
       - name: Checkout E2E-Tests repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           repository: ${{ inputs.tests-repository }}
           token: ${{ secrets.TOKEN }}
@@ -61,7 +61,7 @@ jobs:
           mv /home/runner/work/kustomize-cicd/kustomize-cicd/config/build/reports/tests/* github-artifactory
       - name: Upload test result file to GitHub Artifactory
         if: ${{ failure() }}
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v4
         with:
           name: test-results
           path: github-artifactory

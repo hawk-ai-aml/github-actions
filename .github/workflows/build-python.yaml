@@ -25,6 +25,11 @@ on:
         type: boolean
         required: false
         default: false
+      useSonarCloud:
+        description: "Use SonarCloud for code quality checks"
+        type: boolean
+        required: false
+        default: true
 
 defaults:
   run:
@@ -45,6 +50,8 @@ jobs:
       ecr-registry-code: ${{ steps.init.outputs.ecr-registry-code }}
       ecr-region: ${{ steps.init.outputs.ecr-region }}
       metadata: ${{ steps.init.outputs.metadata }}
+      use-sonarcloud: ${{ steps.init.outputs.use-sonarcloud }}
+      custom-tags: ${{ steps.custom-tags.outputs.custom_tags }}
 
     steps:
       - id: init
@@ -57,12 +64,40 @@ jobs:
           repository-name: hawk-ai-aml/${{ inputs.component }}
           repository-ref: ${{ env.GITHUB_REF_NAME }}
           repository-access-token: ${{ secrets.REPO_ACCESS_PAT }}
+          use-sonarcloud: ${{ inputs.useSonarCloud }}
+
+      - id: custom-tags
+        name: Generate a list of Docker tags for all modules
+        env:
+          ECR_REPOSITORIES: ${{ steps.init.outputs.ecr-repositories }}
+          IMAGE_TAG: ${{ steps.init.outputs.image-tag }}
+        run: |
+          CUSTOM_TAGS=""
+          for repo in $ECR_REPOSITORIES; do
+            NEW_TAG=${repo}-${IMAGE_TAG}
+            CUSTOM_TAGS="$CUSTOM_TAGS $NEW_TAG"
+          done
+          echo "custom_tags=$CUSTOM_TAGS" >> $GITHUB_OUTPUT
 
   build:
     needs: init
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - name: Checkout master
+        uses: actions/checkout@v4
+        with:
+          ref: master
+          # From SonarCloud Scan GitHub Action
+          # Disabling shallow clone is recommended for improving relevancy of reporting
+          fetch-depth: 1000
+
+      - name: Checkout current branch
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ env.GITHUB_REF_NAME }}
+          # From SonarCloud Scan GitHub Action
+          # Disabling shallow clone is recommended for improving relevancy of reporting
+          fetch-depth: 1000
 
       - uses: actions/setup-python@v4
         with:
@@ -85,8 +120,13 @@ jobs:
           APP_CONFIG_YAML_PATH: "tests"
           PY_UTILS_PAT: ${{ secrets.PY_UTILS_PAT}}
         run: |
+          pipenv --python=$(which python)
           pipenv --clear
-          pipenv install --dev
+          if [ -f "Pipfile.lock" ]; then
+              pipenv sync --dev
+          else
+              pipenv install --dev
+          fi
           pipenv lock --keep-outdated > pipenv-requirements.txt
           pipenv requirements > requirements.txt
           pipenv run tests --junitxml=report.xml
@@ -104,47 +144,69 @@ jobs:
           source_dir: ./report-dir
           destination_dir: ${{ github.event.repository.name }}-${{ github.run_id }}
 
-      - name: Configure AWS credentials
-        if: ${{ github.workflow != 'pr' }}
-        uses: aws-actions/configure-aws-credentials@v1
+      - name: SonarCloud Scan
+        if: ${{ needs.init.outputs.skip-tests != 'true' && needs.init.outputs.use-sonarcloud == 'true'}}
+        uses: hawk-ai-aml/github-actions/sonarqube@master
         with:
-          aws-access-key-id: ${{ secrets.AWS_ORG_ECR_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_ORG_ECR_SECRET_ACCESS_KEY }}
-          aws-region: ${{ needs.init.outputs.ecr-region }}
+          args: >
+            -Dsonar.python.version=${{ fromJson(needs.init.outputs.metadata).python-version }}
+          sonarToken: ${{ secrets.SONAR_TOKEN }}
+          sonarHostUrl: ${{ secrets.SONAR_HOST_URL }}
 
-      - name: Login to Amazon ECR
-        id: login-ecr
-        if: ${{ github.workflow != 'pr' }}
-        uses: aws-actions/amazon-ecr-login@v2
-        with:
-          registries: ${{ needs.init.outputs.ecr-registry-code }}
+      - name: Clean up workspace
+        run: |
+          echo "Current virtual env size"
+          du -hcs $(pipenv --venv)
+          pipenv --clear
+          pipenv --rm
+          echo "Current disk usage:"
+          df -h /
 
-      - name: check if docker image tag exists in ECR
-        id: check-tag
+      - name: Get ECR info
+        id: ecr-info
+        env:
+          CUSTOM_TAGS: ${{ needs.init.outputs.custom-tags }}
+          MODULE: ${{ inputs.component }}
+          KUSTOMIZE_OVERLAYS: ${{ inputs.kustomizeOverlays }}
+        run: |
+          if [[ "$MODULE" == *"_"* ]]; then
+            MODULE="${MODULE//_/-}"
+          fi
+
+          if [[ $KUSTOMIZE_OVERLAYS == "prod" ]]; then
+            MATCHED_TAG=$(echo "$CUSTOM_TAGS" | tr ' ' '\n' | grep "^$MODULE-[0-9]"  | head -n 1 || true)
+          else
+            MATCHED_TAG=$(echo "$CUSTOM_TAGS" | tr ' ' '\n' | grep -E "(^|[-])${MODULE}([-]|$)" | head -n 1 || true)
+          fi
+          echo "matched_tag=$MATCHED_TAG" >> $GITHUB_OUTPUT
+
+      - name: Build Docker Image
         if: ${{ github.workflow != 'pr' }}
-        uses: hawk-ai-aml/github-actions/check-docker-tag-exists@master
+        uses: hawk-ai-aml/github-actions/build-docker-image-python@master
         with:
+          multiple-modules: "false"
+          module: ${{ inputs.component }}
+          image-tag: ${{ needs.init.outputs.image-tag }}
+          ecr-repository-prefix: ${{ inputs.ecr-prefix }}
+          custom-image-tag: ${{ steps.ecr-info.outputs.matched_tag }}
+          kustomize-overlays: ${{ inputs.kustomizeOverlays }}
           ecr-registry: ${{ steps.login-ecr.outputs.registry }}
           ecr-repository: ${{ fromJson(needs.init.outputs.metadata).ecr.repository }}
-          image-tag: ${{ needs.init.outputs.image-tag }}
+          hawk-platform-repository: "hawk-platform"
+          aws-org-ecr-access-key-id: ${{ secrets.AWS_ORG_ECR_ACCESS_KEY_ID }}
+          aws-org-ecr-secret-access-key: ${{ secrets.AWS_ORG_ECR_SECRET_ACCESS_KEY }}
+          ecr-region: ${{ needs.init.outputs.ecr-region }}
+          ecr-registry-code: ${{ needs.init.outputs.ecr-registry-code }}
+          py-utils-pat: ${{ secrets.PY_UTILS_PAT }}
 
-      - name: Build image
-        if: ${{ github.workflow != 'pr' && steps.check-tag.outputs.tag_already_exists != 'true' }}
-        env:
-          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
-          ECR_REPOSITORY: ${{ fromJson(needs.init.outputs.metadata).ecr.repository }}
-          PY_UTILS_PAT: ${{ secrets.PY_UTILS_PAT}}
-        run: |
-          DOCKER_BUILDKIT=1 docker build --build-arg PY_UTILS_PAT=${PY_UTILS_PAT} -t ${ECR_REGISTRY}/${ECR_REPOSITORY}:${{ needs.init.outputs.image-tag }} .
-
-      - name: Push Image
-        id: push-image
-        if: ${{ github.workflow != 'pr' && steps.check-tag.outputs.tag_already_exists != 'true' }}
-        env:
-          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
-          ECR_REPOSITORY: ${{ fromJson(needs.init.outputs.metadata).ecr.repository }}
-        run: |
-          docker push ${ECR_REGISTRY}/${ECR_REPOSITORY}:${{ needs.init.outputs.image-tag }}
+      - name: Slack notification for failed build status
+        uses: hawk-ai-aml/github-actions/send-slack-notification@master
+        if: failure()
+        with:
+          notify-pr-author: true
+          slack-message: ":x: Your build failed. Please check the reason for it."
+          slack-access-token: ${{ secrets.SLACK_RELEASE_BOT_ACCESS_TOKEN }}
+          github-users-access-token: ${{ secrets.USER_GITHUB_ACCESS }}
 
   vulnerability-check-run:
     if: ${{ inputs.vulnerabilityCheck == true }}
@@ -180,10 +242,14 @@ jobs:
       - name: Update kustomize overlay
         uses: hawk-ai-aml/github-actions/kustomize-overlay@master
         with:
+          slack-access-token: ${{ secrets.SLACK_RELEASE_BOT_ACCESS_TOKEN }}
+          github-users-access-token: ${{ secrets.USER_GITHUB_ACCESS }}
           overlays: ${{ needs.init.outputs.overlays }}
+          kustomize-overlays: ${{ inputs.kustomizeOverlays }}
           modules: ${{ needs.init.outputs.kustomize-modules-string }}
           component-name: ${{ inputs.component }}
           component-tag: ${{ needs.init.outputs.image-tag }}
+          component-custom-tags: ${{ needs.init.outputs.custom-tags }}
           kustomize-repo: hawk-ai-aml/kustomize.git
           kustomize-access-token: ${{ secrets.REPO_ACCESS_PAT }}
           ecr-region: ${{ needs.init.outputs.ecr-region }}

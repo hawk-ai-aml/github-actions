@@ -12,7 +12,7 @@ inputs:
     default: master
 
   repository-user:
-    description: "User can access the repository"
+    description: "User that can access the repository"
     required: true
 
   repository-access-token:
@@ -20,23 +20,23 @@ inputs:
     required: true
 
   modules-string:
-    description: "Module nane in string"
+    description: "Module names as string"
     required: true
 
 outputs:
   updated-modules:
-    description: 'The list of modules has the code changes'
+    description: "The list of modules that have the code changes"
     value: ${{ steps.changes.outputs.updatedModules }}
 
   updated-modules-string:
-    description: 'The list of modules has the code changes in string'
+    description: "The list of modules that have the code changes, as string"
     value: ${{ steps.changes.outputs.updatedModulesString }}
 
 runs:
   using: composite
   steps:
-    - name: Checkout Kustomize
-      uses: actions/checkout@v3
+    - name: Checkout repository
+      uses: actions/checkout@v4
       with:
         repository: ${{ inputs.repository }}
         ref: ${{ inputs.repository-ref }}
@@ -54,6 +54,9 @@ runs:
       run: |
         echo "WORKFLOW_TYPE: $WORKFLOW_TYPE"
         SPACE=" "
+        FILES=""
+        MODULES=""
+        MODULE_LIST_STRING=""
 
         case $WORKFLOW_TYPE in
           "manual")
@@ -62,14 +65,14 @@ runs:
 
             COMMIT_IDS=$(curl -s https://api.github.com/repos/$REPOSITORY/commits\?sha\=${CURRENT_BRANCH} -u "$USER:$TOKEN" | jq -r '[.[] | if .commit.verification.signature == null then .sha else 1 end] | join(" ")')
             echo "IDS: ${COMMIT_IDS}"
-        
+
             for id in ${COMMIT_IDS}; do
               if [[ $id == 1 ]]; then
                 break
               fi
-      
+
               FILES=$(curl -s https://api.github.com/repos/$REPOSITORY/commits/${id} -u "$USER:$TOKEN" | jq -r '[.files | .[] | select(.status == "modified") | .filename] | join(" ")')
-      
+
               for module in $REPOSITORY_MODULES; do
                 for file in $FILES; do
                   IFS='/' read -ra ADDR <<< "$file"
@@ -85,9 +88,26 @@ runs:
           "pr")
             PULL_NUMBER=$(jq --raw-output .pull_request.number "$GITHUB_EVENT_PATH")
             echo "PR: ${PULL_NUMBER}";
+        
+            PAGE=1
+            while true; do
+              echo "Page: $PAGE"
+            
+              FS=$(curl -s -H "Authorization: token $TOKEN" "https://api.github.com/repos/$REPOSITORY/pulls/${PULL_NUMBER}/files?per_page=100&page=${PAGE}" | jq -r '[.[] | .filename] | join(" ")')
+              FILES=${FILES}${SPACE}${FS}
+              COUNT=$(echo $FILES | wc -w)
+              echo "FILES: $COUNT"
 
-            FILES=$(curl -s https://api.github.com/repos/$REPOSITORY/pulls/${PULL_NUMBER}/files -u "$USER:$TOKEN" | jq -r '[.[] | .filename] | join(" ")')
-          
+              NEXT_PAGE=$(curl -sI -H "Authorization: token $TOKEN" "https://api.github.com/repos/$REPOSITORY/pulls/$PULL_NUMBER/files?per_page=100&page=${PAGE}" | grep -i "^Link:" | grep -oP '(?<=<)[^>]+(?=>; rel="next")' | tr -d '[:space:]' || echo "")
+              echo "NEXT_PAGE: $NEXT_PAGE"
+            
+              if [ -z "$NEXT_PAGE" ]; then
+                break
+              fi
+            
+              ((PAGE++))
+            done
+        
             for module in $REPOSITORY_MODULES; do
               for file in $FILES; do
                 IFS='/' read -ra ADDR <<< "$file"
@@ -109,7 +129,7 @@ runs:
 
         echo "MODULES=${MODULES}"
         echo "FILES=${FILES}"
-        
+
         CORE_CHANGES=false
 
         for file in $FILES; do
@@ -118,7 +138,7 @@ runs:
             break
           fi
         done
-        
+
         if [[ ((${MODULES} == "" || ${MODULES} == "\"core\",") && $(echo ${#FILES}) != 0) || ((${MODULES} == "" || ${MODULES} == "\"core\",") && $CORE_CHANGES == true) ]];  then
           for module in $REPOSITORY_MODULES; do
             if [[ $MODULES != *"$module"* ]];  then
@@ -127,7 +147,7 @@ runs:
             fi
           done
         fi
-        
+
         LENGTH_OF_MODULE_LIST=$(echo ${#MODULES})
         MODULES=${MODULES:0:${LENGTH_OF_MODULE_LIST}-1}
         MODULES="[${MODULES}]"
@@ -137,5 +157,3 @@ runs:
         updatedModules=${MODULES}
         updatedModulesString=${MODULE_LIST_STRING}
         EOF
-
-# End of file

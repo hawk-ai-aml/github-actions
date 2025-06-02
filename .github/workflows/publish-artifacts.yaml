@@ -16,6 +16,11 @@ on:
         type: string
         required: true
         default: ""
+      publishTask:
+        description: "Parameter to choose task that will be run in publish step"
+        type: string
+        required: false
+        default: "artifactoryPublish"
 
 defaults:
   run:
@@ -44,7 +49,7 @@ jobs:
     runs-on: [ "self-hosted", "builder" ]
     steps:
 
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
       - name: Set up JDK
         uses: actions/setup-java@v3
@@ -137,14 +142,16 @@ jobs:
           ARTIFACTORY_USERNAME: ${{ secrets.ARTIFACTORY_DEPLOY_USERNAME }}
           ARTIFACTORY_PASSWORD: ${{ secrets.ARTIFACTORY_DEPLOY_PASSWORD }}
         run: |
+          publishTask="${{ inputs.publishTask }}"
+
           if [ "${{ inputs.artifacts }}" == "" ]; then
-            ./gradlew artifactoryPublish
+            ./gradlew $publishTask
           else
             artifacts=(${{ inputs.artifacts }})
             echo "Number of artifacts: ${#artifacts[@]}"
             for i in "${artifacts[@]}"
             do
                echo "Publishing: $i"
-              ./gradlew :$i:artifactoryPublish
+              ./gradlew :$i:$publishTask
             done
           fi

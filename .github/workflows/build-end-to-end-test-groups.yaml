@@ -1,0 +1,201 @@
+name: end-to-end-tests
+on:
+  workflow_call:
+    inputs:
+      environment:
+        type: string
+        description: Environment
+        required: true
+      group:
+        type: string
+        description: Test group name
+        required: true
+      ref:
+        type: string
+        description: Tag or branch name
+        required: true
+      metadata:
+        description: The metadata for the test
+        type: string
+        required: false
+
+defaults:
+  run:
+    shell: bash -l -ET -eo pipefail {0}
+
+jobs:
+  test:
+    runs-on: [ "self-hosted", "tester" ]
+
+    outputs:
+      url: ${{ steps.report-url.outputs.url }}
+      test_status: ${{ steps.status.outputs.test_status }}
+
+    steps:
+      - name: Display test tools versions
+        run: |
+          printf "## wget: $(wget --version | head -n 1)\n"
+          printf "## node: $(node --version) / npm: $(npm --version) / jq: $(jq --version)\n"
+          printf "## curl: $(curl --version | head -n 1)\n"
+          printf "## java: $(java --version | head -n 1) [$(readlink -f $(which java))]\n"
+          printf "## java-home: $JAVA_HOME\n"
+          printf "## chrome-driver: $(chromedriver --version) / [$(which chromedriver)]\n"
+          printf "## chrome-browser: $(google-chrome --version) / [$(which google-chrome)]\n"
+          printf "## allure: $(allure --version)\n"
+
+      - name: Cleanup old checkout
+        run: |
+          if [ -d "${GITHUB_WORKSPACE}" ]; then
+            echo "Directory exists"
+            sudo chmod +w -R ${GITHUB_WORKSPACE}
+          else
+            echo "Directory does not exist continue checkout job"
+          fi
+
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.ref }}
+
+      # +++++++++++++++++++++++++++++++++++++ START-SETUP +++++++++++++++++++++++++++++++++++++
+      - name: Generate test history cache ID
+        run: |
+          echo CACHE_ID=$(date +'%Y-%m-%dT%H:%M:%S') >> $GITHUB_ENV
+          echo CACHE_PATH="$GITHUB_WORKSPACE/${{ inputs.environment }}-${{ inputs.group }}-test-histories/" >> $GITHUB_ENV
+
+      - name: Create test history cache folder
+        continue-on-error: true
+        run: |
+          pwd
+          mkdir ${{ inputs.environment }}-${{ inputs.group }}-test-histories
+          echo "init at - $(date +'%Y-%m-%dT%H:%M:%S')" >> ${{ inputs.environment }}-${{ inputs.group }}-test-histories/init-cache.txt
+
+      - name: Caching test history
+        id: cache-test-history
+        if: always()
+        uses: actions/cache@v4
+        continue-on-error: true
+        with:
+          path: ${{ env.CACHE_PATH }}
+          key: ${{ runner.os }}-${{ inputs.environment }}-${{ inputs.group }}-test-histories-${{ env.CACHE_ID }}
+          restore-keys: |
+            ${{ runner.os }}-${{ inputs.environment }}-${{ inputs.group }}-test-histories-
+
+      # ------------------------------------- END-SETUP --------------------------------------
+      # +++++++++++++++++++++++++++++++++++++ START-TEST +++++++++++++++++++++++++++++++++++++
+      - name: Run <${{ inputs.group }} tests on ${{ inputs.environment }}>
+        id: run-e2e-test
+        env:
+          TEST_MAILBOX_PASSWORD: ${{ secrets.AUTH0_DEV_API_CLIENT_SECRET }}
+          AUTH0_DEV_API_CLIENT_SECRET: ${{ secrets.AUTH0_DEV_API_CLIENT_SECRET }}
+          AUTH0_PROD_API_CLIENT_SECRET: ${{ secrets.AUTH0_PROD_API_CLIENT_SECRET }}
+          AUTH0_PROD_US_EAST_API_CLIENT_SECRET: ${{ secrets.AUTH0_PROD_US_EAST_API_CLIENT_SECRET }}
+          AUTH0_PROD_AP_SOUTHEAST_API_CLIENT_SECRET: ${{ secrets.AUTH0_PROD_AP_SOUTHEAST_API_CLIENT_SECRET }}
+          AUTH0_PROD_CH_API_CLIENT_SECRET: ${{ secrets.AUTH0_PROD_CH_API_CLIENT_SECRET }}
+          AUTH0_PROD_KSA_API_CLIENT_SECRET: ${{ secrets.AUTH0_PROD_KSA_API_CLIENT_SECRET }}
+          AUTH0_NAB_QA_API_CLIENT_SECRET: ${{ secrets.AUTH0_PROD_US_EAST_API_CLIENT_SECRET }}
+          AUTH0_NAB_PROD_API_CLIENT_SECRET: ${{ secrets.AUTH0_PROD_US_EAST_API_CLIENT_SECRET }}
+
+          ARTIFACTORY_CONTEXT_URL: ${{ secrets.ARTIFACTORY_CONTEXT_URL }}
+          ARTIFACTORY_USERNAME: ${{ secrets.ARTIFACTORY_USERNAME }}
+          ARTIFACTORY_PASSWORD: ${{ secrets.ARTIFACTORY_PASSWORD }}
+          GRADLE_CACHE_USERNAME: ${{ secrets.GRADLE_CACHE_USERNAME }}
+          GRADLE_CACHE_PASSWORD: ${{ secrets.GRADLE_CACHE_PASSWORD }}
+
+          DEV_REDIS_HOST: ${{ secrets.DEV_REDIS_HOST }}
+          DEV_REDIS_PORT: ${{ secrets.DEV_REDIS_PORT }}
+          DEV_REDIS_AUTH_TOKEN: ${{ secrets.DEV_REDIS_AUTH_TOKEN }}
+
+          E2E_USER_PASSWORD: ${{ secrets.E2E_USER_PASSWORD }}
+          E2E_SSO_LOGIN_USER_PASSWORD: ${{ secrets.E2E_SSO_LOGIN_USER_PASSWORD }}
+          E2E_USER_MANAGEMENT_USER_PASSWORD: ${{ secrets.E2E_USER_MANAGEMENT_USER_PASSWORD }}
+
+          E2E_GMAIL_CLIENT_ID: ${{ secrets.E2E_GMAIL_CLIENT_ID }}
+          E2E_GMAIL_CLIENT_SECRET: ${{ secrets.E2E_GMAIL_CLIENT_SECRET }}
+
+          ELASTICSEARCH_USERNAME: ${{ secrets.ELASTICSEARCH_USERNAME }}
+          ELASTICSEARCH_PASSWORD: ${{ secrets.ELASTICSEARCH_PASSWORD }}
+
+          environment: ${{ inputs.environment }}
+        continue-on-error: true
+        run: |
+          ./gradlew test -Dgroups=${{ inputs.group }} -Denvironment=${{ inputs.environment }} --continue -isS
+
+      # -------------------------------------- END-TEST --------------------------------------
+      # ++++++++++++++++++++++++++++++++++++ START-REPORT ++++++++++++++++++++++++++++++++++++
+
+      - name: Generate Allure reports
+        if: always()
+        run: |
+          pwd
+          mkdir "${{ inputs.group }}-allure-report"
+          echo "allure-results+++++++++++"
+          ls ${{ inputs.group }}-allure-results/*
+          echo "allure-results-----------"
+          allure generate ${{ inputs.group }}-allure-results -o ${{ inputs.group }}-allure-report --clean
+          ls ${{ inputs.group }}-allure-report/*
+
+      - name: Check test history cache
+        if: always()
+        run: |
+          pwd
+          ls ${{ inputs.environment }}-${{ inputs.group }}-test-histories/*
+
+      - name: Init/Update test history cache
+        if: always()
+        run: |
+          pwd
+          cp -a -r ${{ inputs.environment }}-${{ inputs.group }}-test-histories/* ${{ inputs.group }}-allure-results
+          echo "----------------------------------->>> Allure-results after merged"
+          # ls ${{ inputs.group }}-allure-results/*
+          mkdir ${{ inputs.group }}-allure-report2
+          allure generate ${{ inputs.group }}-allure-results -o ${{ inputs.group }}-allure-report2 --clean
+          echo "----------------------------------->>> New Allure report"
+          # ls ${{ inputs.group }}-allure-report2/*
+          cp -a -r ${{ inputs.group }}-allure-report2/history ${{ inputs.environment }}-${{ inputs.group }}-test-histories
+
+      - name: Check test history cache after generating new report
+        if: always()
+        run: |
+          pwd
+          ls ${{ inputs.environment }}-${{ inputs.group }}-test-histories/*
+
+      - name: Upload Allure results to GitHub Artifact
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: allure-results-${{ inputs.group }}
+          path: ${{ inputs.group }}-allure-results
+
+      - name: Upload Allure reports to S3
+        if: always()
+        uses: hawk-ai-aml/github-actions/upload-to-s3@master
+        with:
+          aws_access_key_id: ${{ secrets.AWS_DEV_ACCESS_KEY_ID }}
+          aws_secret_access_key: ${{ secrets.AWS_DEV_SECRET_ACCESS_KEY }}
+          aws_bucket: github-actions-static-html-2
+          source_dir: ${{ inputs.group }}-allure-report2
+          destination_dir: e2e-${{ inputs.group }}-test-${{ env.CACHE_ID }}
+
+      - name: Provide Allure report URL
+        id: report-url
+        if: always()
+        run: |
+          echo "url=https://github-actions-static-html-2.s3.eu-central-1.amazonaws.com/e2e-${{ inputs.group }}-test-${{ env.CACHE_ID }}/index.html" >> $GITHUB_OUTPUT
+
+      - name: Check test status
+        id: status
+        if: steps.run-e2e-test.outcome != 'success'
+        run: |
+          exit 1          
+
+  send-slack-notification:
+    needs: [ test ]
+    if: failure()
+    uses: hawk-ai-aml/github-actions/.github/workflows/send-slack-notification.yaml@master
+    secrets: inherit
+    with:
+      notify-pr-author: true
+      slack-message: ":x: :github: The `${{ inputs.group }} E2E Tests` for `${{ inputs.environment }}` environment failed.
+       \nThe Allure report is available at: ${{ needs.test.outputs.url }}
+       "
+      notify-slack-channel-name: "status-dev"

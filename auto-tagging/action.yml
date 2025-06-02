@@ -25,17 +25,25 @@ runs:
             local repo=$1
             local number=$2
             local token=$3
-            curl -s -H "Authorization: token $token" \
-                -H "Accept: application/vnd.github.v3+json" \
-                "https://api.github.com/repos/$repo/issues/$number/labels" | jq -r '.[].name'
+
+            response=$(curl -s -H "Authorization: token $token" \
+                              -H "Accept: application/vnd.github.v3+json" \
+                              "https://api.github.com/repos/$repo/issues/$number/labels")
+
+            echo "$response" | jq -r '.[].name' || echo "Failed to parse JSON with jq. Response was: $response"
         }
 
         PR_LABELS=$(get_pr_labels "$GITHUB_REPOSITORY" "$PR_NUMBER" "$GITHUB_TOKEN")
 
-        # Get the latest available tag
-        LATEST_TAG=$(git describe --tags --abbrev=0)
-
-        echo "latest!: $LATEST_TAG"
+        # Get the latest available tag and ensures that the command doesn't fail if no tags exist
+        # The command `git describe --tags --abbrev=0 2>/dev/null || true` cannot handle multiple tags for the same commit
+        LATEST_TAG=$(git tag --sort=committerdate | tail -2 | sort -V | tail -1 || true) # Get the last 2 tags and sort them, then get the last one
+        if [ -z "$LATEST_TAG" ]; then
+          echo "No tags found. Creating tag 0.0.1"
+          LATEST_TAG=0.0.0
+        else
+          echo "latest!: $LATEST_TAG"
+        fi
 
         # Extract major, minor, and patch versions from the latest tag
         MAJOR_VERSION=$(echo "$LATEST_TAG" | awk -F. '{print $1}')
@@ -65,15 +73,16 @@ runs:
         # Create the new tag and push it
         NEW_TAG="$NEW_MAJOR_VERSION.$NEW_MINOR_VERSION.$NEW_PATCH_VERSION"
 
-        echo "Detected label: $PR_LABELS"
-        echo "Old tag: $LATEST_TAG | Proposing tag: $NEW_TAG."
+        echo "Pull request version type: $PR_LABELS"
 
         # Workflow outputs
         cat <<EOF | tee -a ${GITHUB_STEP_SUMMARY} | tee -a ${GITHUB_OUTPUT}
         new_tag=$NEW_TAG
+        latest_tag=$LATEST_TAG
         EOF
 
     - name: Create tag
+      id: create-tag
       uses: actions/github-script@v5
       env:
         NEW_TAG: '${{ steps.generate-tag.outputs.new_tag }}'
@@ -92,3 +101,27 @@ runs:
             ref: `refs/tags/${newTag}`,
             sha: context.sha
           })
+
+    # the command `git describe --tags --abbrev=0 2>/dev/null || true` cannot handle multiple tags for the same commit
+    # for example, if the commit has tags v1.0.0 and v1.0.1, the command will return v1.0.0 and the create-tag step will fail
+    - name: Check for multiple tags
+      shell: bash -l -ET -eo pipefail {0}
+      if: steps.create-tag.outcome == 'failure'
+      env:
+        LATEST_TAG: ${{ steps.generate-tag.outputs.latest_tag }}
+      run: |
+        # Fetch tags associated with the commit pointed to by $LATEST_TAG
+        TAG_COUNT=$(git --no-pager tag --points-at "$LATEST_TAG" | wc -l | tr -d ' ')
+
+        if [[ "$TAG_COUNT" -gt 1 ]]; then
+          echo "❌ Error: Multiple tags ($TAG_COUNT) found pointing at commit $LATEST_TAG. Please delete invalid tags."
+          git --no-pager tag --points-at "$LATEST_TAG"
+          exit 1
+        elif [[ "$TAG_COUNT" -eq 0 ]]; then
+          echo "⚠️ Warning: No tags detected pointing at commit $LATEST_TAG."
+          exit 1
+        else
+          TAG_NAME=$(git --no-pager tag --points-at "$LATEST_TAG")
+          echo "✅ Exactly one tag ($TAG_NAME) detected. The failure might not be related to duplicated tags."
+          exit 0
+        fi

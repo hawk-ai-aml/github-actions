@@ -28,6 +28,14 @@ inputs:
     description: "Hint to use SonarCloud"
     required: false
     default: "false"
+  should-authorize-poetry:
+    description: "Hint to authorize poetry"
+    required: false
+    default: "true"
+  authorized-repos:
+    description: "List of authorized repositories"
+    required: false
+    default: ""
 
 outputs:
   overlays:
@@ -62,6 +70,10 @@ outputs:
     description: 'List of ecr image name'
     value: ${{ steps.vars.outputs.ecr-images }}
 
+  ecr-repositories:
+    description: 'List of ecr repository name'
+    value: ${{ steps.vars.outputs.ecr-repositories }}
+
   ecr-registry-code:
     description: 'The ERC registry code'
     value: ${{ steps.vars.outputs.ecr-registry-code }}
@@ -77,6 +89,14 @@ outputs:
   use-sonarcloud:
     description: 'Hint to use SonarCloud'
     value: ${{ steps.vars.outputs.use-sonarcloud }}
+
+  should-authorize-poetry:
+    description: 'Hint to authorize poetry'
+    value: ${{ steps.vars.outputs.should-authorize-poetry }}
+
+  authorized-repos:
+    description: 'List of authorized repositories'
+    value: ${{ steps.vars.outputs.authorized-repos }}
 
 runs:
   using: composite
@@ -113,9 +133,11 @@ runs:
         \`\`\`
         \`\`\`
         EOF
-        
+
         UPDATE_KUSTOMIZE=${{ inputs.update-kustomize }}
         UPDATE_KUSTOMIZE=${UPDATE_KUSTOMIZE:-false}
+
+        SHOUD_AUTHORIZE_POETRY=${{ inputs.should-authorize-poetry }}
 
         KUSTOMIZE_OVERLAYS=${{ inputs.overlays }}
         KUSTOMIZE_OVERLAYS=${KUSTOMIZE_OVERLAYS:-dev}
@@ -138,40 +160,42 @@ runs:
             IMAGE_TAG=${BUILD_BRANCH}-${GIT_SHA_SHORT}
           ;;
         esac
-                
+
         ECR_REGION=$(echo ${METADATA} | jq -r '.ecr.region')
         ECR_REGISTRY_CODE=$(echo ${METADATA} | jq -r '.ecr."registry-code"')
         ECR_URL=${ECR_REGISTRY_CODE}.dkr.ecr.${ECR_REGION}.amazonaws.com
-        
+
         # Build kustomize modules and ECR images
         SPACE=" "
         for module in $(echo ${METADATA} | jq -cr '.modules | keys | join(" ")'); do
           MODULE_LIST="${MODULE_LIST}\"${module}\","
           MODULE_LIST_STRING=${MODULE_LIST_STRING}${module}${SPACE}
-          
+
           MODULE_ECR=$(echo ${METADATA} | jq -cr --arg MODULE ${module} '.modules[$MODULE].ecr')
           if [[ ${MODULE_ECR} != "null" ]]; then
             MODULE_REPOSITORY=$(echo ${METADATA} | jq -cr --arg MODULE ${module} '.modules[$MODULE].ecr.repository')
             IMAGE_LIST="${IMAGE_LIST}\"${ECR_URL}/${MODULE_REPOSITORY}\","
+            ECR_REPOSITORY_LIST="${ECR_REPOSITORY_LIST} ${MODULE_REPOSITORY}"
           fi
         done
 
         LENGTH_OF_MODULE_LIST=$(echo ${#MODULE_LIST})
         MODULE_LIST=${MODULE_LIST:0:${LENGTH_OF_MODULE_LIST}-1}
         KUSTOMIZE_MODULES="[${MODULE_LIST}]"
-        
+
         LENGTH_OF_IMAGE_LIST=$(echo ${#IMAGE_LIST})
         IMAGE_LIST=${IMAGE_LIST:0:${LENGTH_OF_IMAGE_LIST}-1}
         IMAGE_LIST="[${IMAGE_LIST}]"
         ECR_IMAGES="${IMAGE_LIST}"
-        
+
         if [[ ${KUSTOMIZE_OVERLAYS} != "null" ]]; then
           OVERLAYS_JSON=$(echo ${METADATA} | jq -cr --arg OVERLAYS ${KUSTOMIZE_OVERLAYS} '.overlays[$OVERLAYS]')
         fi
-        
+
         OVERLAYS_STRING=$(echo ${OVERLAYS_JSON} | jq -r 'join(" ")')
-        
+
         USE_SONARCLOUD=${{ inputs.use-sonarcloud }}
+        AUTHORIZED_REPOS=${{ inputs.authorized-repos }}
 
         # Workflow outputs
         cat <<EOF | tee -a ${GITHUB_STEP_SUMMARY} | tee -a ${GITHUB_OUTPUT}
@@ -183,10 +207,13 @@ runs:
         kustomize-modules=${KUSTOMIZE_MODULES}
         kustomize-modules-string=${MODULE_LIST_STRING}
         ecr-images=${ECR_IMAGES}
+        ecr-repositories=${ECR_REPOSITORY_LIST}
         ecr-registry-code=${ECR_REGISTRY_CODE}
         ecr-region=${ECR_REGION}
         metadata=${METADATA}
         use-sonarcloud=${USE_SONARCLOUD}
+        should-authorize-poetry=${SHOUD_AUTHORIZE_POETRY}
+        authorized-repos=${AUTHORIZED_REPOS}
         EOF
 
         cat <<EOF | tee -a ${GITHUB_STEP_SUMMARY}

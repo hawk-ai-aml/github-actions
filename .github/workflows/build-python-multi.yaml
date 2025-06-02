@@ -31,6 +31,16 @@ on:
         type: boolean
         required: false
         default: false
+      useSonarCloud:
+        description: "Use SonarCloud for code quality checks"
+        type: boolean
+        required: false
+        default: true
+      blockPullRequestIfSonarFails:
+        description: "Block the pull request if SonarCloud check fails"
+        type: boolean
+        required: false
+        default: false
 
 jobs:
   init:
@@ -49,6 +59,7 @@ jobs:
       metadata: ${{ steps.init.outputs.metadata }}
       updated-modules: ${{ steps.detect-changes.outputs.updated-modules }}
       updated-modules-string: ${{ steps.detect-changes.outputs.updated-modules-string }}
+      custom-tags: ${{ steps.custom-tags.outputs.custom_tags }}
 
     steps:
       - id: init
@@ -72,6 +83,19 @@ jobs:
           repository-access-token: ${{ secrets.REPO_ACCESS_PAT }}
           modules-string: ${{ steps.init.outputs.kustomize-modules-string }}
 
+      - id: custom-tags
+        name: Generate a list of Docker tags for all modules
+        env:
+          ECR_REPOSITORIES: ${{ steps.init.outputs.ecr-repositories }}
+          IMAGE_TAG: ${{ steps.init.outputs.image-tag }}
+        run: |
+          CUSTOM_TAGS=""
+          for repo in $ECR_REPOSITORIES; do
+            NEW_TAG=${repo}-${IMAGE_TAG}
+            CUSTOM_TAGS="$CUSTOM_TAGS $NEW_TAG"
+          done
+          echo "custom_tags=$CUSTOM_TAGS" >> $GITHUB_OUTPUT
+
   build:
     needs: init
     runs-on: ubuntu-latest
@@ -81,7 +105,21 @@ jobs:
         module: ${{ fromJson(needs.init.outputs.updated-modules) }}
 
     steps:
-      - uses: actions/checkout@v3
+      - name: Checkout master
+        uses: actions/checkout@v4
+        with:
+          ref: master
+          # From SonarCloud Scan GitHub Action
+          # Disabling shallow clone is recommended for improving relevancy of reporting
+          fetch-depth: 1000
+
+      - name: Checkout current branch
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ env.GITHUB_REF_NAME }}
+          # From SonarCloud Scan GitHub Action
+          # Disabling shallow clone is recommended for improving relevancy of reporting
+          fetch-depth: 1000
 
       - uses: actions/setup-python@v4
         with:
@@ -94,7 +132,11 @@ jobs:
         env:
           PY_UTILS_PAT: ${{ secrets.PY_UTILS_PAT }}
         run: |
-          pipenv install --dev
+          if [ -f "Pipfile.lock" ]; then
+              pipenv sync --dev
+          else
+              pipenv install --dev
+          fi
           pipenv requirements > pipenv-requirements.txt
 
           if [ -f manual-requirements.txt ]; then
@@ -109,79 +151,107 @@ jobs:
         with:
           credentials_json: ${{ secrets.GCP_CLOUD_STORAGE_SERVICE_ACCOUNT_KEY }}
 
-      - name: Run Pytest
-        env:  
+      - name: Run Pytest on Module
+        env:
           JENKINS: true
           IS_JENKINS: true
-          AWS_ACCESS_KEY_ID: ${{ secrets.BACKEND_FILE_AWS_ACCESS_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.BACKEND_FILE_AWS_SECRET_ACCESS_KEY }}
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_DEV_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_DEV_SECRET_ACCESS_KEY }}
         run: |
-          pipenv run tests --junitxml=report.xml
-      
-      - name: Generate Reports
+          pipenv run tests --flake8 --cov=${{ matrix.module }} --junitxml=${{ matrix.module }}/report.xml tests/${{ matrix.module }}
+
+      - name: Generate Reports for Module
+        if: inputs.skipTests != true && (success() || failure())
+        working-directory: ${{ matrix.module }}
         run: |
           pipenv run junit2html report.xml report.html
           mkdir report-dir && mv report.html ./report-dir/report.html
 
-      - name: Upload Test Reports to S3
+      - name: Upload Test Reports to S3 for Module
         id: reports
-        if: inputs.skipTests != 'true' && (success() || failure())
+        if: inputs.skipTests != true && (success() || failure())
         uses: hawk-ai-aml/github-actions/upload-to-s3@master
         with:
           module: ${{ matrix.module }}
           aws_access_key_id: ${{ secrets.AWS_DEV_ACCESS_KEY_ID }}
           aws_secret_access_key: ${{ secrets.AWS_DEV_SECRET_ACCESS_KEY }}
           aws_bucket: github-actions-static-html-2
-          source_dir: ./report-dir
-          destination_dir: ${{ github.event.repository.name }}-${{ github.run_id }}
+          source_dir: ${{ matrix.module }}/report-dir
+          destination_dir: ${{ github.event.repository.name }}-${{ matrix.module }}-${{ github.run_id }}
+
+      - name: SonarCloud Scan
+        if: inputs.skipTests != true && (success() || failure()) && inputs.useSonarCloud
+        uses: hawk-ai-aml/github-actions/sonarqube@master
+        with:
+          args: >
+            -Dsonar.python.version=${{ fromJson(needs.init.outputs.metadata).python-version }}
+          projectBaseDir: ${{ matrix.module }}/
+          sonarToken: ${{ secrets.SONAR_TOKEN }}
+          sonarHostUrl: ${{ secrets.SONAR_HOST_URL }}
 
       - name: Get ECR info
         id: ecr-info
         env:
           METADATA: ${{ needs.init.outputs.metadata }}
+          CUSTOM_TAGS: ${{ needs.init.outputs.custom-tags }}
+          MODULE: ${{ matrix.module }}
+          KUSTOMIZE_OVERLAYS: ${{ inputs.kustomizeOverlays }}
         run: |
+          RED='\033[0;31m'
           MODULE_ECR=$(echo ${METADATA} | jq -cr --arg MODULE ${{ matrix.module }} '.modules[$MODULE].ecr')
           echo "ECR=$MODULE_ECR"
+
+          if [[ "$MODULE" == *"_"* ]]; then
+            MODULE="${MODULE//_/-}"
+          fi
+
+          if [[ $KUSTOMIZE_OVERLAYS == "prod" ]]; then
+            MATCHED_TAG=$(echo "$CUSTOM_TAGS" | tr ' ' '\n' | grep -E "(^|[-])$MODULE-[0-9]"  | head -n 1 || true)
+          else
+            MATCHED_TAG=$(echo "$CUSTOM_TAGS" | tr ' ' '\n' | grep -E "(^|[-])${MODULE}([-]|$)" | head -n 1 || true)
+          fi
+          echo -e "${RED}MATCHED_TAG=$MATCHED_TAG"
           echo "module_ecr=$MODULE_ECR" >> $GITHUB_OUTPUT
+          echo "matched_tag=$MATCHED_TAG" >> $GITHUB_OUTPUT
 
-      - name: Configure AWS credentials
+      - name: Build Docker Image
         if: ${{ github.workflow != 'pr' && steps.ecr-info.outputs.module_ecr != 'null' }}
-        uses: aws-actions/configure-aws-credentials@v1
+        uses: hawk-ai-aml/github-actions/build-docker-image-python@master
         with:
-          aws-access-key-id: ${{ secrets.AWS_ORG_ECR_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_ORG_ECR_SECRET_ACCESS_KEY }}
-          aws-region: ${{ needs.init.outputs.ecr-region }}
-
-      - name: Login to Amazon ECR
-        id: login-ecr
-        if: ${{ github.workflow != 'pr' && steps.ecr-info.outputs.module_ecr != 'null' }}
-        uses: aws-actions/amazon-ecr-login@v2
-        with:
-          registries: ${{ needs.init.outputs.ecr-registry-code }}
-
-      - name: check if docker image tag exists in ECR
-        id: check-tag
-        if: ${{ github.workflow != 'pr' && steps.ecr-info.outputs.module_ecr != 'null' }}
-        uses: hawk-ai-aml/github-actions/check-docker-tag-exists@master
-        with:
-          ecr-registry: ${{ steps.login-ecr.outputs.registry }}
-          ecr-repository: ${{ steps.ecr-info.outputs.module_ecr }}
+          multiple-modules: "true"
+          module: ${{ matrix.module }}
           image-tag: ${{ needs.init.outputs.image-tag }}
+          ecr-repository-prefix: ${{ inputs.ecr-prefix }}
+          custom-image-tag: ${{ steps.ecr-info.outputs.matched_tag }}
+          kustomize-overlays: ${{ inputs.kustomizeOverlays }}
+          ecr-registry: ${{ steps.login-ecr.outputs.registry }}
+          ecr-repository: ${{ fromJson(needs.init.outputs.metadata).ecr.repository }}
+          hawk-platform-repository: "hawk-platform"
+          aws-org-ecr-access-key-id: ${{ secrets.AWS_ORG_ECR_ACCESS_KEY_ID }}
+          aws-org-ecr-secret-access-key: ${{ secrets.AWS_ORG_ECR_SECRET_ACCESS_KEY }}
+          ecr-region: ${{ needs.init.outputs.ecr-region }}
+          ecr-registry-code: ${{ needs.init.outputs.ecr-registry-code }}
+          py-utils-pat: ${{ secrets.PY_UTILS_PAT }}
 
-      - name: Build and tag images
-        if: ${{ github.workflow != 'pr' && steps.ecr-info.outputs.module_ecr != 'null' && steps.check-tag.outputs.tag_already_exists != 'true' }}
+      - name: Check SonarCloud Code Analysis passed
+        if: inputs.skipTests != true && (success() || failure()) && inputs.useSonarCloud && inputs.blockPullRequestIfSonarFails
         env:
-          IMAGE_TAG: ${{ needs.init.outputs.image-tag }}
-          ECR_PREFIX: ${{ inputs.ecr-prefix }}
-          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
-          PY_UTILS_PAT: ${{ secrets.PY_UTILS_PAT }}
-          MODULE: ${{ matrix.module }}
+          PR_NUMBER: ${{ github.event.number }}
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
+          SONAR_ORGANIZATION: ${{ secrets.SONAR_ORGANIZATION }}
         run: |
-          REPOSITORY_FOLDER=$(echo ${MODULE} | sed 's/\_/\-/g')
-          REPOSITORY_FULL_NAME="${ECR_REGISTRY}/${ECR_PREFIX}${REPOSITORY_FOLDER}"
-          echo "${REPOSITORY_FULL_NAME} is building..."
-          DOCKER_BUILDKIT=1 docker build --build-arg SERVICE=${MODULE} --build-arg PY_UTILS_PAT=${PY_UTILS_PAT} -t ${REPOSITORY_FULL_NAME}:${IMAGE_TAG} .
-          docker push ${REPOSITORY_FULL_NAME}:${IMAGE_TAG}
+          PROJECT_KEY=$(grep '^sonar.projectKey=' sonar-project.properties | cut -d '=' -f 2)
+          RESPONSE=$(curl -s -H 'Authorization: Bearer ${{env.SONAR_TOKEN}}' ${{env.SONAR_HOST_URL}}/api/qualitygates/project_status?projectKey=${PROJECT_KEY}\&pullRequest=${{env.PR_NUMBER}})
+          STATUS=$(echo $RESPONSE | jq -r '.projectStatus.status')
+          echo "SonarQuality Status: $STATUS"
+
+          # Check if the status is "OK"
+          if [ "$STATUS" == "OK" ]; then
+            exit 0
+          else
+            exit 1
+          fi
 
   check-if-all-builds-passed:
     if: always()
@@ -195,6 +265,15 @@ jobs:
       - name: Check Build Job Success
         if: ${{ needs.build.result == 'success' }}
         run: exit 0
+
+      - name: Slack notification for failed build status
+        uses: hawk-ai-aml/github-actions/send-slack-notification@master
+        if: failure()
+        with:
+          notify-pr-author: true
+          slack-message: ":x: Your build failed. Please check the reason for it."
+          slack-access-token: ${{ secrets.SLACK_RELEASE_BOT_ACCESS_TOKEN }}
+          github-users-access-token: ${{ secrets.USER_GITHUB_ACCESS }}
 
   vulnerability-check-run:
     if: ${{ inputs.vulnerabilityCheck == true }}
@@ -230,10 +309,14 @@ jobs:
       - name: Update kustomize overlay
         uses: hawk-ai-aml/github-actions/kustomize-overlay@master
         with:
+          slack-access-token: ${{ secrets.SLACK_RELEASE_BOT_ACCESS_TOKEN }}
+          github-users-access-token: ${{ secrets.USER_GITHUB_ACCESS }}
           overlays: ${{ needs.init.outputs.overlays }}
+          kustomize-overlays: ${{ inputs.kustomizeOverlays }}
           modules: ${{ needs.init.outputs.updated-modules-string }}
           component-name: ${{ inputs.component }}
           component-tag: ${{ needs.init.outputs.image-tag }}
+          component-custom-tags: ${{ needs.init.outputs.custom-tags }}
           kustomize-repo: hawk-ai-aml/kustomize.git
           kustomize-access-token: ${{ secrets.REPO_ACCESS_PAT }}
           ecr-region: ${{ needs.init.outputs.ecr-region }}

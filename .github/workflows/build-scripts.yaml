@@ -1,0 +1,136 @@
+name: build
+on:
+  workflow_call:
+    inputs:
+      updateKustomize:
+        description: "Update kustomize overlays (true/false)"
+        type: boolean
+        required: false
+      kustomizeOverlays:
+        description: "Overlays to update"
+        type: string
+        required: false
+      component:
+        description: "Name of the repository"
+        type: string
+        required: true
+
+defaults:
+  run:
+    shell: bash -l -ET -eo pipefail {0}
+
+jobs:
+  init:
+    name: Init workflow
+    runs-on: [ "self-hosted", "small-builder" ]
+    outputs:
+      overlays: ${{ steps.init.outputs.overlays }}
+      image-tag: ${{ steps.init.outputs.image-tag }}
+      update-kustomize: ${{ steps.init.outputs.update-kustomize }}
+      kustomize-modules-string: ${{ steps.init.outputs.kustomize-modules-string }}
+      ecr-url: ${{ steps.init.outputs.ecr-url }}
+      ecr-registry-code: ${{ steps.init.outputs.ecr-registry-code }}
+      ecr-region: ${{ steps.init.outputs.ecr-region }}
+      updated-modules: ${{ steps.detect-changes.outputs.updated-modules }}
+      updated-modules-string: ${{ steps.detect-changes.outputs.updated-modules-string }}
+      metadata: ${{ steps.init.outputs.metadata }}
+
+    steps:
+      - id: init
+        name: Init Workflow
+        uses: hawk-ai-aml/github-actions/workflow-init@master
+        with:
+          overlays: ${{ inputs.kustomizeOverlays }}
+          update-kustomize: ${{ inputs.updateKustomize }}
+          repository-name: hawk-ai-aml/${{ inputs.component }}
+          repository-ref: ${{ env.GITHUB_REF_NAME }}
+          repository-access-token: ${{ secrets.REPO_ACCESS_PAT }}
+
+      - id: detect-changes
+        name: Detect changes
+        uses: hawk-ai-aml/github-actions/repository-detect-changes@master
+        with:
+          repository: hawk-ai-aml/${{ inputs.component }}
+          repository-ref: ${{ env.GITHUB_REF_NAME }}
+          repository-user: ${{ secrets.RECREATE_DEVELOP_GITHUB_USER }}
+          repository-access-token: ${{ secrets.REPO_ACCESS_PAT }}
+          modules-string: ${{ steps.init.outputs.kustomize-modules-string }}
+
+      - name: Slack notification for failed init workflow
+        uses: hawk-ai-aml/github-actions/send-slack-notification@master
+        if: failure()
+        with:
+          notify-pr-author: true
+          slack-message: ":x: The init workflow failed. Please check the reason for it and contact @team-pe."
+          slack-access-token: ${{ secrets.SLACK_RELEASE_BOT_ACCESS_TOKEN }}
+          github-users-access-token: ${{ secrets.USER_GITHUB_ACCESS }}
+
+  build:
+    needs: [ init ]
+    runs-on: [ "self-hosted", "small-builder" ]
+    strategy:
+      fail-fast: false
+      matrix:
+        module: ${{ fromJson(needs.init.outputs.updated-modules) }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure HAWK AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ORG_ECR_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_ORG_ECR_SECRET_ACCESS_KEY }}
+          aws-region: eu-central-1
+
+      - name: Login to HAWK Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+        with:
+          registries: "860641649575"
+
+      - name: Build image
+        env:
+          ECR_REGISTRY: ${{ needs.init.outputs.ecr-url }}
+          ECR_REPOSITORY: ${{ matrix.module }}
+          IMAGE_TAG: ${{ needs.init.outputs.image-tag }}
+        run: |
+          docker build -t ${ECR_REGISTRY}/${ECR_REPOSITORY}:${IMAGE_TAG} ./${ECR_REPOSITORY}
+
+      - name: Push Image
+        id: push-image
+        env:
+          ECR_REGISTRY: ${{ needs.init.outputs.ecr-url }}
+          ECR_REPOSITORY: ${{ matrix.module }}
+          IMAGE_TAG: ${{ needs.init.outputs.image-tag }}
+        run: |
+          docker push ${ECR_REGISTRY}/${ECR_REPOSITORY}:${IMAGE_TAG}
+
+      - name: Slack notification for failed build status
+        uses: hawk-ai-aml/github-actions/send-slack-notification@master
+        if: failure()
+        with:
+          notify-pr-author: true
+          slack-message: ":x: Your build failed. Please check the reason for it."
+          slack-access-token: ${{ secrets.SLACK_RELEASE_BOT_ACCESS_TOKEN }}
+          github-users-access-token: ${{ secrets.USER_GITHUB_ACCESS }}
+
+  update-overlays:
+    needs: [ init, build ]
+    if: ${{ needs.init.outputs.update-kustomize == 'true' && github.workflow != 'pr' }}
+    runs-on: [ "self-hosted", "small-builder" ]
+
+    steps:
+      - name: Update kustomize-base overlay
+        uses: hawk-ai-aml/github-actions/kustomize-base-overlay@master
+        with:
+          slack-access-token: ${{ secrets.SLACK_RELEASE_BOT_ACCESS_TOKEN }}
+          github-users-access-token: ${{ secrets.USER_GITHUB_ACCESS }}
+          overlays: ${{ needs.init.outputs.overlays }}
+          modules: ${{ needs.init.outputs.kustomize-modules-string }}
+          component-name: ${{ inputs.component }}
+          component-tag: ${{ needs.init.outputs.image-tag }}
+          kustomize-access-token: ${{ secrets.REPO_ACCESS_PAT }}
+          ecr-region: ${{ needs.init.outputs.ecr-region }}
+          ecr-registry-code: ${{ needs.init.outputs.ecr-registry-code }}
+          metadata: ${{ needs.init.outputs.metadata }}
