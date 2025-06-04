@@ -104,7 +104,8 @@ jobs:
 
   build:
     needs: init
-    runs-on: ubuntu-latest
+    # runs-on: ubuntu-latest
+    runs-on: [ "self-hosted", "builder" ]
     steps:
       - name: Checkout master
         uses: actions/checkout@v4
