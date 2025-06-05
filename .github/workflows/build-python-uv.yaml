@@ -146,7 +146,7 @@ jobs:
           IFS=',' read -ra REPOS <<< "${{ inputs.authorizedRepos }}"
           for REPO in "${REPOS[@]}"; do
             echo "Setting credentials for $REPO"
-            git config --global url."https://${{ secrets.PY_UTILS_PAT }}@github.com/hawk-ai-aml/${REPO}".insteadOf "https://github.com/hawk-ai-aml/${REPO}"
+            git config --global url."https://${{ secrets.REPO_ACCESS_PAT }}@github.com/hawk-ai-aml/${REPO}".insteadOf "https://github.com/hawk-ai-aml/${REPO}"
           done
 
       - name: Run tests
