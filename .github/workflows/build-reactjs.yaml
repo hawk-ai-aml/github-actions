@@ -72,8 +72,6 @@ jobs:
     runs-on: [ "self-hosted", "small-builder" ]
     outputs:
       node-module-cache-key: ${{ steps.cache-key.outputs.node-module-cache-key }}
-      yarn-cache-key: ${{ steps.cache-key.outputs.yarn-cache-key }}
-      yarn-dir-path: ${{ steps.yarn-cache-path.outputs.path }}
 
     steps:
       - uses: actions/checkout@v4
@@ -83,29 +81,10 @@ jobs:
         with:
           node-version: '18.x'
 
-      - name: Get Yarn cache directory
-        id: yarn-cache-path
-        run: echo "path=$(yarn cache dir)"  >> $GITHUB_OUTPUT
-
       - name: Generate cache key
         id: cache-key
         run: |
-          echo "yarn-cache-key=${{ runner.os }}-yarn" >> $GITHUB_OUTPUT
           echo "node-module-cache-key=${{ runner.os }}-module-${{ hashFiles('**/yarn.lock') }}" >> $GITHUB_OUTPUT
-
-      - name: Use Yarn cache
-        uses: actions/cache@v3
-        id: yarn-cache
-        with:
-          path: ${{ steps.yarn-cache-path.outputs.path }}
-          key: ${{ steps.cache-key.outputs.yarn-cache-key }}
-          restore-keys: ${{ runner.os }}-yarn-
-
-      - name: Install Yarn
-        if: steps.yarn-cache.outputs.cache-hit != 'true'
-        run: |
-          set -eux
-          npm install -g yarn
 
       - name: Node module cache
         uses: actions/cache@v3
@@ -147,20 +126,6 @@ jobs:
           ref: ${{ env.GITHUB_REF_NAME }}
           fetch-depth: 1000
 
-      - name: Use Yarn cache
-        uses: actions/cache@v3
-        id: yarn-cache
-        with:
-          path: ${{ needs.setup-and-lint.outputs.yarn-dir-path }}
-          key: ${{ needs.setup-and-lint.outputs.yarn-cache-key }}
-          restore-keys: ${{ runner.os }}-yarn-
-
-      - name: Install Yarn
-        if: steps.yarn-cache.outputs.cache-hit != 'true'
-        run: |
-          set -eux
-          npm install -g yarn
-
       - name: Node modules cache
         uses: actions/cache@v3
         id: module-cache
@@ -177,12 +142,6 @@ jobs:
       - name: Yarn test
         run: yarn run test:ci --shard=${{ matrix.shard }}/${{ strategy.job-total }}
 
-      - name: SonarQube Cloud Scan
-        uses: hawk-ai-aml/github-actions/sonarqube@master
-        with:
-          sonarToken: ${{ secrets.SONAR_TOKEN }}
-          sonarHostUrl: ${{ secrets.SONAR_HOST_URL }}
-
   build:
     needs: [ init, setup-and-lint, tests ]
     runs-on: [ "self-hosted", "frontend-builder" ]
@@ -190,19 +149,11 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Yarn cache
-        uses: actions/cache@v3
-        id: yarn-cache
+      - name: SonarQube Cloud Scan
+        uses: hawk-ai-aml/github-actions/sonarqube@master
         with:
-          path: ${{ needs.setup-and-lint.outputs.yarn-dir-path }}
-          key: ${{ needs.setup-and-lint.outputs.yarn-cache-key }}
-          restore-keys: ${{ runner.os }}-yarn-
-
-      - name: Install Yarn
-        if: steps.yarn-cache.outputs.cache-hit != 'true'
-        run: |
-          set -eux
-          npm install -g yarn
+          sonarToken: ${{ secrets.SONAR_TOKEN }}
+          sonarHostUrl: ${{ secrets.SONAR_HOST_URL }}
 
       - name: Node module cache
         uses: actions/cache@v3
