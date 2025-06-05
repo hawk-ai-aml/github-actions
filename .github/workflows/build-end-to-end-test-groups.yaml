@@ -115,6 +115,8 @@ jobs:
           ELASTICSEARCH_USERNAME: ${{ secrets.ELASTICSEARCH_USERNAME }}
           ELASTICSEARCH_PASSWORD: ${{ secrets.ELASTICSEARCH_PASSWORD }}
 
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+
           environment: ${{ inputs.environment }}
         continue-on-error: true
         run: |
