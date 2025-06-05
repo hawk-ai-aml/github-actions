@@ -197,7 +197,7 @@ runs:
         USE_SONARCLOUD=${{ inputs.use-sonarcloud }}
 
         AUTHORIZED_REPOS="${{ inputs.authorized-repos }}"
-        AUTHORIZED_REPOS="${AUTHORIZED_REPOS:-$(echo "$METADATA" | jq -r '.["authorized-repos"] // [] | join(",")')}"
+        AUTHORIZED_REPOS="${AUTHORIZED_REPOS:-$(echo "$METADATA" | jq -r '."authorized-repos" // [] | join(",")')}"
 
         # Workflow outputs
         cat <<EOF | tee -a ${GITHUB_STEP_SUMMARY} | tee -a ${GITHUB_OUTPUT}
