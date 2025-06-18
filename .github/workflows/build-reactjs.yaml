@@ -108,7 +108,7 @@ jobs:
 
   tests:
     needs: [ init, setup-and-lint ]
-    runs-on: [ "self-hosted", "builder" ]
+    runs-on: [ "self-hosted", "frontend-builder" ]
 
     strategy:
       matrix:
