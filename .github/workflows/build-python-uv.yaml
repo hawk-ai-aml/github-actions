@@ -127,8 +127,8 @@ jobs:
           fetch-depth: 1000
           persist-credentials: ${{ needs.init.outputs.authorized-repos == '' }}
 
-      - name: Create virtual environment
-        run: sleep 1000
+      # - name: Create virtual environment
+      #   run: sleep 1000
 
       - name: Set up Python
         uses: actions/setup-python@v5
