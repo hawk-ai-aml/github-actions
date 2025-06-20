@@ -24,6 +24,11 @@ jobs:
           ref: master
           token: ${{ secrets.REPO_ACCESS_PAT }}
 
+      - name: Set up kubectl
+        uses: azure/setup-kubectl@v3
+        with:
+          version: 'v1.30.0'
+
       - name: Update targetRevision for ${{ inputs.overlay }} to ${{ inputs.tag }}
         run: |
           cd gitops

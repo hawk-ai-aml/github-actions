@@ -39,63 +39,63 @@ inputs:
 
 outputs:
   overlays:
-    description: 'repository overlays'
+    description: "repository overlays"
     value: ${{ steps.vars.outputs.overlays }}
 
   update-kustomize:
-    description: 'Hint to update kustomize'
+    description: "Hint to update kustomize"
     value: ${{ steps.vars.outputs.update-kustomize }}
 
   skip-tests:
-    description: 'Hint to skip tests'
+    description: "Hint to skip tests"
     value: ${{ steps.vars.outputs.skip-tests }}
 
   image-tag:
-    description: 'Tag number for docker image'
+    description: "Tag number for docker image"
     value: ${{ steps.vars.outputs.image-tag }}
 
   ecr-url:
-    description: 'The URL to Hawks ECR'
+    description: "The URL to Hawks ECR"
     value: ${{ steps.vars.outputs.ecr-url }}
 
   kustomize-modules:
-    description: 'List of module name'
+    description: "List of module name"
     value: ${{ steps.vars.outputs.kustomize-modules }}
 
   kustomize-modules-string:
-    description: 'List of module name in string'
+    description: "List of module name in string"
     value: ${{ steps.vars.outputs.kustomize-modules-string }}
 
   ecr-images:
-    description: 'List of ecr image name'
+    description: "List of ecr image name"
     value: ${{ steps.vars.outputs.ecr-images }}
 
   ecr-repositories:
-    description: 'List of ecr repository name'
+    description: "List of ecr repository name"
     value: ${{ steps.vars.outputs.ecr-repositories }}
 
   ecr-registry-code:
-    description: 'The ERC registry code'
+    description: "The ERC registry code"
     value: ${{ steps.vars.outputs.ecr-registry-code }}
 
   ecr-region:
-    description: 'The ERC region'
+    description: "The ERC region"
     value: ${{ steps.vars.outputs.ecr-region }}
 
   metadata:
-    description: 'The metadata of the current repository'
+    description: "The metadata of the current repository"
     value: ${{ steps.vars.outputs.metadata }}
 
   use-sonarcloud:
-    description: 'Hint to use SonarCloud'
+    description: "Hint to use SonarCloud"
     value: ${{ steps.vars.outputs.use-sonarcloud }}
 
   should-authorize-poetry:
-    description: 'Hint to authorize poetry'
+    description: "Hint to authorize poetry"
     value: ${{ steps.vars.outputs.should-authorize-poetry }}
 
   authorized-repos:
-    description: 'List of authorized repositories'
+    description: "List of authorized repositories"
     value: ${{ steps.vars.outputs.authorized-repos }}
 
 runs:
@@ -195,7 +195,9 @@ runs:
         OVERLAYS_STRING=$(echo ${OVERLAYS_JSON} | jq -r 'join(" ")')
 
         USE_SONARCLOUD=${{ inputs.use-sonarcloud }}
-        AUTHORIZED_REPOS=${{ inputs.authorized-repos }}
+
+        AUTHORIZED_REPOS="${{ inputs.authorized-repos }}"
+        AUTHORIZED_REPOS="${AUTHORIZED_REPOS:-$(echo "$METADATA" | jq -r '."authorized-repos" // [] | join(",")')}"
 
         # Workflow outputs
         cat <<EOF | tee -a ${GITHUB_STEP_SUMMARY} | tee -a ${GITHUB_OUTPUT}

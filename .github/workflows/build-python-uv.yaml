@@ -60,7 +60,7 @@ defaults:
 
 jobs:
   init:
-    runs-on: [ "self-hosted", "small-builder" ]
+    runs-on: ["self-hosted", "small-builder"]
     outputs:
       overlays: ${{ steps.init.outputs.overlays }}
       update-kustomize: ${{ steps.init.outputs.update-kustomize }}
@@ -75,6 +75,7 @@ jobs:
       metadata: ${{ steps.init.outputs.metadata }}
       use-sonarcloud: ${{ steps.init.outputs.use-sonarcloud }}
       custom-tags: ${{ steps.custom-tags.outputs.custom_tags }}
+      authorized-repos: ${{ steps.init.outputs.authorized-repos }}
 
     steps:
       - id: init
@@ -88,6 +89,7 @@ jobs:
           repository-ref: ${{ env.GITHUB_REF_NAME }}
           repository-access-token: ${{ secrets.REPO_ACCESS_PAT }}
           use-sonarcloud: ${{ inputs.useSonarCloud }}
+          authorized-repos: ${{ inputs.authorizedRepos }}
 
       - id: custom-tags
         name: Generate a list of Docker tags for all modules
@@ -114,7 +116,7 @@ jobs:
           # From SonarCloud Scan GitHub Action
           # Disabling shallow clone is recommended for improving relevancy of reporting
           fetch-depth: 1000
-          persist-credentials: ${{ inputs.authorizedRepos == '' }}
+          persist-credentials: ${{ needs.init.outputs.authorized-repos == '' }}
 
       - name: Checkout current branch
         uses: actions/checkout@v4
@@ -123,7 +125,7 @@ jobs:
           # From SonarCloud Scan GitHub Action
           # Disabling shallow clone is recommended for improving relevancy of reporting
           fetch-depth: 1000
-          persist-credentials: ${{ inputs.authorizedRepos == '' }}
+          persist-credentials: ${{ needs.init.outputs.authorized-repos == '' }}
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -171,9 +173,9 @@ jobs:
           credentials_json: ${{ secrets.GCP_CLOUD_STORAGE_SERVICE_ACCOUNT_KEY }}
 
       - name: Authorize uv
-        if: ${{ inputs.authorizedRepos != '' }}
+        if: needs.init.outputs.authorized-repos != ''
         run: |
-          IFS=',' read -ra REPOS <<< "${{ inputs.authorizedRepos }}"
+          IFS=',' read -ra REPOS <<< "${{ needs.init.outputs.authorized-repos }}"
           for REPO in "${REPOS[@]}"; do
             echo "Setting credentials for $REPO"
             git config --global url."https://${{ secrets.PY_UTILS_PAT }}@github.com/hawk-ai-aml/${REPO}".insteadOf "https://github.com/hawk-ai-aml/${REPO}"
@@ -192,7 +194,6 @@ jobs:
           uv run python -m pytest tests --junitxml=report.xml
           uv run junit2html report.xml report.html
           mkdir -p report-dir && mv report.html report-dir
-
 
       - name: Upload reports to S3
         if: needs.init.outputs.skip-tests != 'true' && success()
@@ -268,7 +269,7 @@ jobs:
 
   vulnerability-check-run:
     if: ${{ inputs.vulnerabilityCheck == true }}
-    needs: [ init, build ]
+    needs: [init, build]
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -292,9 +293,9 @@ jobs:
           lacework-access-token: ${{ secrets.LACEWORK_ACCESS_TOKEN }}
 
   update-overlays:
-    needs: [ init, build ]
+    needs: [init, build]
     if: ${{ needs.init.outputs.update-kustomize == 'true' && github.workflow != 'pr' }}
-    runs-on: [ "self-hosted", "small-builder" ]
+    runs-on: ["self-hosted", "small-builder"]
 
     steps:
       - name: Update kustomize overlay
