@@ -127,13 +127,29 @@ jobs:
           fetch-depth: 1000
           persist-credentials: ${{ needs.init.outputs.authorized-repos == '' }}
 
-      # - name: Create virtual environment
-      #   run: sleep 1000
+      - name: Create virtual environment
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y wget build-essential libssl-dev zlib1g-dev \
+            libbz2-dev libreadline-dev libsqlite3-dev libffi-dev liblzma-dev tk-dev
 
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: ${{ fromJson(needs.init.outputs.metadata).python-version }}
+          # Download and extract Python 3.11.11
+          wget https://www.python.org/ftp/python/3.11.11/Python-3.11.11.tgz
+          tar -xzf Python-3.11.11.tgz
+          cd Python-3.11.11
+
+          # Configure and build (use altinstall to not overwrite system python)
+          ./configure --enable-optimizations
+          make -j "$(nproc)"
+          sudo make altinstall
+
+          # Verify installation
+          python3.11 --version
+
+      # - name: Set up Python
+      #   uses: actions/setup-python@v5
+      #   with:
+      #     python-version: ${{ fromJson(needs.init.outputs.metadata).python-version }}
 
       # - name: Install pipx
       #   run: |
