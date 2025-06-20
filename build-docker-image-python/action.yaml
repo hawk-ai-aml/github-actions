@@ -73,7 +73,6 @@ runs:
       shell: bash -l -ET -eo pipefail {0}
       run: |
         curl -o action.sh \
-        -H "Authorization: token ${{ inputs.py-utils-pat}}" \
         -L "https://raw.githubusercontent.com/hawk-ai-aml/github-actions/master/build-docker-image-python/action.sh"
 
         chmod +x action.sh
