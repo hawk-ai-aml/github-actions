@@ -53,6 +53,7 @@ on:
 
 env:
   UV_VERSION: 0.6.1
+  UV_VENV_PATH: .venv
 
 defaults:
   run:
@@ -214,6 +215,8 @@ jobs:
           uv run junit2html report.xml report.html
           mkdir -p report-dir && mv report.html report-dir
           uv cache prune --ci
+          rm -rf ${{ env.UV_VENV_PATH }}
+
 
       - name: Upload reports to S3
         if: needs.init.outputs.skip-tests != 'true' && success()
