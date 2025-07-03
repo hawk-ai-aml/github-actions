@@ -11,7 +11,7 @@ build_and_push() {
     local build_args=$2
 
     echo -e "${GREEN} Building Docker image: ${image_name}${NC}"
-    DOCKER_BUILDKIT=1 docker build $build_args -q -t "${image_name}:${IMAGE_TAG}" .
+    DOCKER_BUILDKIT=1 docker build $build_args --no-cache -t "${image_name}:${IMAGE_TAG}" .
     docker push "${image_name}:${IMAGE_TAG}"
 }
 
