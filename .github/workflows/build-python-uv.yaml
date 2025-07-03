@@ -213,6 +213,7 @@ jobs:
           uv run python -m pytest tests --junitxml=report.xml
           uv run junit2html report.xml report.html
           mkdir -p report-dir && mv report.html report-dir
+          uv cache prune --ci
 
       - name: Upload reports to S3
         if: needs.init.outputs.skip-tests != 'true' && success()
