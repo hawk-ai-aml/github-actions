@@ -201,7 +201,6 @@ jobs:
             echo "Setting credentials for $REPO"
             git config --global url."https://${{ secrets.PY_UTILS_PAT }}@github.com/hawk-ai-aml/${REPO}".insteadOf "https://github.com/hawk-ai-aml/${REPO}"
           done
-          df -h
 
       - name: Run tests
         if: needs.init.outputs.skip-tests != 'true' && success()
@@ -213,6 +212,7 @@ jobs:
           FILES_STORAGE: "files.dev.aml-ai.net"
           APP_CONFIG_YAML_PATH: "tests"
         run: |
+          df -h
           uv run python -m pytest tests --junitxml=report.xml
           uv run junit2html report.xml report.html
           mkdir -p report-dir && mv report.html report-dir
