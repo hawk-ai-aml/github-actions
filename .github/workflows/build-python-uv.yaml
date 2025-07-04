@@ -219,7 +219,12 @@ jobs:
           df -h
           rm -rf ${{ env.UV_VENV_PATH }} ~/.cache/uv ~/.cache/pip
           df -h
+          lsof | grep deleted || echo "No open deleted files"
 
+      - name: Hard cleanup after pytest exits
+        run: |
+          rm -rf ${{ env.UV_VENV_PATH }} ~/.cache/uv ~/.cache/pip
+          lsof | grep deleted || echo "No open deleted files"
 
       - name: Upload reports to S3
         if: needs.init.outputs.skip-tests != 'true' && success()
