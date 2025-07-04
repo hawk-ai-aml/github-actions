@@ -150,12 +150,14 @@ runs:
         GHCR_REPOSITORY_ENABLED: ${{ inputs.pushGHCR }}
         GHCR_REGISTRY: ghcr.io/hawk-ai-aml
       run: |
+        df -h
         source ./action.sh
         echo -e "${GREEN}✅ Building images for single build...${NC}"
 
         if [ -n "$ECR_REPOSITORY" ]; then
           IMAGE_NAME="${ECR_REGISTRY}/${ECR_REPOSITORY}"
-          build_and_push "${IMAGE_NAME}" "--build-arg PY_UTILS_PAT=${PY_UTILS_PAT}"
+          DOCKER_BUILDKIT=1 docker build --build-arg PY_UTILS_PAT=${PY_UTILS_PAT} --no-cache -t "${IMAGE_NAME}:${IMAGE_TAG}" .
+          docker push "${IMAGE_NAME}:${IMAGE_TAG}"
 
           if [[ "$GHCR_REPOSITORY_ENABLED" == "true" ]]; then
               tag_and_push "${IMAGE_NAME}" "${GHCR_REGISTRY}/${ECR_REPOSITORY}" "${IMAGE_TAG}"
