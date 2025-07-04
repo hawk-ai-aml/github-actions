@@ -178,6 +178,7 @@ jobs:
               uv pip install -e "$resolved_path"[dev]
             fi
           done <<< "${{ inputs.subPackagesDirs }}"
+          df -h
 
       - name: Cache dependencies
         uses: actions/cache@v4
