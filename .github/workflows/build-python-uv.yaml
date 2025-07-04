@@ -219,6 +219,9 @@ jobs:
           df -h
           rm -rf ${{ env.UV_VENV_PATH }} ~/.cache/uv ~/.cache/pip
           df -h
+          find /tmp -type f -size +10M -exec ls -lh {} \;
+          find /dev/root/ -type f -size +10M -exec ls -lh {} \;
+
 
       - name: Upload reports to S3
         if: needs.init.outputs.skip-tests != 'true' && success()
