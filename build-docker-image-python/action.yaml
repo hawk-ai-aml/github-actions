@@ -150,6 +150,7 @@ runs:
         GHCR_REPOSITORY_ENABLED: ${{ inputs.pushGHCR }}
         GHCR_REGISTRY: ghcr.io/hawk-ai-aml
       run: |
+        df -h
         source ./action.sh
         echo -e "${GREEN}✅ Building images for single build...${NC}"
 
