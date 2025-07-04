@@ -201,6 +201,7 @@ jobs:
             echo "Setting credentials for $REPO"
             git config --global url."https://${{ secrets.PY_UTILS_PAT }}@github.com/hawk-ai-aml/${REPO}".insteadOf "https://github.com/hawk-ai-aml/${REPO}"
           done
+          df -h
 
       - name: Run tests
         if: needs.init.outputs.skip-tests != 'true' && success()
@@ -215,8 +216,11 @@ jobs:
           uv run python -m pytest tests --junitxml=report.xml
           uv run junit2html report.xml report.html
           mkdir -p report-dir && mv report.html report-dir
+          df -h
           rm -rf ${{ env.UV_VENV_PATH }} ~/.cache/uv ~/.cache/pip
           df -h
+          find /tmp -type f -size +10M -exec ls -lh {} \;
+          find /dev/root/ -type f -size +10M -exec ls -lh {} \;
 
 
       - name: Upload reports to S3
