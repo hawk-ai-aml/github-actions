@@ -214,8 +214,8 @@ jobs:
           uv run python -m pytest tests --junitxml=report.xml
           uv run junit2html report.xml report.html
           mkdir -p report-dir && mv report.html report-dir
-          uv cache prune --ci
-          rm -rf ${{ env.UV_VENV_PATH }}
+          rm -rf ${{ env.UV_VENV_PATH }} ~/.cache/uv ~/.cache/pip
+          df -h
 
 
       - name: Upload reports to S3
