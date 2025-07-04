@@ -190,16 +190,3 @@ jobs:
         if: steps.run-e2e-test.outcome != 'success'
         run: |
           exit 1
-
-  send-slack-notification:
-    needs: [test]
-    if: failure()
-    uses: hawk-ai-aml/github-actions/.github/workflows/send-slack-notification.yaml@master
-    secrets: inherit
-    with:
-      notify-pr-author: true
-      slack-message:
-        ":x: :github: The `${{ inputs.group }} E2E Tests` for `${{ inputs.environment }}` environment failed.
-        \nThe Allure report is available at: ${{ needs.test.outputs.url }}
-        "
-      notify-slack-channel-name: "status-dev"
