@@ -41,6 +41,7 @@ jobs:
           printf "## java-home: $JAVA_HOME\n"
           printf "## chrome-driver: $(chromedriver --version) / [$(which chromedriver)]\n"
           printf "## chrome-browser: $(google-chrome --version) / [$(which google-chrome)]\n"
+          printf "## edge-browser: $(microsoft-edge --version) / [$(which microsoft-edge)]\n"
           printf "## allure: $(allure --version)\n"
 
       - name: Cleanup old checkout
