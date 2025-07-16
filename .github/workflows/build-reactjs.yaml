@@ -79,7 +79,7 @@ jobs:
       - name: Set up Node
         uses: actions/setup-node@v3
         with:
-          node-version: '18.x'
+          node-version: '^22.12.0'
 
       - name: Generate cache key
         id: cache-key
@@ -125,6 +125,11 @@ jobs:
         with:
           ref: ${{ env.GITHUB_REF_NAME }}
           fetch-depth: 1000
+
+      - name: Set up Node
+        uses: actions/setup-node@v3
+        with:
+          node-version: '^22.12.0'
 
       - name: Node modules cache
         uses: actions/cache@v3
