@@ -104,7 +104,20 @@ jobs:
 
       - name: Lint check
         run: yarn run prettier:check
-
+  aggregate-coverage:
+    needs: [ tests ]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Download coverage artifacts
+        uses: actions/download-artifact@v3
+        with:
+          name: coverage
+          path: coverage
+      - name: Merge coverage reports
+        run: npx nyc merge coverage merged-coverage.json
+      - name: Generate coverage report
+        run: npx nyc report --reporter=text --report-dir=coverage
 
   tests:
     needs: [ init, setup-and-lint ]
@@ -145,7 +158,7 @@ jobs:
         run: yarn run yarn:install
 
       - name: Yarn test
-        run: yarn run test:ci --shard=${{ matrix.shard }}/${{ strategy.job-total }}
+        run: yarn run test:ci --shard=${{ matrix.shard }}/${{ strategy.job-total }} --coverage --coverageDirectory=coverage/coverage-shard-${{ matrix.shard }}
 
   build:
     needs: [ init, setup-and-lint, tests ]
