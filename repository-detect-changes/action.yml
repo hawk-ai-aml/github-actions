@@ -59,7 +59,7 @@ runs:
         MODULE_LIST_STRING=""
 
         case $WORKFLOW_TYPE in
-          "manual")
+          "manual"|"develop")
             CURRENT_BRANCH=${GITHUB_HEAD_REF:-${GITHUB_REF#refs/heads/}}
             echo "Branch: ${CURRENT_BRANCH}"
 
@@ -88,11 +88,11 @@ runs:
           "pr")
             PULL_NUMBER=$(jq --raw-output .pull_request.number "$GITHUB_EVENT_PATH")
             echo "PR: ${PULL_NUMBER}";
-        
+
             PAGE=1
             while true; do
               echo "Page: $PAGE"
-            
+
               FS=$(curl -s -H "Authorization: token $TOKEN" "https://api.github.com/repos/$REPOSITORY/pulls/${PULL_NUMBER}/files?per_page=100&page=${PAGE}" | jq -r '[.[] | .filename] | join(" ")')
               FILES=${FILES}${SPACE}${FS}
               COUNT=$(echo $FILES | wc -w)
@@ -100,14 +100,14 @@ runs:
 
               NEXT_PAGE=$(curl -sI -H "Authorization: token $TOKEN" "https://api.github.com/repos/$REPOSITORY/pulls/$PULL_NUMBER/files?per_page=100&page=${PAGE}" | grep -i "^Link:" | grep -oP '(?<=<)[^>]+(?=>; rel="next")' | tr -d '[:space:]' || echo "")
               echo "NEXT_PAGE: $NEXT_PAGE"
-            
+
               if [ -z "$NEXT_PAGE" ]; then
                 break
               fi
-            
+
               ((PAGE++))
             done
-        
+
             for module in $REPOSITORY_MODULES; do
               for file in $FILES; do
                 IFS='/' read -ra ADDR <<< "$file"
