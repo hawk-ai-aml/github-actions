@@ -114,6 +114,12 @@ jobs:
         with:
           name: coverage
           path: coverage
+      - name: Validate coverage artifacts
+        run: |
+          if [ ! -d "coverage" ] || [ -z "$(ls -A coverage)" ]; then
+            echo "No coverage artifacts found. Skipping coverage merge step."
+            exit 1
+          fi
       - name: Merge coverage reports
         run: npx nyc merge coverage merged-coverage.json
       - name: Generate coverage report
