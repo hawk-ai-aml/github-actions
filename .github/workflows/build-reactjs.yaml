@@ -123,7 +123,7 @@ jobs:
       - name: Merge coverage reports
         run: npx nyc merge coverage merged-coverage.json
       - name: Generate coverage report
-        run: npx nyc report --reporter=text --report-dir=coverage
+        run: npx nyc report --reporter=text --report-dir=coverage --temp-file=merged-coverage.json
 
   tests:
     needs: [ init, setup-and-lint ]
