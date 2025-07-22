@@ -169,7 +169,7 @@ jobs:
       - name: Upload coverage artifact
         uses: actions/upload-artifact@v4
         with:
-          name: coverage
+          name: coverage-${{ matrix.shard }}
           path: coverage/coverage-shard-${{ matrix.shard }}
 
   build:
