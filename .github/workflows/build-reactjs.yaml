@@ -121,10 +121,11 @@ jobs:
             echo "No coverage artifacts found. Skipping coverage merge step."
             exit 1
           fi
-      - name: Merge coverage reports
-        run: npx nyc merge coverage merged-coverage.json
-      - name: Generate coverage report
-        run: npx nyc report --reporter=text --report-dir=coverage --temp-file=merged-coverage.json
+      - name: Merge and Generate Coverage Report
+        run: |
+          mkdir -p .nyc_output
+          npx nyc merge coverage .nyc_output/out.json
+          npx nyc report --reporter=text --report-dir=coverage
 
   tests:
     needs: [ init, setup-and-lint ]
