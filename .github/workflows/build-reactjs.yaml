@@ -114,7 +114,6 @@ jobs:
         with:
           pattern: coverage-*
           path: coverage/
-          merge-multiple: true
       - name: Validate coverage artifacts
         run: |
           if [ ! -d "coverage" ] || [ -z "$(ls -A coverage)" ]; then
