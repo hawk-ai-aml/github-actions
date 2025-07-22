@@ -112,8 +112,9 @@ jobs:
       - name: Download coverage artifacts
         uses: actions/download-artifact@v4
         with:
-          name: coverage
-          path: coverage/coverage-shard-${{ matrix.shard }}
+          pattern: coverage-*
+          path: coverage/
+          merge-multiple: true
       - name: Validate coverage artifacts
         run: |
           if [ ! -d "coverage" ] || [ -z "$(ls -A coverage)" ]; then
