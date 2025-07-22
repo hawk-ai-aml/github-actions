@@ -113,7 +113,7 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: coverage
-          path: coverage
+          path: coverage/coverage-shard-${{ matrix.shard }}
       - name: Validate coverage artifacts
         run: |
           if [ ! -d "coverage" ] || [ -z "$(ls -A coverage)" ]; then
@@ -165,6 +165,12 @@ jobs:
 
       - name: Yarn test
         run: yarn run test:ci --shard=${{ matrix.shard }}/${{ strategy.job-total }} --coverage --coverageDirectory=coverage/coverage-shard-${{ matrix.shard }}
+
+      - name: Upload coverage artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage
+          path: coverage/coverage-shard-${{ matrix.shard }}
 
   build:
     needs: [ init, setup-and-lint, tests ]
