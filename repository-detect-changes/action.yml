@@ -59,7 +59,7 @@ runs:
         MODULE_LIST_STRING=""
 
         case $WORKFLOW_TYPE in
-          "manual"|"develop")
+          "manual")
             CURRENT_BRANCH=${GITHUB_HEAD_REF:-${GITHUB_REF#refs/heads/}}
             echo "Branch: ${CURRENT_BRANCH}"
 
