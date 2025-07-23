@@ -191,7 +191,7 @@ jobs:
       - name: Merge coverage and generate LCOV report
         run: |
           mkdir -p .nyc_output
-          if [ -z "$(find coverage -type f -name 'coverage-*' 2>/dev/null)" ]; then
+          if [ -z "$(find coverage -type f -path 'coverage/**/coverage-*' 2>/dev/null)" ]; then
             echo "Error: No coverage files found in the 'coverage/' directory." >&2
             exit 1
           fi
