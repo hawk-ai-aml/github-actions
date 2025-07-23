@@ -104,27 +104,6 @@ jobs:
 
       - name: Lint check
         run: yarn run prettier:check
-  aggregate-coverage:
-    needs: [ tests ]
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - name: Download coverage artifacts
-        uses: actions/download-artifact@v4
-        with:
-          pattern: coverage-*
-          path: coverage/
-      - name: Validate coverage artifacts
-        run: |
-          if [ ! -d "coverage" ] || [ -z "$(ls -A coverage)" ]; then
-            echo "No coverage artifacts found. Skipping coverage merge step."
-            exit 1
-          fi
-      - name: Merge and Generate Coverage Report
-        run: |
-          mkdir -p .nyc_output
-          npx nyc merge coverage .nyc_output/out.json
-          npx nyc report --reporter=text --report-dir=coverage
 
   tests:
     needs: [ init, setup-and-lint ]
@@ -185,12 +164,6 @@ jobs:
         with:
           node-version: '^22.12.0'
 
-      - name: SonarQube Cloud Scan
-        uses: hawk-ai-aml/github-actions/sonarqube@master
-        with:
-          sonarToken: ${{ secrets.SONAR_TOKEN }}
-          sonarHostUrl: ${{ secrets.SONAR_HOST_URL }}
-
       - name: Node module cache
         uses: actions/cache@v3
         id: module-cache
@@ -208,6 +181,24 @@ jobs:
         env:
           NODE_OPTIONS: "--max-old-space-size=4096"
         run: yarn run build
+
+      - name: Download coverage artifacts from shards
+        uses: actions/download-artifact@v4
+        with:
+          pattern: coverage-*
+          path: coverage/
+
+      - name: Merge coverage and generate LCOV report
+        run: |
+          mkdir -p .nyc_output
+          npx nyc merge coverage .nyc_output/out.json
+          npx nyc report --reporter=lcov
+
+      - name: SonarQube Cloud Scan
+        uses: hawk-ai-aml/github-actions/sonarqube@master
+        with:
+          sonarToken: ${{ secrets.SONAR_TOKEN }}
+          sonarHostUrl: ${{ secrets.SONAR_HOST_URL }}
 
       - name: Get ECR info
         id: ecr-info
