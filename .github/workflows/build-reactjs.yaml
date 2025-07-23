@@ -144,7 +144,7 @@ jobs:
         run: yarn run yarn:install
 
       - name: Yarn test
-        run: yarn run test:ci --shard=${{ matrix.shard }}/${{ strategy.job-index }} --coverage --coverageDirectory=coverage/coverage-shard-${{ matrix.shard }}
+        run: yarn run test:ci --shard=${{ matrix.shard }}/${{ strategy.job-total }} --coverage --coverageDirectory=coverage/coverage-shard-${{ matrix.shard }}
 
       - name: Upload coverage artifact
         uses: actions/upload-artifact@v4
