@@ -144,7 +144,7 @@ jobs:
         run: yarn run yarn:install
 
       - name: Yarn test
-        run: yarn run test:ci --shard=${{ matrix.shard }}/${{ strategy.job-total }} --coverage --coverageDirectory=coverage/coverage-shard-${{ matrix.shard }}
+        run: yarn run test:ci --shard=${{ matrix.shard }}/${{ strategy.job-index }} --coverage --coverageDirectory=coverage/coverage-shard-${{ matrix.shard }}
 
       - name: Upload coverage artifact
         uses: actions/upload-artifact@v4
@@ -191,7 +191,11 @@ jobs:
       - name: Merge coverage and generate LCOV report
         run: |
           mkdir -p .nyc_output
-          npx nyc merge coverage .nyc_output/out.json
+          if [ -z "$(find coverage -type f -name 'coverage-*' 2>/dev/null)" ]; then
+            echo "Error: No coverage files found in the 'coverage/' directory." >&2
+            exit 1
+          fi
+          npx nyc merge "coverage/**" .nyc_output/out.json
           npx nyc report --reporter=lcov
 
       - name: SonarQube Cloud Scan
