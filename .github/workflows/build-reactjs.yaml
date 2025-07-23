@@ -191,11 +191,11 @@ jobs:
       - name: Merge coverage and generate LCOV report
         run: |
           mkdir -p .nyc_output
-          if [ -z "$(find coverage -type f -path 'coverage/**/coverage-*' 2>/dev/null)" ]; then
-            echo "Error: No coverage files found in the 'coverage/' directory." >&2
+          if [ -z "$(ls -A coverage)" ]; then
+            echo "Error: No coverage artifacts were downloaded." >&2
             exit 1
           fi
-          npx nyc merge "coverage/coverage-shard-*/**" .nyc_output/out.json
+          npx nyc merge coverage .nyc_output/out.json
           npx nyc report --reporter=lcov
 
       - name: SonarQube Cloud Scan
