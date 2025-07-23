@@ -182,35 +182,17 @@ jobs:
           NODE_OPTIONS: "--max-old-space-size=4096"
         run: yarn run build
 
-      # --- DEBUGGING STEP 1: Check for Source Maps ---
-      - name: Debug - Verify Source Maps were created
-        run: |
-          echo "Searching for .js.map files in the build directory..."
-          find ./build -name "*.js.map" -print | head -n 20 || echo "No source maps found."
-
       - name: Download coverage artifacts from shards
         uses: actions/download-artifact@v4
         with:
           pattern: coverage-*
           path: coverage/
 
-      # --- DEBUGGING STEP 2: Check Downloaded Files ---
-      - name: Debug - List downloaded coverage files
-        run: |
-          echo "Listing contents of the 'coverage' directory..."
-          ls -R coverage          
-
       - name: Merge coverage and generate LCOV report
         run: |
           mkdir -p .nyc_output
           npx nyc merge coverage .nyc_output/out.json
           npx nyc report --reporter=lcov
-
-      # --- DEBUGGING STEP 3: Check Final LCOV Report ---
-      - name: Debug - Inspect the final LCOV report
-        run: |
-          echo "Displaying the first 50 lines of lcov.info..."
-          cat ./coverage/lcov.info | head -n 50
 
       - name: SonarQube Cloud Scan
         uses: hawk-ai-aml/github-actions/sonarqube@master
