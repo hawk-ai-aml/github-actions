@@ -195,7 +195,7 @@ jobs:
             echo "Error: No coverage files found in the 'coverage/' directory." >&2
             exit 1
           fi
-          npx nyc merge "coverage/**" .nyc_output/out.json
+          npx nyc merge "coverage/coverage-shard-*/**" .nyc_output/out.json
           npx nyc report --reporter=lcov
 
       - name: SonarQube Cloud Scan
