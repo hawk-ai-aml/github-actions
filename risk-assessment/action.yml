@@ -4,7 +4,7 @@ inputs:
   github-token:
     description: 'GitHub token for API access'
     required: true
-    default: ${{ secrets.TOKEN }}
+    default: ${{ secrets.GITHUB_TOKEN }}
   ai-response:
     description: 'AI-generated risk assessment response'
     required: true
