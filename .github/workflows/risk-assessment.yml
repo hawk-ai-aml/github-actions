@@ -1,0 +1,119 @@
+name: Risk Assessment
+
+on:
+  pull_request:
+    types: [ opened, edited, synchronize, reopened ]
+
+permissions:
+  contents: read
+  pull-requests: write
+  checks: write
+  statuses: write
+  models: read
+
+jobs:
+  risk-assessment:
+    runs-on: ubuntu-latest
+    name: Calculate Risk Score
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Get PR details and changed files
+        id: pr-context
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const pr = context.payload.pull_request;
+            
+            // Get changed files
+            const files = await github.rest.pulls.listFiles({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: pr.number
+            });
+            
+            const changedFiles = files.data.map(f => f.filename).join(', ');
+            const fileDiffs = files.data.slice(0, 5).map(f => 
+              `${f.filename}: +${f.additions} -${f.deletions}`
+            ).join('\n');
+            
+            core.setOutput('pr-title', pr.title);
+            core.setOutput('pr-body', pr.body || '');
+            core.setOutput('changed-files', changedFiles);
+            core.setOutput('file-diffs', fileDiffs);
+
+      - name: Load Risk Questions Config
+        id: load-config
+        run: |
+          CONFIG=$(cat risk-assessment/config/risk-questions.json)
+          echo "config=$CONFIG" >> $GITHUB_OUTPUT
+          
+          # Generate questions list for prompt
+          QUESTIONS=$(echo "$CONFIG" | jq -r '.questions | to_entries | map("\(.key + 1). \(.value.title): \(.value.question)") | join("\n")')
+          echo "questions<<EOF" >> $GITHUB_OUTPUT
+          echo "$QUESTIONS" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+          
+          # Generate JSON structure for response
+          JSON_STRUCTURE=$(echo "$CONFIG" | jq -r '.questions | map({(.key): {"evidence": "Evidence", "answer": "Yes/No"}}) | add')
+          echo "json-structure<<EOF" >> $GITHUB_OUTPUT
+          echo "$JSON_STRUCTURE" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+
+      - name: AI Risk Assessment
+        id: ai-inference
+        uses: actions/ai-inference@v1
+        with:
+          max-tokens: 400
+          prompt: |
+            You are a senior software engineer performing a risk assessment on a pull request.
+            Analyze the following PR and for each question, first provide concrete evidence, then answer with exactly "Yes" or "No".
+            
+            PR Title: ${{ steps.pr-context.outputs.pr-title }}
+            PR Description: ${{ steps.pr-context.outputs.pr-body }}
+            Changed Files: ${{ steps.pr-context.outputs.changed-files }}
+            File Changes Summary: ${{ steps.pr-context.outputs.file-diffs }}
+            
+            Questions:
+            ${{ steps.load-config.outputs.questions }}
+            
+            Evidence format: String containing specific files, methods, patterns found OR "none found"
+            Please answer each question in this exact format:
+            ${{ steps.load-config.outputs.json-structure }}
+            
+            Respond with only the JSON object with answers and evidence.
+            Important: Only answer "Yes" if you find concrete evidence in the changed files.
+            If no evidence is found, answer "No" and state "none found" in the evidence section.
+
+      - name: Run Risk Assessment
+        id: sra
+        uses: ./.github/actions/sra
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          ai-response: ${{ steps.ai-inference.outputs.response }}
+
+      - name: Update PR Status
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const { owner, repo } = context.repo;
+            const { number: pull_number } = context.issue;
+            const sha = context.payload.pull_request.head.sha;
+            
+            const riskScore = '${{ steps.sra.outputs.risk-score }}';
+            const riskTier = '${{ steps.sra.outputs.risk-tier }}';
+            const status = '${{ steps.sra.outputs.status }}';
+            
+            await github.rest.repos.createCommitStatus({
+              owner,
+              repo,
+              sha,
+              state: status,
+              target_url: `https://github.com/${owner}/${repo}/pull/${pull_number}`,
+              description: `Risk Score: ${riskScore} (${riskTier})`,
+              context: 'SRA/risk-assessment'
+            });
