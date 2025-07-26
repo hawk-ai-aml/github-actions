@@ -1,0 +1,54 @@
+{
+  "questions": [
+    {
+      "key": "authentication",
+      "weight": 2,
+      "title": "Authentication/Authorization",
+      "question": "Does this change involve modifications to authentication, authorization, or user permission logic?",
+      "description": "Authentication/Authorization: Does this change involve modifications to authentication, authorization, or user permission logic?"
+    },
+    {
+      "key": "schema",
+      "weight": 2.5,
+      "title": "Database Schema",
+      "question": "Does this change introduce new, or alter existing, database schemas, tables, or columns?",
+      "description": "Database Schema: Does this change introduce new, or alter existing, database schemas, tables, or columns?"
+    },
+    {
+      "key": "performance",
+      "weight": 1.5,
+      "title": "Database Performance",
+      "question": "Does this change add or significantly alter database queries that could impact performance?",
+      "description": "Database Performance: Does this change add or significantly alter database queries that could impact performance?"
+    },
+    {
+      "key": "dependencies",
+      "weight": 1.5,
+      "title": "Major Dependencies",
+      "question": "Does this change involve a major version upgrade of a core dependency?",
+      "description": "Major Dependencies: Does this change involve a major version upgrade of a core dependency?"
+    },
+    {
+      "key": "libraries",
+      "weight": 1,
+      "title": "Internal Libraries",
+      "question": "Does this change involve modifications to internal libraries or shared components?",
+      "description": "Internal Libraries: Does this change involve modifications to internal libraries or shared components?"
+    },
+    {
+      "key": "features",
+      "weight": 2,
+      "title": "Feature Flags",
+      "question": "Does this change activate a feature flag that exposes a significant new feature to users?",
+      "description": "Feature Flags: Does this change activate a feature flag that exposes a significant new feature to users?"
+    },
+    {
+      "key": "rollback",
+      "weight": 1,
+      "title": "No Rollback Plan",
+      "question": "Does this change lack a documented, tested rollback plan?",
+      "description": "No Rollback Plan: Does this change lack a documented, tested rollback plan?"
+    }
+  ],
+  "logChurnWeight": 0.15
+}
