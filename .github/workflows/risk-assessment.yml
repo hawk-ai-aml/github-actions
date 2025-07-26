@@ -49,17 +49,18 @@ jobs:
       - name: Load Risk Questions Config
         id: load-config
         run: |
-          CONFIG=$(cat risk-assessment/config/risk-questions.json)
-          echo "config=$CONFIG" >> $GITHUB_OUTPUT
-          
+          # Read and encode config as base64 to avoid formatting issues
+          CONFIG_B64=$(cat risk-assessment/config/risk-questions.json | base64 -w 0)
+          echo "config-b64=$CONFIG_B64" >> $GITHUB_OUTPUT
+
           # Generate questions list for prompt
-          QUESTIONS=$(echo "$CONFIG" | jq -r '.questions | to_entries | map("\(.key + 1). \(.value.title): \(.value.question)") | join("\n")')
+          QUESTIONS=$(cat risk-assessment/config/risk-questions.json | jq -r '.questions | to_entries | map("\(.key + 1). \(.value.title): \(.value.question)") | join("\n")')
           echo "questions<<EOF" >> $GITHUB_OUTPUT
           echo "$QUESTIONS" >> $GITHUB_OUTPUT
           echo "EOF" >> $GITHUB_OUTPUT
-          
+
           # Generate JSON structure for response
-          JSON_STRUCTURE=$(echo "$CONFIG" | jq -r '.questions | map({(.key): {"evidence": "Evidence", "answer": "Yes/No"}}) | add')
+          JSON_STRUCTURE=$(cat risk-assessment/config/risk-questions.json | jq -r '.questions | map({(.key): {"evidence": "Evidence", "answer": "Yes/No"}}) | add')
           echo "json-structure<<EOF" >> $GITHUB_OUTPUT
           echo "$JSON_STRUCTURE" >> $GITHUB_OUTPUT
           echo "EOF" >> $GITHUB_OUTPUT
