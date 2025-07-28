@@ -29960,26 +29960,17 @@ var __importStar = (this && this.__importStar) || (function () {
         return result;
     };
 })();
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.run = run;
 const core = __importStar(__nccwpck_require__(7484));
 const github = __importStar(__nccwpck_require__(3228));
 const exec_1 = __nccwpck_require__(5236);
-const fs = __importStar(__nccwpck_require__(9896));
-const path = __importStar(__nccwpck_require__(6928));
-const RISK_TIERS = [
-    { name: 'Low', minScore: 0, status: 'success', description: 'Routine change, standard review required' },
-    { name: 'Medium', minScore: 2, status: 'success', description: 'Moderate risk, additional review recommended' },
-    { name: 'High', minScore: 4, status: 'pending', description: 'High risk, CODEOWNER approval required' },
-    {
-        name: 'Critical',
-        minScore: 6,
-        status: 'failure',
-        description: 'Critical risk, requires rework or team lead override'
-    }
-];
-// Load configuration
-const configPath = path.join(__dirname, 'config', 'risk-questions.json');
-const riskConfig = JSON.parse(fs.readFileSync(configPath, 'utf8'));
+const node_path_1 = __importDefault(__nccwpck_require__(6760));
+const fs = __importStar(__nccwpck_require__(3024));
+const risk_config_1 = __nccwpck_require__(6339);
 async function calculateLogChurn() {
     let output = '';
     await (0, exec_1.exec)('git', ['diff', '--numstat', 'origin/main...HEAD'], {
@@ -29999,7 +29990,7 @@ async function calculateLogChurn() {
     }
     return Math.log(1 + totalLines);
 }
-function parseAIResponse(response) {
+function parseAIResponse(response, riskConfig) {
     try {
         const cleaned = response
             .replace(/^```json\s*/i, '')
@@ -30007,23 +29998,22 @@ function parseAIResponse(response) {
             .trim();
         const parsed = JSON.parse(cleaned);
         const factors = { logChurn: -1 };
-        // Initialize all question keys
-        riskConfig.questions.forEach(q => {
+        riskConfig.questions.forEach((q) => {
             factors[q.key] = parsed[q.key];
         });
         return factors;
     }
     catch {
         const factors = { logChurn: -1 };
-        riskConfig.questions.forEach(q => {
+        riskConfig.questions.forEach((q) => {
             factors[q.key] = undefined;
         });
         return factors;
     }
 }
-function calculateRiskScore(factors) {
+function calculateRiskScore(factors, riskConfig) {
     let score = 0;
-    riskConfig.questions.forEach(q => {
+    riskConfig.questions.forEach((q) => {
         const factor = factors[q.key];
         if (factor?.answer === 'Yes') {
             score += q.weight;
@@ -30033,15 +30023,36 @@ function calculateRiskScore(factors) {
     return Math.round(score * 100) / 100;
 }
 function getRiskTier(score) {
-    for (let i = RISK_TIERS.length - 1; i >= 0; i--) {
-        if (score >= RISK_TIERS[i].minScore) {
-            return RISK_TIERS[i];
+    for (let i = risk_config_1.RISK_TIERS.length - 1; i >= 0; i--) {
+        if (score >= risk_config_1.RISK_TIERS[i].minScore) {
+            return risk_config_1.RISK_TIERS[i];
         }
     }
-    return RISK_TIERS[0];
+    return risk_config_1.RISK_TIERS[0];
 }
-async function generateRiskComment(score, tier, factors) {
-    const results = riskConfig.questions.map(q => {
+function loadTemplate() {
+    const templatePath = node_path_1.default.resolve(__dirname, '..', 'src', 'templates', 'risk-comment.md');
+    return fs.readFileSync(templatePath, 'utf8');
+}
+function renderTemplate(template, data) {
+    let result = template;
+    Object.keys(data).forEach(key => {
+        const regex = new RegExp(`{{${key}}}`, 'g');
+        result = result.replace(regex, data[key]);
+    });
+    result = result.replace(/{{#if activeFactors}}[\s\S]*?{{else}}([\s\S]*?){{\/if}}/g, data.activeFactors.length > 0 ? '' : '$1');
+    result = result.replace(/{{#if activeFactors}}([\s\S]*?){{else}}[\s\S]*?{{\/if}}/g, data.activeFactors.length > 0 ? '$1' : '');
+    if (data.activeFactors.length > 0) {
+        const factorsList = data.activeFactors.map((f) => `- ${f.question} ⚠️`).join('\n');
+        result = result.replace(/{{#each activeFactors}}[\s\S]*?{{\/each}}/g, factorsList);
+    }
+    // Handle results loop
+    const resultsList = data.results.map((r) => `**${r.question}**\n**Answer:** ${r.answer} ${r.risk ? '⚠️' : '✅'}\n${r.evidence ? `**Evidence:** ${r.evidence}` : ''}`).join('\n\n');
+    result = result.replace(/{{#each results}}[\s\S]*?{{\/each}}/g, resultsList);
+    return result;
+}
+async function generateRiskComment(score, tier, factors, riskConfig) {
+    const results = riskConfig.questions.map((q) => {
         const factor = factors[q.key];
         return {
             question: q.description,
@@ -30050,37 +30061,34 @@ async function generateRiskComment(score, tier, factors) {
             evidence: factor?.evidence
         };
     });
-    const activeFactors = results.filter(r => r.risk);
-    return `## 🚨 Risk Assessment Results
-
-**Risk Score:** ${score}
-**Risk Tier:** **${tier.name}**
-**Status:** ${tier.description}
-
-### AI-Powered Risk Analysis
-
-${results.map(r => `**${r.question}**
-**Answer:** ${r.answer} ${r.risk ? '⚠️' : '✅'}
-${r.evidence ? `**Evidence:** ${r.evidence}` : ''}`).join('\n\n')}
-
-**Code Churn Factor:** ${factors.logChurn?.toFixed(1)} (${Math.round(factors.logChurn * riskConfig.logChurnWeight)} points)
-
-### Risk Factors Detected:
-${activeFactors.length > 0 ? activeFactors.map(f => `- ${f.question.split(':')[0]} ⚠️`).join('\n') : '- No significant risk factors detected ✅'}
-
-### Next Steps:
-${tier.name === 'Critical' ? '❌ This PR cannot be merged. Please reduce risk factors or seek team lead override.' :
-        tier.name === 'High' ? '⏸️ CODEOWNER approval required before merge.' :
-            tier.name === 'Medium' ? '⚠️ Additional peer review recommended.' :
-                '✅ Standard review process applies.'}
-
----
-*Risk assessment performed automatically by SRA v1.0 using AI analysis of code changes.*`;
+    const activeFactors = results.filter((r) => r.risk).map((f) => ({
+        question: f.question.split(':')[0]
+    }));
+    const template = loadTemplate();
+    const templateData = {
+        score,
+        tierName: tier.name,
+        tierDescription: tier.description,
+        results,
+        logChurn: factors.logChurn?.toFixed(1),
+        churnPoints: Math.round(factors.logChurn * riskConfig.logChurnWeight),
+        activeFactors,
+        nextSteps: tier.message
+    };
+    return renderTemplate(template, templateData);
 }
 async function run() {
     try {
         const token = core.getInput('github-token', { required: true });
         const aiResponse = core.getInput('ai-response', { required: true });
+        const configInput = core.getInput('config');
+        const riskConfig = configInput
+            ? JSON.parse(Buffer.from(configInput, 'base64').toString())
+            : null;
+        if (!riskConfig) {
+            core.setFailed('No config provided');
+            return;
+        }
         core.info(`Raw AI response: ${aiResponse}`);
         const octokit = github.getOctokit(token);
         const { context } = github;
@@ -30088,15 +30096,15 @@ async function run() {
         if (!prNumber) {
             throw new Error('Not running in pull request context');
         }
-        const factors = parseAIResponse(aiResponse);
+        const factors = parseAIResponse(aiResponse, riskConfig);
         core.info(`Parsed risk factors: ${JSON.stringify(factors, null, 2)}`);
         factors.logChurn = await calculateLogChurn();
         core.info(`Calculated log churn: ${factors.logChurn}`);
-        const riskScore = calculateRiskScore(factors);
+        const riskScore = calculateRiskScore(factors, riskConfig);
         core.info(`Calculated risk score: ${riskScore}`);
         const riskTier = getRiskTier(riskScore);
         core.info(`Determined risk tier: ${JSON.stringify(riskTier)}`);
-        const comment = await generateRiskComment(riskScore, riskTier, factors);
+        const comment = await generateRiskComment(riskScore, riskTier, factors, riskConfig);
         core.info(`Generated risk comment: ${comment}`);
         const { data: comments } = await octokit.rest.issues.listComments({
             owner: context.repo.owner,
@@ -30129,7 +30137,47 @@ async function run() {
         core.setFailed(`Action failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
 }
-run();
+
+
+/***/ }),
+
+/***/ 6339:
+/***/ ((__unused_webpack_module, exports) => {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.RISK_TIERS = void 0;
+exports.RISK_TIERS = [
+    {
+        name: 'Low',
+        minScore: 0,
+        status: 'success',
+        description: 'Routine change, standard review required',
+        message: '✅ Standard review process applies.'
+    },
+    {
+        name: 'Medium',
+        minScore: 2,
+        status: 'success',
+        description: 'Moderate risk, additional review recommended',
+        message: '⚠️ Additional peer review recommended.'
+    },
+    {
+        name: 'High',
+        minScore: 4,
+        status: 'pending',
+        description: 'High risk, CODEOWNER approval required',
+        message: '⏸️ Code owner approval required before merge.'
+    },
+    {
+        name: 'Critical',
+        minScore: 6,
+        status: 'failure',
+        description: 'Critical risk, requires rework or team lead override',
+        message: '❌ This PR cannot be merged. Please reduce risk factors or seek team lead override.'
+    }
+];
 
 
 /***/ }),
@@ -30251,6 +30299,22 @@ module.exports = require("node:crypto");
 
 "use strict";
 module.exports = require("node:events");
+
+/***/ }),
+
+/***/ 3024:
+/***/ ((module) => {
+
+"use strict";
+module.exports = require("node:fs");
+
+/***/ }),
+
+/***/ 6760:
+/***/ ((module) => {
+
+"use strict";
+module.exports = require("node:path");
 
 /***/ }),
 

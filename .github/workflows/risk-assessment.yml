@@ -92,7 +92,7 @@ jobs:
 
       - name: Run Risk Assessment
         id: sra
-        uses: ./.github/actions/sra
+        uses: risk-assessment
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           ai-response: ${{ steps.ai-inference.outputs.response }}

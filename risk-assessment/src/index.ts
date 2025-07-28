@@ -1,54 +1,10 @@
 import * as core from '@actions/core';
 import * as github from '@actions/github';
 import {exec} from '@actions/exec';
-import * as fs from 'fs';
-import * as path from 'path';
-
-interface Answer {
-  answer: string;
-  evidence: string;
-}
-
-interface RiskQuestion {
-  key: string;
-  weight: number;
-  title: string;
-  question: string;
-  description: string;
-}
-
-interface RiskConfig {
-  questions: RiskQuestion[];
-  logChurnWeight: number;
-}
-
-interface RiskFactors {
-  [key: string]: Answer | undefined | number;
-  logChurn: number;
-}
-
-interface RiskTier {
-  name: string;
-  minScore: number;
-  status: 'success' | 'pending' | 'failure';
-  description: string;
-}
-
-const RISK_TIERS: RiskTier[] = [
-  {name: 'Low', minScore: 0, status: 'success', description: 'Routine change, standard review required'},
-  {name: 'Medium', minScore: 2, status: 'success', description: 'Moderate risk, additional review recommended'},
-  {name: 'High', minScore: 4, status: 'pending', description: 'High risk, CODEOWNER approval required'},
-  {
-    name: 'Critical',
-    minScore: 6,
-    status: 'failure',
-    description: 'Critical risk, requires rework or team lead override'
-  }
-];
-
-// Load configuration
-const configPath = path.join(__dirname, 'config', 'risk-questions.json');
-const riskConfig: RiskConfig = JSON.parse(fs.readFileSync(configPath, 'utf8'));
+import path from "node:path";
+import * as fs from "node:fs";
+import {RISK_TIERS, RiskTier} from './risk-config';
+import {Answer, RiskConfig, RiskFactors, RiskQuestion} from './types';
 
 async function calculateLogChurn(): Promise<number> {
   let output = '';
@@ -73,7 +29,7 @@ async function calculateLogChurn(): Promise<number> {
   return Math.log(1 + totalLines);
 }
 
-function parseAIResponse(response: string): RiskFactors {
+function parseAIResponse(response: string, riskConfig: RiskConfig): RiskFactors {
   try {
     const cleaned = response
       .replace(/^```json\s*/i, '')
@@ -83,25 +39,24 @@ function parseAIResponse(response: string): RiskFactors {
     const parsed = JSON.parse(cleaned);
     const factors: RiskFactors = { logChurn: -1 };
 
-    // Initialize all question keys
-    riskConfig.questions.forEach(q => {
+    riskConfig.questions.forEach((q: RiskQuestion) => {
       factors[q.key] = parsed[q.key];
     });
 
     return factors;
   } catch {
     const factors: RiskFactors = { logChurn: -1 };
-    riskConfig.questions.forEach(q => {
+    riskConfig.questions.forEach((q: RiskQuestion) => {
       factors[q.key] = undefined;
     });
     return factors;
   }
 }
 
-function calculateRiskScore(factors: RiskFactors): number {
+function calculateRiskScore(factors: RiskFactors, riskConfig: RiskConfig): number {
   let score = 0;
 
-  riskConfig.questions.forEach(q => {
+  riskConfig.questions.forEach((q: RiskQuestion) => {
     const factor = factors[q.key] as Answer | undefined;
     if (factor?.answer === 'Yes') {
       score += q.weight;
@@ -122,8 +77,41 @@ function getRiskTier(score: number): RiskTier {
   return RISK_TIERS[0];
 }
 
-async function generateRiskComment(score: number, tier: RiskTier, factors: RiskFactors): Promise<string> {
-  const results = riskConfig.questions.map(q => {
+function loadTemplate(): string {
+  const templatePath = path.resolve(__dirname, '..', 'src', 'templates', 'risk-comment.md');
+  return fs.readFileSync(templatePath, 'utf8');
+}
+
+function renderTemplate(template: string, data: any): string {
+  let result = template;
+
+  Object.keys(data).forEach(key => {
+    const regex = new RegExp(`{{${key}}}`, 'g');
+    result = result.replace(regex, data[key]);
+  });
+
+  result = result.replace(/{{#if activeFactors}}[\s\S]*?{{else}}([\s\S]*?){{\/if}}/g,
+    data.activeFactors.length > 0 ? '' : '$1');
+
+  result = result.replace(/{{#if activeFactors}}([\s\S]*?){{else}}[\s\S]*?{{\/if}}/g,
+    data.activeFactors.length > 0 ? '$1' : '');
+
+  if (data.activeFactors.length > 0) {
+    const factorsList = data.activeFactors.map((f: any) => `- ${f.question} ⚠️`).join('\n');
+    result = result.replace(/{{#each activeFactors}}[\s\S]*?{{\/each}}/g, factorsList);
+  }
+
+  // Handle results loop
+  const resultsList = data.results.map((r: any) =>
+    `**${r.question}**\n**Answer:** ${r.answer} ${r.risk ? '⚠️' : '✅'}\n${r.evidence ? `**Evidence:** ${r.evidence}` : ''}`
+  ).join('\n\n');
+  result = result.replace(/{{#each results}}[\s\S]*?{{\/each}}/g, resultsList);
+
+  return result;
+}
+
+async function generateRiskComment(score: number, tier: RiskTier, factors: RiskFactors, riskConfig: RiskConfig): Promise<string> {
+  const results = riskConfig.questions.map((q: RiskQuestion) => {
     const factor = factors[q.key] as Answer | undefined;
     return {
       question: q.description,
@@ -133,39 +121,39 @@ async function generateRiskComment(score: number, tier: RiskTier, factors: RiskF
     };
   });
 
-  const activeFactors = results.filter(r => r.risk);
+  const activeFactors = results.filter((r: any) => r.risk).map((f: any) => ({
+    question: f.question.split(':')[0]
+  }));
 
-  return `## 🚨 Risk Assessment Results
+  const template = loadTemplate();
+  const templateData = {
+    score,
+    tierName: tier.name,
+    tierDescription: tier.description,
+    results,
+    logChurn: factors.logChurn?.toFixed(1),
+    churnPoints: Math.round(factors.logChurn * riskConfig.logChurnWeight),
+    activeFactors,
+    nextSteps: tier.message
+  };
 
-**Risk Score:** ${score}
-**Risk Tier:** **${tier.name}**
-**Status:** ${tier.description}
-
-### AI-Powered Risk Analysis
-
-${results.map(r => `**${r.question}**
-**Answer:** ${r.answer} ${r.risk ? '⚠️' : '✅'}
-${r.evidence ? `**Evidence:** ${r.evidence}` : ''}`).join('\n\n')}
-
-**Code Churn Factor:** ${factors.logChurn?.toFixed(1)} (${Math.round(factors.logChurn * riskConfig.logChurnWeight)} points)
-
-### Risk Factors Detected:
-${activeFactors.length > 0 ? activeFactors.map(f => `- ${f.question.split(':')[0]} ⚠️`).join('\n') : '- No significant risk factors detected ✅'}
-
-### Next Steps:
-${tier.name === 'Critical' ? '❌ This PR cannot be merged. Please reduce risk factors or seek team lead override.' :
-    tier.name === 'High' ? '⏸️ CODEOWNER approval required before merge.' :
-      tier.name === 'Medium' ? '⚠️ Additional peer review recommended.' :
-        '✅ Standard review process applies.'}
-
----
-*Risk assessment performed automatically by SRA v1.0 using AI analysis of code changes.*`;
+  return renderTemplate(template, templateData);
 }
 
-async function run(): Promise<void> {
+export async function run(): Promise<void> {
   try {
     const token = core.getInput('github-token', {required: true});
     const aiResponse = core.getInput('ai-response', {required: true});
+    const configInput = core.getInput('config');
+
+    const riskConfig: RiskConfig = configInput
+      ? JSON.parse(Buffer.from(configInput, 'base64').toString())
+      : null;
+
+    if (!riskConfig) {
+      core.setFailed('No config provided');
+      return;
+    }
 
     core.info(`Raw AI response: ${aiResponse}`);
 
@@ -177,19 +165,19 @@ async function run(): Promise<void> {
       throw new Error('Not running in pull request context');
     }
 
-    const factors = parseAIResponse(aiResponse);
+    const factors = parseAIResponse(aiResponse, riskConfig);
     core.info(`Parsed risk factors: ${JSON.stringify(factors, null, 2)}`);
 
     factors.logChurn = await calculateLogChurn();
     core.info(`Calculated log churn: ${factors.logChurn}`);
 
-    const riskScore = calculateRiskScore(factors);
+    const riskScore = calculateRiskScore(factors, riskConfig);
     core.info(`Calculated risk score: ${riskScore}`);
 
     const riskTier = getRiskTier(riskScore);
     core.info(`Determined risk tier: ${JSON.stringify(riskTier)}`);
 
-    const comment = await generateRiskComment(riskScore, riskTier, factors);
+    const comment = await generateRiskComment(riskScore, riskTier, factors, riskConfig);
     core.info(`Generated risk comment: ${comment}`);
 
     const {data: comments} = await octokit.rest.issues.listComments({
@@ -225,5 +213,3 @@ async function run(): Promise<void> {
     core.setFailed(`Action failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
   }
 }
-
-run();
