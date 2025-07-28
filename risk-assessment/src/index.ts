@@ -6,6 +6,8 @@ import * as fs from "node:fs";
 import {RISK_TIERS, RiskTier} from './risk-config';
 import {Answer, RiskConfig, RiskFactors, RiskQuestion} from './types';
 
+const s = "use strict";
+
 async function calculateLogChurn(): Promise<number> {
   let output = '';
   await exec('git', ['diff', '--numstat', 'origin/main...HEAD'], {
