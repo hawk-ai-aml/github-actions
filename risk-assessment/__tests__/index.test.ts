@@ -12,6 +12,48 @@ describe('Risk Assessment', () => {
   });
 
   describe('run function integration tests', () => {
+    it('should complete successfully with valid inputs and low risk', async () => {
+      testSetup
+        .setInputs({
+          'github-token': 'mock-token',
+          'config': encodeConfig(mockConfig),
+          'llm-response': createMockAIResponse({
+            authentication: {answer: 'No', evidence: 'No auth changes', weight: "0.3"},
+            schema: {answer: 'No', evidence: 'No schema changes', weight: "0.5"},
+            performance: {answer: 'No', evidence: 'No performance issues', weight: "0.7"},
+            dependencies: {answer: 'No', evidence: 'No dependency changes', weight: "0.9"}
+          })
+        })
+        .setGitDiff({files: [{added: 5, deleted: 2, filename: 'file1.ts'}]})
+        .setExistingComments([]);
+
+      await run();
+
+      expect(core.setFailed).not.toHaveBeenCalled();
+      expect(testSetup.expectOutputSet('risk-score')).toBeTruthy();
+      expect(testSetup.expectOutputSet('risk-tier')).toBeTruthy();
+    });
+
+    it('should complete successfully with high risk factors', async () => {
+      testSetup
+        .setInputs({
+          'github-token': 'mock-token',
+          'config': encodeConfig(mockConfig),
+          'llm-response': createMockAIResponse({
+            authentication: {answer: 'Yes', evidence: 'Auth changes', weight: "0.5"},
+            schema: {answer: 'Yes', evidence: 'Database schema modified', weight: "1"},
+            apiIncompatibility: {answer: 'Yes', evidence: 'Breaking API changes', weight: "2"}
+          })
+        })
+        .setGitDiff({files: [{added: 100, deleted: 50, filename: 'file1.ts'}]})
+        .setExistingComments([]);
+
+      await run();
+
+      expect(testSetup.expectOutputSet('risk-score')).toBeTruthy();
+      expect(testSetup.expectOutputSet('risk-tier')).toBeTruthy();
+    });
+
     it('should handle JSON wrapped in code blocks', async () => {
       const wrappedResponse = '```json\n' + createMockAIResponse({
         authentication: {answer: 'Yes', evidence: 'Auth logic modified', weight: "0.8"},
