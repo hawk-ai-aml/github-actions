@@ -1,0 +1,27 @@
+{
+  "name": "sra-action",
+  "version": "1.0.0",
+  "description": "Standardized Risk Assessment GitHub Action",
+  "main": "dist/index.js",
+  "scripts": {
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "type-check": "tsc --noEmit",
+    "build": "ncc build src/index.ts -o dist --source-map --license licenses.txt",
+    "package": "npm run build"
+  },
+  "dependencies": {
+    "@actions/core": "^1.11.1",
+    "@actions/exec": "^1.1.1",
+    "@actions/github": "^6.0.1",
+    "simple-git": "^3.28.0"
+  },
+  "devDependencies": {
+    "@types/jest": "^29.5.14",
+    "@types/node": "^24.1.0",
+    "@vercel/ncc": "^0.38.3",
+    "jest": "^30.0.5",
+    "ts-jest": "^29.4.0",
+    "typescript": "^5.8.3"
+  }
+}
