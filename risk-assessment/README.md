@@ -78,7 +78,7 @@ permissions:
 
 jobs:
    risk-assessment:
-      uses: hawk-ai-aml/github-actions/.github/workflows/risk-assessment.yml@feature/DC-2142
+      uses: hawk-ai-aml/github-actions/.github/workflows/risk-assessment.yml@master
       with:
          enforce-mode: false
          sra-enabled: true

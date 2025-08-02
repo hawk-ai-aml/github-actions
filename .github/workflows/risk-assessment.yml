@@ -59,7 +59,7 @@ jobs:
         with:
           repository: hawk-ai-aml/github-actions
           path: .github-actions
-          ref: feature/DC-2142
+          ref: feature/master
           token: ${{ secrets.github-token }}
 
       - name: Get PR details and changed files
@@ -144,7 +144,7 @@ jobs:
 
       - name: Run Risk Assessment
         id: sra
-        uses: hawk-ai-aml/github-actions/risk-assessment@feature/DC-2142
+        uses: hawk-ai-aml/github-actions/risk-assessment@master
         with:
           github-token: ${{ secrets.github-token }}
           llm-response: ${{ steps.ai-inference.outputs.response }}
