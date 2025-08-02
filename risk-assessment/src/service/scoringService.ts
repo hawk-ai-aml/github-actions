@@ -1,8 +1,28 @@
-import {RiskConfig, RiskFactors, ScoreCalculation} from "@/types";
+import {Answer, RiskConfig, RiskFactors, RiskQuestion, ScoreCalculation} from "@/types";
 
 export class ScoringService {
   static calculate(factors: RiskFactors, riskConfig: RiskConfig): ScoreCalculation {
+    const questionScore = this.calculateQuestionScore(factors, riskConfig.questions);
+    const metricScore = this.calculateMetricScore(factors, riskConfig);
+    const totalScore = Math.round((questionScore + metricScore) * 100) / 100;
 
-    return {questionScore: 0, metricScore: 0, totalScore: 0}; // Placeholder for actual return type
+    return {questionScore, metricScore, totalScore};
+  }
+
+  private static calculateQuestionScore(factors: RiskFactors, questions: RiskQuestion[]): number {
+    return questions.reduce((score, q) => {
+      const factor = factors[q.key] as Answer | undefined;
+      return factor?.answer === 'Yes' ? score + q.maxWeight : score;
+    }, 0);
+  }
+
+  private static calculateMetricScore(factors: RiskFactors, config: RiskConfig): number {
+    const metrics = [
+      (factors.logChurn || 0) * config.logChurnWeight,
+      (factors.codeChurn || 0) * config.codeChurnWeight,
+      (factors.halsteadComplexity || 0) * config.halsteadComplexityWeight,
+      (factors.cognitiveComplexity || 0) * config.cognitiveComplexityWeight
+    ];
+    return metrics.reduce((sum, metric) => sum + metric, 0);
   }
 }
