@@ -146,7 +146,7 @@ jobs:
       - name: Install dependencies
         id: install-dependencies
         run: |
-          poetry env use python${{ fromJson(needs.init.outputs.metadata).python-version }}
+          poetry env use $Python3_ROOT_DIR/bin/python
           poetry env info
           eval $(poetry env activate)
           poetry install
