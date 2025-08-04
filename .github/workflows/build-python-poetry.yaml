@@ -146,9 +146,8 @@ jobs:
       - name: Install dependencies
         id: install-dependencies
         run: |
-          poetry env use $Python3_ROOT_DIR/bin/python
+          poetry env use /opt/hostedtoolcache/Python/3.13.1/x64/bin/python
           poetry env info
-          eval $(poetry env activate)
           poetry install
 
       - name: Build Rust libraries
