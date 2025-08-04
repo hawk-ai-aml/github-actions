@@ -146,8 +146,7 @@ jobs:
       - name: Install dependencies
         id: install-dependencies
         run: |
-          poetry env use $Python3_ROOT_DIR/bin/python
-          poetry install
+          /opt/pipx_bin/poetry install
 
       - name: Build Rust libraries
         if: ${{ inputs.buildRustLibraries == true }}
