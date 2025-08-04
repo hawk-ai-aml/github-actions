@@ -146,7 +146,7 @@ jobs:
       - name: Install dependencies
         id: install-dependencies
         run: |
-          poetry env use /opt/hostedtoolcache/Python/3.13.1/x64/bin/python
+          poetry env use python3.13
           poetry env info
           poetry install
 
