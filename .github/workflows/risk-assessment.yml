@@ -59,7 +59,7 @@ jobs:
         with:
           repository: hawk-ai-aml/github-actions
           path: .github-actions
-          ref: feature/master
+          ref: master
           token: ${{ secrets.github-token }}
 
       - name: Get PR details and changed files
