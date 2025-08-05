@@ -10,6 +10,10 @@ on:
         type: string
         description: Test group name
         required: true
+      browser:
+        type: string
+        description: Browser to run tests on
+        required: false
       ref:
         type: string
         description: Tag or branch name
@@ -25,7 +29,7 @@ defaults:
 
 jobs:
   test:
-    runs-on: ["self-hosted", "tester"]
+    runs-on: [ "self-hosted", "tester" ]
 
     outputs:
       url: ${{ steps.report-url.outputs.url }}
@@ -121,9 +125,11 @@ jobs:
           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
 
           environment: ${{ inputs.environment }}
+          browser: ${{ inputs.browser }}
+
         continue-on-error: true
         run: |
-          ./gradlew test -Dgroups=${{ inputs.group }} -Denvironment=${{ inputs.environment }} --continue -isS
+          ./gradlew cleanTest test -Dgroups=${{ inputs.group }} -Denvironment=${{ inputs.environment }} -Dbrowser=${{inputs.browser}} --continue -isS
 
       # -------------------------------------- END-TEST --------------------------------------
       # ++++++++++++++++++++++++++++++++++++ START-REPORT ++++++++++++++++++++++++++++++++++++
