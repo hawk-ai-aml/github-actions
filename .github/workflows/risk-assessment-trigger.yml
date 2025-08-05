@@ -15,10 +15,10 @@ permissions:
 
 jobs:
   risk-assessment:
-    uses: hawk-ai-aml/github-actions/.github/workflows/risk-assessment.yml@bugfix/DC-2185
+    uses: hawk-ai-aml/github-actions/.github/workflows/risk-assessment.yml@master
     with:
       enforce-mode: false
       sra-enabled: true
-      github-actions-ref: bugfix/DC-2185
+      github-actions-ref: master
     secrets:
       github-token: ${{ secrets.REPO_ACCESS_PAT }}
