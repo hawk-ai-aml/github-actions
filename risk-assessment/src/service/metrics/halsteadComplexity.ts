@@ -46,11 +46,7 @@ class HalsteadComplexity implements Metric {
     let totalComplexity = 0;
     let totalFiles = 0;
 
-    const codeFiles = changedFiles.filter(file =>
-      /\.(js|ts|jsx|tsx|py|java|cpp|c|cs|go|rs|php|rb)$/i.test(file)
-    );
-
-    for (const file of codeFiles) {
+    for (const file of changedFiles) {
       try {
         if (!fs.existsSync(file)) {
           continue;

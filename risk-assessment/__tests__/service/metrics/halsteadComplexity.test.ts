@@ -25,23 +25,6 @@ describe('halsteadComplexity', () => {
     expect(core.warning).toHaveBeenCalledWith('Could not calculate Halstead complexity - no changed files found');
   });
 
-  it('should filter only code files', async () => {
-    (git.getListOfChangedFiles as jest.Mock).mockResolvedValue([
-      'file.txt',
-      'image.png',
-      'config.json',
-      'script.js',
-      'component.tsx'
-    ]);
-    (fs.existsSync as jest.Mock).mockReturnValue(true);
-    (fs.readFileSync as jest.Mock).mockReturnValue('const x = 1;');
-
-    const result = await halsteadComplexityCalculator.calculate();
-
-    expect(fs.readFileSync).toHaveBeenCalledTimes(2); // Only .js and .tsx files
-    expect(result).toBeGreaterThanOrEqual(0);
-  });
-
   it('should calculate complexity for simple code with operators and identifiers', async () => {
     const codeContent = `
       const x = 5;

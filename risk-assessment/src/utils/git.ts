@@ -19,6 +19,44 @@ async function maybeGetDetailedLog(file: string) {
   return detailedLog.latest?.hash ? await git.raw(['log', '--format=%H|%ad', '--date=iso', '--follow', '--', file]) : '';
 }
 
+function filterForRelevant(file: string) {
+  const isCodeFile = /\.(js|ts|jsx|tsx|py|java|cpp|c|cs|go|rs|php|rb)$/i.test(file);
+
+  const isTestFile = /\.(test|spec)\.(js|ts|jsx|tsx)$/i.test(file) ||
+    /\/__tests__\//i.test(file) ||
+    /\/tests?\//i.test(file) ||
+    /^tests?\//i.test(file);
+
+  const isGitignorePattern =
+    /node_modules\//i.test(file) ||
+    /\.git\//i.test(file) ||
+    /dist\//i.test(file) ||
+    /build\//i.test(file) ||
+    /coverage\//i.test(file) ||
+    /\.nyc_output\//i.test(file) ||
+    /out\//i.test(file) ||
+    /target\//i.test(file) ||
+    /bin\//i.test(file) ||
+    /obj\//i.test(file) ||
+    /\.next\//i.test(file) ||
+    /\.nuxt\//i.test(file) ||
+    /\.cache\//i.test(file) ||
+    /\.temp\//i.test(file) ||
+    /\.tmp\//i.test(file) ||
+    /logs?\//i.test(file) ||
+    /\.log$/i.test(file) ||
+    /\.env$/i.test(file) ||
+    /\.env\./i.test(file) ||
+    /\.DS_Store$/i.test(file) ||
+    /Thumbs\.db$/i.test(file) ||
+    /\.lock$/i.test(file) ||
+    /package-lock\.json$/i.test(file) ||
+    /yarn\.lock$/i.test(file) ||
+    /pnpm-lock\.yaml$/i.test(file);
+
+  return isCodeFile && !isTestFile && !isGitignorePattern;
+}
+
 async function getListOfChangedFiles() {
   const branchesToTry = getBranches();
   let changedFiles: string[] = [];
@@ -31,7 +69,8 @@ async function getListOfChangedFiles() {
       core.warning(`Failed to get changed files against ${branch}, trying next branch`);
     }
   }
-  return changedFiles;
+
+  return changedFiles.filter(filterForRelevant);
 }
 
 async function getDiffStats() {

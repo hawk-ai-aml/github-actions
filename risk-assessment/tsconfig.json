@@ -22,6 +22,9 @@
       ],
       "@/metrics/*": [
         "src/service/metrics/*"
+      ],
+      "@/service/*": [
+        "src/service/*"
       ]
     }
   },

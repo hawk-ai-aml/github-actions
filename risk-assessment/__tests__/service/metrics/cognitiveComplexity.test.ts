@@ -25,23 +25,6 @@ describe('cognitiveComplexity', () => {
     expect(core.warning).toHaveBeenCalledWith('Could not calculate cognitive complexity - no changed files found');
   });
 
-  it('should filter only code files', async () => {
-    (git.getListOfChangedFiles as jest.Mock).mockResolvedValue([
-      'file.txt',
-      'image.png',
-      'config.json',
-      'script.js',
-      'component.tsx'
-    ]);
-    (fs.existsSync as jest.Mock).mockReturnValue(true);
-    (fs.readFileSync as jest.Mock).mockReturnValue('simple code');
-
-    const result = await cognitiveComplexityCalculator.calculate();
-
-    expect(fs.readFileSync).toHaveBeenCalledTimes(2); // Only .js and .tsx files
-    expect(result).toBeGreaterThanOrEqual(0);
-  });
-
   it('should calculate basic complexity for simple control structures', async () => {
     const codeContent = `
       if (condition) {
