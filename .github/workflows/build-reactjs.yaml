@@ -105,7 +105,6 @@ jobs:
       - name: Lint check
         run: yarn run prettier:check
 
-
   tests:
     needs: [ init, setup-and-lint ]
     runs-on: [ "self-hosted", "frontend-builder" ]
@@ -145,7 +144,13 @@ jobs:
         run: yarn run yarn:install
 
       - name: Yarn test
-        run: yarn run test:ci --shard=${{ matrix.shard }}/${{ strategy.job-total }}
+        run: yarn run test:ci --shard=${{ matrix.shard }}/${{ strategy.job-total }} --coverage --coverageDirectory=coverage/coverage-shard-${{ matrix.shard }}
+
+      - name: Upload coverage artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-${{ matrix.shard }}
+          path: coverage/coverage-shard-${{ matrix.shard }}
 
   build:
     needs: [ init, setup-and-lint, tests ]
@@ -158,12 +163,6 @@ jobs:
         uses: actions/setup-node@v3
         with:
           node-version: '^22.12.0'
-
-      - name: SonarQube Cloud Scan
-        uses: hawk-ai-aml/github-actions/sonarqube@master
-        with:
-          sonarToken: ${{ secrets.SONAR_TOKEN }}
-          sonarHostUrl: ${{ secrets.SONAR_HOST_URL }}
 
       - name: Node module cache
         uses: actions/cache@v3
@@ -182,6 +181,28 @@ jobs:
         env:
           NODE_OPTIONS: "--max-old-space-size=4096"
         run: yarn run build
+
+      - name: Download coverage artifacts from shards
+        uses: actions/download-artifact@v4
+        with:
+          pattern: coverage-*
+          path: coverage/
+
+      - name: Merge coverage and generate LCOV report
+        run: |
+          mkdir -p .nyc_output
+          if [ -z "$(ls -A coverage)" ]; then
+            echo "Error: No coverage artifacts were downloaded." >&2
+            exit 1
+          fi
+          npx nyc merge coverage .nyc_output/out.json
+          npx nyc report --reporter=lcov
+
+      - name: SonarQube Cloud Scan
+        uses: hawk-ai-aml/github-actions/sonarqube@master
+        with:
+          sonarToken: ${{ secrets.SONAR_TOKEN }}
+          sonarHostUrl: ${{ secrets.SONAR_HOST_URL }}
 
       - name: Get ECR info
         id: ecr-info
