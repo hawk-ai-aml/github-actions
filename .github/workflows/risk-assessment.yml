@@ -42,7 +42,7 @@ permissions:
 
 jobs:
   risk-assessment:
-    runs-on: ubuntu-latest
+    runs-on: ["self-hosted", "small-builder"]
     name: Calculate Risk Score
     if: ${{ inputs.sra-enabled }}
     outputs:
@@ -52,8 +52,23 @@ jobs:
 
     env:
       SRA_ENFORCE_MODE: ${{ inputs.enforce-mode }}
+      PUSHGATEWAY_URL: "prometheus-pushgateway.monitoring:9091"
+      JOB_NAME: "github_risk_assessment"
 
     steps:
+      - name: Send workflow start metric
+        continue-on-error: true
+        run: |
+          START_TIME=$(date +%s)
+          echo "WORKFLOW_START_TIME=$START_TIME" >> $GITHUB_ENV
+          
+          RESPONSE=$(curl -X POST "$PUSHGATEWAY_URL/metrics/job/$JOB_NAME/instance/${{ github.repository }}" \
+            --data-binary "github_risk_assessment_started{repository=\"${{ github.repository }}\",workflow_run_id=\"${{ github.run_id }}\",ref=\"${{ github.ref }}\"} $START_TIME" \
+            --max-time 10 \
+            --write-out "HTTP_CODE:%{http_code}" \
+            --silent \
+            --fail 2>&1) || echo "Failed to send start metric - Response: $RESPONSE"
+
       - name: Checkout calling repository
         uses: actions/checkout@v4
         with:
@@ -134,7 +149,7 @@ jobs:
             ${{ steps.load-config.outputs.questions }}
 
             Evidence format: String that will be rendered as markdown containing specific files, methods, patterns found OR "❌"
-            Links to files or code snippets are encouraged and should be formatted as marked down links 
+            Links to files or code snippets are encouraged and should be formatted as marked down links
             with the url like "https://github.com/${{ github.repository }}/blob/${{ github.head_ref }}/{filepath}".
 
             Please answer each question in this exact format:
@@ -185,3 +200,40 @@ jobs:
               description: description,
               context: 'SRA/risk-assessment'
             });
+
+      - name: Send workflow completion metric
+        if: always()
+        continue-on-error: true
+        run: |
+          # Set fallback start time if not available
+          if [ -z "$WORKFLOW_START_TIME" ]; then
+            WORKFLOW_START_TIME=$(date +%s)
+            echo "Warning: Start time not available, using current time"
+          fi
+
+          END_TIME=$(date +%s)
+          DURATION=$((END_TIME - WORKFLOW_START_TIME))
+          STATUS="${{ job.status }}"
+          RISK_SCORE="${{ steps.sra.outputs.risk-score }}"
+          RISK_TIER="${{ steps.sra.outputs.risk-tier }}"
+
+          # Function to send metric with detailed error handling
+          send_metric() {
+            local metric_data="$1"
+            local response=$(curl -X POST "$PUSHGATEWAY_URL/metrics/job/$JOB_NAME/instance/${{ github.repository }}" \
+              --data-binary "$metric_data" \
+              --max-time 10 \
+              --write-out "HTTP_CODE:%{http_code}" \
+              --silent \
+              --fail 2>&1) || echo "Failed to send metric - Response: $response - Data: $metric_data"
+          }
+
+          # Send metrics with detailed error reporting
+          send_metric "github_risk_assessment_completed{repository=\"${{ github.repository }}\",workflow_run_id=\"${{ github.run_id }}\",ref=\"${{ github.ref }}\",status=\"$STATUS\"} $END_TIME"
+          send_metric "github_risk_assessment_duration_seconds{repository=\"${{ github.repository }}\",workflow_run_id=\"${{ github.run_id }}\",ref=\"${{ github.ref }}\",status=\"$STATUS\"} $DURATION"
+
+          if [ "$RISK_SCORE" != "" ] && [ "$RISK_SCORE" != "N/A" ]; then
+            send_metric "github_risk_assessment_score{repository=\"${{ github.repository }}\",workflow_run_id=\"${{ github.run_id }}\",ref=\"${{ github.ref }}\",tier=\"$RISK_TIER\"} $RISK_SCORE"
+          fi
+
+          echo "Metric collection completed (errors logged but ignored)"
