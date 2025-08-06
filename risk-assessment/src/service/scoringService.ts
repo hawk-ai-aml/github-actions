@@ -12,16 +12,16 @@ export class ScoringService {
   private static calculateQuestionScore(factors: RiskFactors, questions: RiskQuestion[]): number {
     return questions.reduce((score, q) => {
       const factor = factors[q.key] as Answer | undefined;
-      return factor?.answer === 'Yes' ? score + q.maxWeight : score;
+      return score + (factor ? Number(factor.weight) : 0);
     }, 0);
   }
 
   private static calculateMetricScore(factors: RiskFactors, config: RiskConfig): number {
     const metrics = [
-      (factors.logChurn || 0) * config.logChurnWeight,
-      (factors.codeChurn || 0) * config.codeChurnWeight,
-      (factors.halsteadComplexity || 0) * config.halsteadComplexityWeight,
-      (factors.cognitiveComplexity || 0) * config.cognitiveComplexityWeight
+      factors.logChurn * config.logChurnWeight,
+      factors.codeChurn * config.codeChurnWeight,
+      factors.halsteadComplexity * config.halsteadComplexityWeight,
+      factors.cognitiveComplexity * config.cognitiveComplexityWeight
     ];
     return metrics.reduce((sum, metric) => sum + metric, 0);
   }

@@ -52,7 +52,7 @@
     {
       "key": "devEnvironment",
       "maxWeight": 2,
-      "question": "Has this change never been deployed to a development environment for testing?"
+      "question": "Is this change yet to be deployed to a development environment for testing?"
     }
   ],
   "logChurnWeight": 0.15,
