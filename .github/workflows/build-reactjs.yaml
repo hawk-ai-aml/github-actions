@@ -160,7 +160,7 @@ jobs:
           node-version: '^22.12.0'
 
       - name: SonarQube Cloud Scan
-        if: ${{ github.workflow == 'pr' || github.workflow == 'master' }}
+        if: ${{ github.workflow == 'pr' }}
         uses: hawk-ai-aml/github-actions/sonarqube@master
         with:
           sonarToken: ${{ secrets.SONAR_TOKEN }}
