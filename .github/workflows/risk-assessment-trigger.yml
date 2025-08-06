@@ -15,10 +15,10 @@ permissions:
 
 jobs:
   risk-assessment:
-    uses: hawk-ai-aml/github-actions/.github/workflows/risk-assessment.yml@master
+    uses: hawk-ai-aml/github-actions/.github/workflows/risk-assessment.yml@feature/DC-2174
     with:
       enforce-mode: false
       sra-enabled: true
-      github-actions-ref: master
+      github-actions-ref: feature/DC-2174
     secrets:
       github-token: ${{ secrets.REPO_ACCESS_PAT }}

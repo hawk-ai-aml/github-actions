@@ -42,7 +42,7 @@ permissions:
 
 jobs:
   risk-assessment:
-    runs-on: ["self-hosted", "small-builder"]
+    runs-on: [ self-hosted, small-builder ]
     name: Calculate Risk Score
     if: ${{ inputs.sra-enabled }}
     outputs:
@@ -52,7 +52,7 @@ jobs:
 
     env:
       SRA_ENFORCE_MODE: ${{ inputs.enforce-mode }}
-      PUSHGATEWAY_URL: "prometheus-pushgateway.monitoring:9091"
+      PUSHGATEWAY_URL: "http://prometheus-pushgateway.monitoring:9091"
       JOB_NAME: "github_risk_assessment"
 
     steps:
@@ -61,13 +61,26 @@ jobs:
         run: |
           START_TIME=$(date +%s)
           echo "WORKFLOW_START_TIME=$START_TIME" >> $GITHUB_ENV
-          
-          RESPONSE=$(curl -X POST "$PUSHGATEWAY_URL/metrics/job/$JOB_NAME/instance/${{ github.repository }}" \
-            --data-binary "github_risk_assessment_started{repository=\"${{ github.repository }}\",workflow_run_id=\"${{ github.run_id }}\",ref=\"${{ github.ref }}\"} $START_TIME" \
-            --max-time 10 \
-            --write-out "HTTP_CODE:%{http_code}" \
-            --silent \
-            --fail 2>&1) || echo "Failed to send start metric - Response: $RESPONSE"
+
+          # Sanitize repository name for URL path
+          REPO_SANITIZED=$(echo "${{ github.repository }}" | tr '/' '_')
+
+          echo "PUSHGATEWAY_URL=$PUSHGATEWAY_URL"
+          echo "JOB_NAME=$JOB_NAME"
+          echo "REPO_SANITIZED=$REPO_SANITIZED"
+          echo "WORKFLOW_START_TIME=$START_TIME"
+          echo "Sending start metric to $PUSHGATEWAY_URL/metrics/job/$JOB_NAME/instance/$REPO_SANITIZED"
+
+          HTTP_CODE=$(cat <<EOF | curl --data-binary @- "$PUSHGATEWAY_URL/metrics/job/$JOB_NAME/instance/$REPO_SANITIZED" --max-time 10 --silent --write-out '%{http_code}' || echo "000"
+          # TYPE github_risk_assessment_started gauge
+          github_risk_assessment_started{repository="$REPO_SANITIZED",workflow_run_id="${{ github.run_id }}",ref="${{ github.ref }}"} $START_TIME
+          EOF
+          )
+
+          echo "Start metric HTTP response code: $HTTP_CODE"
+          if [ "$HTTP_CODE" != "200" ] && [ "$HTTP_CODE" != "202" ]; then
+            echo "Failed to send start metric (HTTP $HTTP_CODE)"
+          fi
 
       - name: Checkout calling repository
         uses: actions/checkout@v4
@@ -217,23 +230,23 @@ jobs:
           RISK_SCORE="${{ steps.sra.outputs.risk-score }}"
           RISK_TIER="${{ steps.sra.outputs.risk-tier }}"
 
-          # Function to send metric with detailed error handling
-          send_metric() {
-            local metric_data="$1"
-            local response=$(curl -X POST "$PUSHGATEWAY_URL/metrics/job/$JOB_NAME/instance/${{ github.repository }}" \
-              --data-binary "$metric_data" \
-              --max-time 10 \
-              --write-out "HTTP_CODE:%{http_code}" \
-              --silent \
-              --fail 2>&1) || echo "Failed to send metric - Response: $response - Data: $metric_data"
-          }
+          # Sanitize repository name for URL path
+          REPO_SANITIZED=$(echo "${{ github.repository }}" | tr '/' '_')
 
-          # Send metrics with detailed error reporting
-          send_metric "github_risk_assessment_completed{repository=\"${{ github.repository }}\",workflow_run_id=\"${{ github.run_id }}\",ref=\"${{ github.ref }}\",status=\"$STATUS\"} $END_TIME"
-          send_metric "github_risk_assessment_duration_seconds{repository=\"${{ github.repository }}\",workflow_run_id=\"${{ github.run_id }}\",ref=\"${{ github.ref }}\",status=\"$STATUS\"} $DURATION"
+          # Send all metrics in one request
+          HTTP_CODE=$(cat <<EOF | curl --data-binary @- "$PUSHGATEWAY_URL/metrics/job/$JOB_NAME/instance/$REPO_SANITIZED" --max-time 10 --silent --write-out '%{http_code}' || echo "000"
+          # TYPE github_risk_assessment_completed gauge
+          github_risk_assessment_completed{repository="${{ github.repository }}",workflow_run_id="${{ github.run_id }}",ref="${{ github.ref }}",status="$STATUS"} $END_TIME
+          # TYPE github_risk_assessment_duration_seconds gauge
+          github_risk_assessment_duration_seconds{repository="${{ github.repository }}",workflow_run_id="${{ github.run_id }}",ref="${{ github.ref }}",status="$STATUS"} $DURATION
+          $([ "$RISK_SCORE" != "" ] && [ "$RISK_SCORE" != "N/A" ] && echo "# TYPE github_risk_assessment_score gauge
+          github_risk_assessment_score{repository=\"${{ github.repository }}\",workflow_run_id=\"${{ github.run_id }}\",ref=\"${{ github.ref }}\",tier=\"$RISK_TIER\"} $RISK_SCORE")
+          EOF
+          )
 
-          if [ "$RISK_SCORE" != "" ] && [ "$RISK_SCORE" != "N/A" ]; then
-            send_metric "github_risk_assessment_score{repository=\"${{ github.repository }}\",workflow_run_id=\"${{ github.run_id }}\",ref=\"${{ github.ref }}\",tier=\"$RISK_TIER\"} $RISK_SCORE"
+          echo "Completion metrics HTTP response code: $HTTP_CODE"
+          if [ "$HTTP_CODE" != "200" ] && [ "$HTTP_CODE" != "202" ]; then
+            echo "Failed to send completion metrics (HTTP $HTTP_CODE)"
           fi
 
-          echo "Metric collection completed (errors logged but ignored)"
+          echo "Metric collection completed"
