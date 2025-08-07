@@ -43,7 +43,7 @@ permissions:
 jobs:
   risk-assessment:
     #runs-on: ubuntu-latest
-    runs-on: [ "self-hosted", "tester" ] # tried small-builder, builder, frontend-builder
+    runs-on: [ "small-builder" ] # tried small-builder, builder, frontend-builder, tester all in combination with self-hosted
     name: Calculate Risk Score
     if: ${{ inputs.sra-enabled }}
     outputs:
