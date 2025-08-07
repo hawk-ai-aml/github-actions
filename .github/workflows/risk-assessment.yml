@@ -53,7 +53,7 @@ jobs:
 
     env:
       SRA_ENFORCE_MODE: ${{ inputs.enforce-mode }}
-      PUSHGATEWAY_URL: "prometheus-pushgateway.monitoring:9091"
+      PUSHGATEWAY_URL: "http://prometheus-pushgateway.monitoring:9091"
       JOB_NAME: "github_risk_assessment"
 
     steps:
@@ -62,8 +62,11 @@ jobs:
         run: |
           START_TIME=$(date +%s)
           echo "WORKFLOW_START_TIME=$START_TIME" >> $GITHUB_ENV
-          
-          RESPONSE=$(curl -X POST "$PUSHGATEWAY_URL/metrics/job/$JOB_NAME/instance/${{ github.repository }}" \
+
+          # Sanitize repository name for URL path
+          REPO_SANITIZED=$(echo "${{ github.repository }}" | tr '/' '_')
+
+          RESPONSE=$(curl -X POST "$PUSHGATEWAY_URL/metrics/job/$JOB_NAME/instance/$REPO_SANITIZED" \
             --data-binary "github_risk_assessment_started{repository=\"${{ github.repository }}\",workflow_run_id=\"${{ github.run_id }}\",ref=\"${{ github.ref }}\"} $START_TIME" \
             --max-time 10 \
             --write-out "HTTP_CODE:%{http_code}" \
@@ -202,6 +205,7 @@ jobs:
               context: 'SRA/risk-assessment'
             });
 
+      # Send workflow completion metric
       - name: Send workflow completion metric
         if: always()
         continue-on-error: true
@@ -218,10 +222,13 @@ jobs:
           RISK_SCORE="${{ steps.sra.outputs.risk-score }}"
           RISK_TIER="${{ steps.sra.outputs.risk-tier }}"
 
+          # Sanitize repository name for URL path
+          REPO_SANITIZED=$(echo "${{ github.repository }}" | tr '/' '_')
+
           # Function to send metric with detailed error handling
           send_metric() {
             local metric_data="$1"
-            local response=$(curl -X POST "$PUSHGATEWAY_URL/metrics/job/$JOB_NAME/instance/${{ github.repository }}" \
+            local response=$(curl -X POST "$PUSHGATEWAY_URL/metrics/job/$JOB_NAME/instance/$REPO_SANITIZED" \
               --data-binary "$metric_data" \
               --max-time 10 \
               --write-out "HTTP_CODE:%{http_code}" \
