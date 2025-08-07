@@ -56,44 +56,27 @@ jobs:
       JOB_NAME: "github_risk_assessment"
 
     steps:
-      - name: Send workflow start metric
-        continue-on-error: true
-        run: |
-          START_TIME=$(date +%s)
-          echo "WORKFLOW_START_TIME=$START_TIME" >> $GITHUB_ENV
-
-          # Sanitize repository name for URL path
-          REPO_SANITIZED=$(echo "${{ github.repository }}" | tr '/' '_')
-
-          echo "PUSHGATEWAY_URL=$PUSHGATEWAY_URL"
-          echo "JOB_NAME=$JOB_NAME"
-          echo "REPO_SANITIZED=$REPO_SANITIZED"
-          echo "WORKFLOW_START_TIME=$START_TIME"
-          echo "Sending start metric to $PUSHGATEWAY_URL/metrics/job/$JOB_NAME/instance/$REPO_SANITIZED"
-
-          HTTP_CODE=$(cat <<EOF | curl --data-binary @- "$PUSHGATEWAY_URL/metrics/job/$JOB_NAME/instance/$REPO_SANITIZED" --max-time 10 --silent --write-out '%{http_code}' || echo "000"
-          # TYPE github_risk_assessment_started gauge
-          github_risk_assessment_started{repository="$REPO_SANITIZED",workflow_run_id="${{ github.run_id }}",ref="${{ github.ref }}"} $START_TIME
-          EOF
-          )
-
-          echo "Start metric HTTP response code: $HTTP_CODE"
-          if [ "$HTTP_CODE" != "200" ] && [ "$HTTP_CODE" != "202" ]; then
-            echo "Failed to send start metric (HTTP $HTTP_CODE)"
-          fi
 
       - name: Checkout calling repository
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
-      - name: Checkout risk assessment action
+      - name: Checkout github actions
         uses: actions/checkout@v4
         with:
           repository: hawk-ai-aml/github-actions
           path: .github-actions
           ref: ${{ inputs.github-actions-ref }}
           token: ${{ secrets.github-token }}
+
+      - name: Send workflow start metric
+        id: metrics-start
+        continue-on-error: true
+        uses: ./.github-actions/workflow-metrics
+        with:
+          action: start
+          job-name: github_risk_assessment
 
       - name: Get PR details and changed files
         id: pr-context
@@ -217,36 +200,12 @@ jobs:
       - name: Send workflow completion metric
         if: always()
         continue-on-error: true
-        run: |
-          # Set fallback start time if not available
-          if [ -z "$WORKFLOW_START_TIME" ]; then
-            WORKFLOW_START_TIME=$(date +%s)
-            echo "Warning: Start time not available, using current time"
-          fi
-
-          END_TIME=$(date +%s)
-          DURATION=$((END_TIME - WORKFLOW_START_TIME))
-          STATUS="${{ job.status }}"
-          RISK_SCORE="${{ steps.sra.outputs.risk-score }}"
-          RISK_TIER="${{ steps.sra.outputs.risk-tier }}"
-
-          # Sanitize repository name for URL path
-          REPO_SANITIZED=$(echo "${{ github.repository }}" | tr '/' '_')
-
-          # Send all metrics in one request
-          HTTP_CODE=$(cat <<EOF | curl --data-binary @- "$PUSHGATEWAY_URL/metrics/job/$JOB_NAME/instance/$REPO_SANITIZED" --max-time 10 --silent --write-out '%{http_code}' || echo "000"
-          # TYPE github_risk_assessment_completed gauge
-          github_risk_assessment_completed{repository="${{ github.repository }}",workflow_run_id="${{ github.run_id }}",ref="${{ github.ref }}",status="$STATUS"} $END_TIME
-          # TYPE github_risk_assessment_duration_seconds gauge
-          github_risk_assessment_duration_seconds{repository="${{ github.repository }}",workflow_run_id="${{ github.run_id }}",ref="${{ github.ref }}",status="$STATUS"} $DURATION
-          $([ "$RISK_SCORE" != "" ] && [ "$RISK_SCORE" != "N/A" ] && echo "# TYPE github_risk_assessment_score gauge
-          github_risk_assessment_score{repository=\"${{ github.repository }}\",workflow_run_id=\"${{ github.run_id }}\",ref=\"${{ github.ref }}\",tier=\"$RISK_TIER\"} $RISK_SCORE")
-          EOF
-          )
-
-          echo "Completion metrics HTTP response code: $HTTP_CODE"
-          if [ "$HTTP_CODE" != "200" ] && [ "$HTTP_CODE" != "202" ]; then
-            echo "Failed to send completion metrics (HTTP $HTTP_CODE)"
-          fi
-
-          echo "Metric collection completed"
+        uses: ./.github-actions/workflow-metrics
+        with:
+          action: complete
+          job-name: github_risk_assessment
+          workflow-start-time: ${{ steps.metrics-start.outputs.start-time }}
+          job-status: ${{ job.status }}
+          additional-metrics: |
+            $([ "${{ steps.sra.outputs.risk-score }}" != "" ] && [ "${{ steps.sra.outputs.risk-score }}" != "N/A" ] && echo "# TYPE github_risk_assessment_score gauge
+            github_risk_assessment_score{repository=\"${{ github.repository }}\",workflow_run_id=\"${{ github.run_id }}\",ref=\"${{ github.ref }}\",tier=\"${{ steps.sra.outputs.risk-tier }}\"} ${{ steps.sra.outputs.risk-score }}")
