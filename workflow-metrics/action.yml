@@ -1,0 +1,79 @@
+name: 'Workflow Metrics'
+description: 'Send workflow start/completion metrics to Pushgateway'
+inputs:
+  action:
+    description: 'Action to perform: start or complete'
+    required: true
+  pushgateway-url:
+    description: 'Pushgateway URL'
+    required: false
+    default: 'http://prometheus-pushgateway.monitoring:9091'
+  job-name:
+    description: 'Job name for metrics'
+    required: true
+  workflow-start-time:
+    description: 'Workflow start time (unix timestamp) - required for complete action'
+    required: false
+  job-status:
+    description: 'Job status - required for complete action'
+    required: false
+  additional-metrics:
+    description: 'Additional metrics to send (multiline string in Prometheus format)'
+    required: false
+    default: ''
+
+outputs:
+  start-time:
+    description: 'Workflow start time (unix timestamp)'
+    value: ${{ steps.start.outputs.start-time }}
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Send start metric
+      id: start
+      if: inputs.action == 'start'
+      shell: bash
+      run: |
+        START_TIME=$(date +%s)
+        echo "start-time=$START_TIME" >> $GITHUB_OUTPUT
+        
+        REPO_SANITIZED=$(echo "${{ github.repository }}" | tr '/' '_')
+        
+        HTTP_CODE=$(cat <<EOF | curl --data-binary @- "${{ inputs.pushgateway-url }}/metrics/job/${{ inputs.job-name }}/instance/$REPO_SANITIZED" --max-time 10 --silent --write-out '%{http_code}' || echo "000"
+        # TYPE workflow_started gauge
+        workflow_started{repository="$REPO_SANITIZED",workflow_run_id="${{ github.run_id }}",ref="${{ github.ref }}"} $START_TIME
+        EOF
+        )
+        
+        echo "Start metric HTTP response code: $HTTP_CODE"
+
+    - name: Send completion metrics
+      if: inputs.action == 'complete'
+      shell: bash
+      run: |
+        START_TIME=${{ inputs.workflow-start-time }}
+        if [ -z "$START_TIME" ]; then
+          START_TIME=$(date +%s)
+          echo "Warning: Start time not available, using current time"
+        fi
+        
+        END_TIME=$(date +%s)
+        DURATION=$((END_TIME - START_TIME))
+        REPO_SANITIZED=$(echo "${{ github.repository }}" | tr '/' '_')
+        
+        METRICS=$(cat <<EOF
+        # TYPE workflow_completed gauge
+        workflow_completed{repository="${{ github.repository }}",workflow_run_id="${{ github.run_id }}",ref="${{ github.ref }}",status="${{ inputs.job-status }}"} $END_TIME
+        # TYPE workflow_duration_seconds gauge
+        workflow_duration_seconds{repository="${{ github.repository }}",workflow_run_id="${{ github.run_id }}",ref="${{ github.ref }}",status="${{ inputs.job-status }}"} $DURATION
+        EOF
+        )
+        
+        if [ -n "${{ inputs.additional-metrics }}" ]; then
+          METRICS="$METRICS"$'\n'"${{ inputs.additional-metrics }}"
+        fi
+        
+        HTTP_CODE=$(echo "$METRICS" | curl --data-binary @- "${{ inputs.pushgateway-url }}/metrics/job/${{ inputs.job-name }}/instance/$REPO_SANITIZED" --max-time 10 --silent --write-out '%{http_code}' || echo "000")
+        
+        echo "Completion metrics HTTP response code: $HTTP_CODE"
