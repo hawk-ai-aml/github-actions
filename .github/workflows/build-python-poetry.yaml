@@ -43,7 +43,7 @@ on:
 
 
 env:
-  POETRY_VERSION: 2.0.1
+  POETRY_VERSION: 2.1.4
 
 defaults:
   run:
@@ -115,14 +115,14 @@ jobs:
           # Disabling shallow clone is recommended for improving relevancy of reporting
           fetch-depth: 1000
 
+      - name: Install Poetry
+        run: pipx install "poetry==${{ env.POETRY_VERSION }}"
+
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: ${{ fromJson(needs.init.outputs.metadata).python-version }}
-          cache: pip
-
-      - name: Install Poetry
-        run: pipx install --python ${{ fromJson(needs.init.outputs.metadata).python-version }} "poetry==${{ env.POETRY_VERSION }}"
+          cache: poetry
 
       - name: Cache dependencies
         uses: actions/cache@v4
@@ -145,9 +145,7 @@ jobs:
 
       - name: Install dependencies
         id: install-dependencies
-        run: |
-          poetry env info
-          poetry install
+        run: poetry install
 
       - name: Build Rust libraries
         if: ${{ inputs.buildRustLibraries == true }}
@@ -205,7 +203,7 @@ jobs:
           if [[ "$MODULE" == *"_"* ]]; then
             MODULE="${MODULE//_/-}"
           fi
-          
+
           if [[ $KUSTOMIZE_OVERLAYS == "prod" ]]; then
             MATCHED_TAG=$(echo "$CUSTOM_TAGS" | tr ' ' '\n' | grep "^$MODULE-[0-9]"  | head -n 1 || true)
           else
