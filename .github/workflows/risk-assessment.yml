@@ -42,7 +42,7 @@ permissions:
 
 jobs:
   risk-assessment:
-    runs-on: ["self-hosted", "small-builder"]
+    runs-on: [ "self-hosted", "small-builder" ]
     name: Calculate Risk Score
     if: ${{ inputs.sra-enabled }}
     outputs:
