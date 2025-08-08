@@ -21,6 +21,10 @@ inputs:
     description: 'Additional metrics to send (multiline string in Prometheus format)'
     required: false
     default: ''
+  additional-labels:
+    description: 'Additional labels to add to all metrics (multiline string in key="value" format)'
+    required: false
+    default: ''
 
 outputs:
   start-time:
@@ -40,13 +44,21 @@ runs:
 
         REPO_SANITIZED=$(echo "${{ github.repository }}" | tr '/' '_')
 
+        ADDITIONAL_LABELS=""
+        if [ -n "${{ inputs.additional-labels }}" ]; then
+          ADDITIONAL_LABELS=$(cat <<'LABELS_EOF' | sed 's/^/,/' | tr '\n' ' ' | sed 's/ $//'
+        ${{ inputs.additional-labels }}
+        LABELS_EOF
+          )
+        fi
+
         HTTP_CODE=$(cat <<EOF | curl --data-binary @- "${{ inputs.pushgateway-url }}/metrics/job/${{ inputs.job-name }}/instance/$REPO_SANITIZED" --max-time 10 --silent --write-out '%{http_code}' || echo "000"
         # HELP workflow_runs_total Total number of workflow runs started
         # TYPE workflow_runs_total counter
-        workflow_runs_total{repository="$REPO_SANITIZED",ref="${{ github.ref }}"} 1
+        workflow_runs_total{repository="$REPO_SANITIZED",ref="${{ github.ref }}"$ADDITIONAL_LABELS} 1
         # HELP workflow_started Timestamp when workflow was started
         # TYPE workflow_started gauge
-        workflow_started{repository="$REPO_SANITIZED",workflow_run_id="${{ github.run_id }}",ref="${{ github.ref }}"} $START_TIME
+        workflow_started{repository="$REPO_SANITIZED",workflow_run_id="${{ github.run_id }}",ref="${{ github.ref }}"$ADDITIONAL_LABELS} $START_TIME
         EOF
         )
 
@@ -66,21 +78,32 @@ runs:
         DURATION=$((END_TIME - START_TIME))
         REPO_SANITIZED=$(echo "${{ github.repository }}" | tr '/' '_')
 
+        ADDITIONAL_LABELS=""
+        if [ -n "${{ inputs.additional-labels }}" ]; then
+          ADDITIONAL_LABELS=$(cat <<'LABELS_EOF' | sed 's/^/,/' | tr '\n' ' ' | sed 's/ $//'
+        ${{ inputs.additional-labels }}
+        LABELS_EOF
+          )
+        fi
+
         METRICS=$(cat <<EOF
         # HELP workflow_completed_total Total number of completed workflow runs
         # TYPE workflow_completed_total counter
-        workflow_completed_total{repository="$REPO_SANITIZED",ref="${{ github.ref }}",status="${{ inputs.job-status }}"} 1
+        workflow_completed_total{repository="$REPO_SANITIZED",ref="${{ github.ref }}",status="${{ inputs.job-status }}"$ADDITIONAL_LABELS} 1
         # HELP workflow_completed Timestamp when workflow was completed
         # TYPE workflow_completed gauge
-        workflow_completed{repository="$REPO_SANITIZED",workflow_run_id="${{ github.run_id }}",ref="${{ github.ref }}",status="${{ inputs.job-status }}"} $END_TIME
+        workflow_completed{repository="$REPO_SANITIZED",workflow_run_id="${{ github.run_id }}",ref="${{ github.ref }}",status="${{ inputs.job-status }}"$ADDITIONAL_LABELS} $END_TIME
         # HELP workflow_duration_seconds Duration of workflow execution in seconds
         # TYPE workflow_duration_seconds gauge
-        workflow_duration_seconds{repository="$REPO_SANITIZED",workflow_run_id="${{ github.run_id }}",ref="${{ github.ref }}",status="${{ inputs.job-status }}"} $DURATION
+        workflow_duration_seconds{repository="$REPO_SANITIZED",workflow_run_id="${{ github.run_id }}",ref="${{ github.ref }}",status="${{ inputs.job-status }}"$ADDITIONAL_LABELS} $DURATION
         EOF
         )
 
         if [ -n "${{ inputs.additional-metrics }}" ]; then
-          METRICS="$METRICS"$'\n'"${{ inputs.additional-metrics }}"
+          METRICS="$METRICS"$'\n'$(cat <<'METRICS_EOF'
+        ${{ inputs.additional-metrics }}
+        METRICS_EOF
+          )
         fi
 
         HTTP_CODE=$(echo "$METRICS" | curl --data-binary @- "${{ inputs.pushgateway-url }}/metrics/job/${{ inputs.job-name }}/instance/$REPO_SANITIZED" --max-time 10 --silent --write-out '%{http_code}' || echo "000")
