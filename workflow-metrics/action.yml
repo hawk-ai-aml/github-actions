@@ -44,13 +44,8 @@ runs:
 
         REPO_SANITIZED=$(echo "${{ github.repository }}" | tr '/' '_')
 
-        ADDITIONAL_LABELS=""
-        if [ -n "${{ inputs.additional-labels }}" ]; then
-          ADDITIONAL_LABELS=$(cat <<'LABELS_EOF' | sed 's/^/,/' | tr '\n' ' ' | sed 's/ $//'
-        ${{ inputs.additional-labels }}
-        LABELS_EOF
-          )
-        fi
+        echo "Additional labels: ${{ inputs.additional-labels }}"
+        ADDITIONAL_LABELS=$(echo "${{ inputs.additional-labels }}")
 
         HTTP_CODE=$(cat <<EOF | curl --data-binary @- "${{ inputs.pushgateway-url }}/metrics/job/${{ inputs.job-name }}/instance/$REPO_SANITIZED" --max-time 10 --silent --write-out '%{http_code}' || echo "000"
         # HELP workflow_runs_total Total number of workflow runs started
@@ -78,13 +73,8 @@ runs:
         DURATION=$((END_TIME - START_TIME))
         REPO_SANITIZED=$(echo "${{ github.repository }}" | tr '/' '_')
 
-        ADDITIONAL_LABELS=""
-        if [ -n "${{ inputs.additional-labels }}" ]; then
-          ADDITIONAL_LABELS=$(cat <<'LABELS_EOF' | sed 's/^/,/' | tr '\n' ' ' | sed 's/ $//'
-        ${{ inputs.additional-labels }}
-        LABELS_EOF
-          )
-        fi
+        echo "Additional labels: ${{ inputs.additional-labels }}"
+        ADDITIONAL_LABELS=$(echo "${{ inputs.additional-labels }}")
 
         METRICS=$(cat <<EOF
         # HELP workflow_completed_total Total number of completed workflow runs
