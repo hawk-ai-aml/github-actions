@@ -31,6 +31,10 @@ EOF
         metrics="$metrics"$'\n'"$additional_metrics"
     fi
 
+    echo "=== Metrics to be sent to Prometheus ==="
+    echo "$metrics"
+    echo "========================================"
+
     local http_code
     http_code=$(echo "$metrics" | curl --data-binary @- "${pushgateway_url}/metrics/job/${job_name}/instance/${repo_sanitized}" --max-time 10 --silent --write-out '%{http_code}' || echo "000")
     echo "$http_code"
@@ -57,6 +61,19 @@ main() {
     additional_labels="$3"
     echo "Additional labels: $additional_labels"
 
+    local formatted_additional_labels=""
+    if [ -n "$additional_labels" ]; then
+        IFS=',' read -ra label_pairs <<< "$additional_labels"
+        for pair in "${label_pairs[@]}"; do
+            if [ -n "$pair" ]; then
+                local key value
+                key=$(echo "$pair" | cut -d'=' -f1)
+                value=$(echo "$pair" | cut -d'=' -f2- | sed 's/^"//;s/"$//')  # Remove existing quotes
+                formatted_additional_labels="${formatted_additional_labels},${key}=\"${value}\""
+            fi
+        done
+    fi
+
     multi_value_labels="$4"
 
     if [ -n "$multi_value_labels" ]; then
@@ -66,10 +83,7 @@ main() {
 
         IFS=',' read -ra values <<< "$label_values"
         for value in "${values[@]}"; do
-            local current_labels=",$label_name=$value"
-            if [ -n "$additional_labels" ]; then
-                current_labels="$current_labels$additional_labels"
-            fi
+            local current_labels=",${label_name}=\"${value}\"${formatted_additional_labels}"
 
             local http_code
             http_code=$(send_metrics "$current_labels" "$repo_sanitized" "$5" "$6" "$7" "$8" "$9" "$end_time" "$duration" "${10}")
@@ -77,7 +91,7 @@ main() {
         done
     else
         local http_code
-        http_code=$(send_metrics "$additional_labels" "$repo_sanitized" "$5" "$6" "$7" "$8" "$9" "$end_time" "$duration" "${10}")
+        http_code=$(send_metrics "$formatted_additional_labels" "$repo_sanitized" "$5" "$6" "$7" "$8" "$9" "$end_time" "$duration" "${10}")
         echo "Completion metrics HTTP response code: $http_code"
     fi
 }
