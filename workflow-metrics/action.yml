@@ -4,23 +4,21 @@ inputs:
   action:
     description: 'Action to perform: start or complete'
     required: true
-  pushgateway-url:
-    description: 'Pushgateway URL'
-    required: false
-    default: 'http://prometheus-pushgateway.monitoring:9091'
-  job-name:
-    description: 'Job name for metrics'
-    required: true
-  workflow-start-time:
-    description: 'Workflow start time (unix timestamp) - required for complete action'
-    required: false
-  job-status:
-    description: 'Job status - required for complete action'
-    required: false
-  additional-metrics:
-    description: 'Additional metrics to send (multiline string in Prometheus format)'
+  group-labels:
+    description: 'Group labels to use for grouping. Supports multiple label values separated by comma. Results in a separate group per label value.'
     required: false
     default: ''
+  labels:
+    description: 'Labels to add to all metrics'
+    required: false
+    default: ''
+  additional-metrics:
+    description: 'Additional metrics to send'
+    required: false
+    default: ''
+  start-time:
+    description: 'Workflow start time (unix timestamp) - required for complete action'
+    required: false
 
 outputs:
   start-time:
@@ -35,45 +33,18 @@ runs:
       if: inputs.action == 'start'
       shell: bash
       run: |
-        START_TIME=$(date +%s)
-        echo "start-time=$START_TIME" >> $GITHUB_OUTPUT
-        
-        REPO_SANITIZED=$(echo "${{ github.repository }}" | tr '/' '_')
-        
-        HTTP_CODE=$(cat <<EOF | curl --data-binary @- "${{ inputs.pushgateway-url }}/metrics/job/${{ inputs.job-name }}/instance/$REPO_SANITIZED" --max-time 10 --silent --write-out '%{http_code}' || echo "000"
-        # TYPE workflow_started gauge
-        workflow_started{repository="$REPO_SANITIZED",workflow_run_id="${{ github.run_id }}",ref="${{ github.ref }}"} $START_TIME
-        EOF
-        )
-        
-        echo "Start metric HTTP response code: $HTTP_CODE"
+        python3 "${{ github.action_path }}/scripts/send_start_metrics.py" \
+          group_labels="${{ inputs.group-labels }}" \
+          labels="${{ inputs.labels }}" \
+          additional_metrics="${{ inputs.additional-metrics }}" 
 
     - name: Send completion metrics
+      id: complete
       if: inputs.action == 'complete'
       shell: bash
       run: |
-        START_TIME=${{ inputs.workflow-start-time }}
-        if [ -z "$START_TIME" ]; then
-          START_TIME=$(date +%s)
-          echo "Warning: Start time not available, using current time"
-        fi
-        
-        END_TIME=$(date +%s)
-        DURATION=$((END_TIME - START_TIME))
-        REPO_SANITIZED=$(echo "${{ github.repository }}" | tr '/' '_')
-        
-        METRICS=$(cat <<EOF
-        # TYPE workflow_completed gauge
-        workflow_completed{repository="${{ github.repository }}",workflow_run_id="${{ github.run_id }}",ref="${{ github.ref }}",status="${{ inputs.job-status }}"} $END_TIME
-        # TYPE workflow_duration_seconds gauge
-        workflow_duration_seconds{repository="${{ github.repository }}",workflow_run_id="${{ github.run_id }}",ref="${{ github.ref }}",status="${{ inputs.job-status }}"} $DURATION
-        EOF
-        )
-        
-        if [ -n "${{ inputs.additional-metrics }}" ]; then
-          METRICS="$METRICS"$'\n'"${{ inputs.additional-metrics }}"
-        fi
-        
-        HTTP_CODE=$(echo "$METRICS" | curl --data-binary @- "${{ inputs.pushgateway-url }}/metrics/job/${{ inputs.job-name }}/instance/$REPO_SANITIZED" --max-time 10 --silent --write-out '%{http_code}' || echo "000")
-        
-        echo "Completion metrics HTTP response code: $HTTP_CODE"
+        python3 "${{ github.action_path }}/scripts/send_completion_metrics.py" \
+          group_labels="${{ inputs.group-labels }}" \
+          labels="${{ inputs.labels }}" \
+          additional_metrics="${{ inputs.additional-metrics }}" \
+          start_time="${{ inputs.start-time }}"

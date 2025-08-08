@@ -52,8 +52,6 @@ jobs:
 
     env:
       SRA_ENFORCE_MODE: ${{ inputs.enforce-mode }}
-      PUSHGATEWAY_URL: "http://prometheus-pushgateway.monitoring:9091"
-      JOB_NAME: "github_risk_assessment"
 
     steps:
 
@@ -76,7 +74,14 @@ jobs:
         uses: ./.github-actions/workflow-metrics
         with:
           action: start
-          job-name: github_risk_assessment
+          group-labels: |
+            job: github_risk_assessment
+            repository: ${{ github.repository }}
+            ref: ${{ github.ref }}
+          labels: |
+            github_actions_ref: ${{ inputs.github-actions-ref }}
+            sra_enabled: ${{ inputs.sra-enabled }}
+            enforce_mode: ${{ inputs.enforce-mode }}
 
       - name: Get PR details and changed files
         id: pr-context
@@ -198,14 +203,22 @@ jobs:
             });
 
       - name: Send workflow completion metric
+        id: metrics-complete
         if: always()
         continue-on-error: true
         uses: ./.github-actions/workflow-metrics
         with:
           action: complete
-          job-name: github_risk_assessment
-          workflow-start-time: ${{ steps.metrics-start.outputs.start-time }}
-          job-status: ${{ job.status }}
+          group-labels: |
+            job: github_risk_assessment
+            repository: ${{ github.repository }}
+            ref: ${{ github.ref }}
+          labels: |
+            github_actions_ref: ${{ inputs.github-actions-ref }}
+            sra_enabled: ${{ inputs.sra-enabled }}
+            enforce_mode: ${{ inputs.enforce-mode }}
+            tier: ${{ steps.sra.outputs.risk-tier || 'unknown' }}
+            status: ${{ job.status || 'unknown' }}
           additional-metrics: |
-            $([ "${{ steps.sra.outputs.risk-score }}" != "" ] && [ "${{ steps.sra.outputs.risk-score }}" != "N/A" ] && echo "# TYPE github_risk_assessment_score gauge
-            github_risk_assessment_score{repository=\"${{ github.repository }}\",workflow_run_id=\"${{ github.run_id }}\",ref=\"${{ github.ref }}\",tier=\"${{ steps.sra.outputs.risk-tier }}\"} ${{ steps.sra.outputs.risk-score }}")
+            github_risk_assessment_score: ${{ steps.sra.outputs.risk-score || '-1' }}
+          start-time: ${{ steps.metrics-start.outputs.start-time }}
