@@ -77,6 +77,10 @@ jobs:
         with:
           action: start
           job-name: github_risk_assessment
+          additional-labels: |
+            sra_enabled="${{ inputs.sra-enabled }}"
+            enforce_mode="${{ inputs.enforce-mode }}"
+            github_actions_ref="${{ inputs.github-actions-ref }}"
 
       - name: Get PR details and changed files
         id: pr-context
@@ -206,6 +210,10 @@ jobs:
           job-name: github_risk_assessment
           workflow-start-time: ${{ steps.metrics-start.outputs.start-time }}
           job-status: ${{ job.status }}
+          additional-labels: |
+            sra_enabled="${{ inputs.sra-enabled }}"
+            enforce_mode="${{ inputs.enforce-mode }}"
+            github_actions_ref="${{ inputs.github-actions-ref }}"
           additional-metrics: |
             $([ "${{ steps.sra.outputs.risk-score }}" != "" ] && [ "${{ steps.sra.outputs.risk-score }}" != "N/A" ] && echo "# TYPE github_risk_assessment_score gauge
-            github_risk_assessment_score{repository=\"${{ github.repository }}\",workflow_run_id=\"${{ github.run_id }}\",ref=\"${{ github.ref }}\",tier=\"${{ steps.sra.outputs.risk-tier }}\"} ${{ steps.sra.outputs.risk-score }}")
+            github_risk_assessment_score{repository=\"${{ github.repository }}\",workflow_run_id=\"${{ github.run_id }}\",ref=\"${{ github.ref }}\",tier=\"${{ steps.sra.outputs.risk-tier }}\",sra_enabled=\"${{ inputs.sra-enabled }}\",enforce_mode=\"${{ inputs.enforce-mode }}\",github_actions_ref=\"${{ inputs.github-actions-ref }}\"} ${{ steps.sra.outputs.risk-score }}")
