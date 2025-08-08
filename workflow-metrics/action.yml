@@ -41,6 +41,8 @@ runs:
         REPO_SANITIZED=$(echo "${{ github.repository }}" | tr '/' '_')
         
         HTTP_CODE=$(cat <<EOF | curl --data-binary @- "${{ inputs.pushgateway-url }}/metrics/job/${{ inputs.job-name }}/instance/$REPO_SANITIZED" --max-time 10 --silent --write-out '%{http_code}' || echo "000"
+        # TYPE workflow_runs_total counter
+        workflow_runs_total{repository="$REPO_SANITIZED",ref="${{ github.ref }}"} 1
         # TYPE workflow_started gauge
         workflow_started{repository="$REPO_SANITIZED",workflow_run_id="${{ github.run_id }}",ref="${{ github.ref }}"} $START_TIME
         EOF
@@ -63,10 +65,12 @@ runs:
         REPO_SANITIZED=$(echo "${{ github.repository }}" | tr '/' '_')
         
         METRICS=$(cat <<EOF
+        # TYPE workflow_completed_total counter
+        workflow_completed_total{repository="$REPO_SANITIZED",ref="${{ github.ref }}",status="${{ inputs.job-status }}"} 1
         # TYPE workflow_completed gauge
-        workflow_completed{repository="${{ github.repository }}",workflow_run_id="${{ github.run_id }}",ref="${{ github.ref }}",status="${{ inputs.job-status }}"} $END_TIME
+        workflow_completed{repository="$REPO_SANITIZED",workflow_run_id="${{ github.run_id }}",ref="${{ github.ref }}",status="${{ inputs.job-status }}"} $END_TIME
         # TYPE workflow_duration_seconds gauge
-        workflow_duration_seconds{repository="${{ github.repository }}",workflow_run_id="${{ github.run_id }}",ref="${{ github.ref }}",status="${{ inputs.job-status }}"} $DURATION
+        workflow_duration_seconds{repository="$REPO_SANITIZED",workflow_run_id="${{ github.run_id }}",ref="${{ github.ref }}",status="${{ inputs.job-status }}"} $DURATION
         EOF
         )
         
