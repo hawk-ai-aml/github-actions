@@ -1,0 +1,70 @@
+name: 'Workflow Metrics'
+description: 'Send workflow start/completion metrics to Pushgateway'
+inputs:
+  action:
+    description: 'Action to perform: start or complete'
+    required: true
+  pushgateway-url:
+    description: 'Pushgateway URL'
+    required: false
+    default: 'http://prometheus-pushgateway.monitoring:9091'
+  job-name:
+    description: 'Job name for metrics'
+    required: true
+  workflow-start-time:
+    description: 'Workflow start time (unix timestamp) - required for complete action'
+    required: false
+  job-status:
+    description: 'Job status - required for complete action'
+    required: false
+  additional-metrics:
+    description: 'Additional metrics to send'
+    required: false
+    default: ''
+  additional-labels:
+    description: 'Additional labels to add to all metrics'
+    required: false
+    default: ''
+  multi-value-labels:
+    description: 'Multi-value labels in format "label=value1,value2,value3" - will emit separate metrics for each value'
+    required: false
+    default: ''
+
+outputs:
+  start-time:
+    description: 'Workflow start time (unix timestamp)'
+    value: ${{ steps.start.outputs.start-time }}
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Send start metric
+      id: start
+      if: inputs.action == 'start'
+      shell: bash
+      run: |
+        python3 "${{ github.action_path }}/scripts/send-start-metrics.py" \
+          "${{ github.repository }}" \
+          "${{ inputs.additional-labels }}" \
+          "${{ inputs.multi-value-labels }}" \
+          "${{ inputs.pushgateway-url }}" \
+          "${{ inputs.job-name }}" \
+          "${{ github.ref }}" \
+          "${{ github.run_id }}"
+
+    - name: Send completion metrics
+      if: inputs.action == 'complete'
+      shell: bash
+      run: |
+        chmod +x "${{ github.action_path }}/scripts/send-completion-metrics.sh"
+        "${{ github.action_path }}/scripts/send-completion-metrics.sh" \
+          "${{ inputs.workflow-start-time }}" \
+          "${{ github.repository }}" \
+          "${{ inputs.additional-labels }}" \
+          "${{ inputs.multi-value-labels }}" \
+          "${{ inputs.pushgateway-url }}" \
+          "${{ inputs.job-name }}" \
+          "${{ github.ref }}" \
+          "${{ github.run_id }}" \
+          "${{ inputs.job-status }}" \
+          "${{ inputs.additional-metrics }}"
