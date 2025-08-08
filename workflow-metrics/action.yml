@@ -43,8 +43,7 @@ runs:
       if: inputs.action == 'start'
       shell: bash
       run: |
-        chmod +x "${{ github.action_path }}/scripts/send-start-metrics.sh"
-        "${{ github.action_path }}/scripts/send-start-metrics.sh" \
+        python3 "${{ github.action_path }}/scripts/send-start-metrics.py" \
           "${{ github.repository }}" \
           "${{ inputs.additional-labels }}" \
           "${{ inputs.multi-value-labels }}" \
