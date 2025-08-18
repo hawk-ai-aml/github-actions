@@ -25,6 +25,10 @@ class MetricsCollector:
         self.add_metric("workflow_last_completion_timestamp", timestamp)
         self.add_metric("workflow_duration_seconds", duration)
 
+    def add_completion_metrics_without_duration(self, end_time: Optional[int] = None) -> None:
+        timestamp = end_time or int(time.time())
+        self.add_metric("workflow_last_completion_timestamp", timestamp)
+
     def get_all_metrics(self) -> Dict[str, Union[int, float]]:
         metrics = self.base_metrics.copy()
         if self.additional_metrics:

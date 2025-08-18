@@ -9,9 +9,6 @@ logger = setup_logger()
 
 def main() -> None:
     inputs = parse_script_input(sys.argv)
-    if inputs.start_time is None:
-        logger.error("Workflow start time is required but not provided. Exiting.")
-        sys.exit(1)
 
     collector = MetricsCollector(
         additional_metrics=inputs.additional_metrics,
@@ -19,10 +16,13 @@ def main() -> None:
         labels=inputs.labels
     )
 
-    start_time_int = int(inputs.start_time)
-    collector.add_completion_metrics(start_time_int)
-
-    logger.info(f"Duration: {collector.base_metrics['workflow_duration_seconds']} seconds")
+    if inputs.start_time is None:
+        logger.warning("Workflow start time not provided. Duration metrics will not be calculated.")
+        collector.add_completion_metrics_without_duration()
+    else:
+        start_time_int = int(inputs.start_time)
+        collector.add_completion_metrics(start_time_int)
+        logger.info(f"Duration: {collector.base_metrics['workflow_duration_seconds']} seconds")
 
     collector.send_to_pushgateway()
 

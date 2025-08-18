@@ -1,6 +1,8 @@
+import argparse
 import itertools
 from dataclasses import dataclass
-from typing import Dict, List, Union, Optional
+from typing import Dict, List
+from typing import Union, Optional
 from urllib.parse import quote
 from urllib.request import urlopen, Request
 
@@ -35,7 +37,7 @@ def _send_metrics_to_pushgateway(url: str, metrics: str) -> int:
             return response.status
     except Exception as e:
         logger.error(f"Failed to send metrics: {e}")
-        return 0
+        return 0  # still return 0 to not fail the workflow
 
 
 def send_metrics_to_pushgateway(
@@ -97,17 +99,18 @@ def parse_group_labels(group_labels: str) -> Dict[str, List[str]]:
     return parsed_labels
 
 
-def parse_metrics(metrics: str) -> Dict[str, Union[int, float]]:
-    parsed_metrics: Dict[str, Union[int, float]] = {}
+def parse_metrics(metrics: str) -> Dict[str, float]:
+    parsed_metrics: Dict[str, float] = {}
     for line in metrics.strip().splitlines():
         if line.strip():
             key, value = line.split(':', 1)
             key = key.strip()
             value = value.strip()
-            if '.' in value:
+            try:
                 parsed_metrics[key] = float(value)
-            else:
-                parsed_metrics[key] = int(value)
+            except ValueError:
+                logger.error(f"Invalid numeric value for metric '{key}': {value}")
+                raise
     logger.debug(f"Parsed metrics: {parsed_metrics}")
     return parsed_metrics
 
@@ -123,30 +126,41 @@ def parse_labels(labels: str) -> Dict[str, str]:
 
 
 def parse_script_input(argv: List[str]) -> ScriptInputs:
+    parser = argparse.ArgumentParser(description='Send workflow metrics to Prometheus Pushgateway')
+
+    parser.add_argument(
+        '--group-labels',
+        type=str,
+        help='Group labels in format "key1:val1,val2\\nkey2:val3,val4"'
+    )
+    parser.add_argument(
+        '--labels',
+        type=str,
+        help='Labels in format "key1:value1\\nkey2:value2"'
+    )
+    parser.add_argument(
+        '--additional-metrics',
+        type=str,
+        help='Additional metrics in format "metric1:value1\\nmetric2:value2"'
+    )
+    parser.add_argument(
+        '--start-time',
+        type=str,
+        help='Start time for workflow metrics'
+    )
+
+    args = parser.parse_args(argv[1:])
+
     logger.info("=== Script Inputs ===")
-    logger.info(f"sys.argv: {argv}")
+    logger.info(f"Arguments: {vars(args)}")
     logger.info("=====================")
 
-    group_labels_str = ""
-    labels_str = ""
-    additional_metrics_str = ""
-    start_time: Optional[str] = None
-
-    for arg in argv[1:]:
-        if arg.startswith("group_labels="):
-            group_labels_str = arg.split("=", 1)[1]
-        elif arg.startswith("labels="):
-            labels_str = arg.split("=", 1)[1]
-        elif arg.startswith("additional_metrics="):
-            additional_metrics_str = arg.split("=", 1)[1]
-        elif arg.startswith("start_time="):
-            start_time = arg.split("=", 1)[1]
-
     inputs = ScriptInputs(
-        group_labels=parse_group_labels(group_labels_str) if group_labels_str else None,
-        labels=parse_labels(labels_str) if labels_str else None,
-        additional_metrics=parse_metrics(additional_metrics_str) if additional_metrics_str else None,
-        start_time=start_time
+        group_labels=parse_group_labels(args.group_labels) if args.group_labels else None,
+        labels=parse_labels(args.labels) if args.labels else None,
+        additional_metrics=parse_metrics(args.additional_metrics) if args.additional_metrics else None,
+        start_time=args.start_time
     )
+
     logger.info(f"Parsed inputs: {inputs}")
     return inputs
