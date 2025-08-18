@@ -1,6 +1,11 @@
+import os
+import sys
 import unittest
-from unittest.mock import patch, MagicMock
+from unittest.mock import patch, Mock
 from urllib.error import URLError
+
+# Add the scripts directory to the path to import the module
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from common import (
     ScriptInputs,
@@ -13,143 +18,218 @@ from common import (
 )
 
 
-class TestCommonModule(unittest.TestCase):
-
-    def test_script_inputs_dataclass(self):
-        """Test ScriptInputs dataclass creation."""
+class TestScriptInputs(unittest.TestCase):
+    def test_script_inputs_creation(self):
         inputs = ScriptInputs(
-            group_labels={'env': ['prod', 'dev']},
-            labels={'service': 'api'},
-            additional_metrics={'duration': 123.45},
-            start_time='2023-01-01T00:00:00Z'
+            group_labels={'env': ['dev', 'prod']},
+            labels={'app': 'test'},
+            additional_metrics={'count': 10},
+            start_time='2023-01-01'
         )
+        self.assertEqual(inputs.group_labels, {'env': ['dev', 'prod']})
+        self.assertEqual(inputs.labels, {'app': 'test'})
+        self.assertEqual(inputs.additional_metrics, {'count': 10})
+        self.assertEqual(inputs.start_time, '2023-01-01')
 
-        self.assertEqual(inputs.group_labels, {'env': ['prod', 'dev']})
-        self.assertEqual(inputs.labels, {'service': 'api'})
-        self.assertEqual(inputs.additional_metrics, {'duration': 123.45})
-        self.assertEqual(inputs.start_time, '2023-01-01T00:00:00Z')
+    def test_script_inputs_with_none_values(self):
+        inputs = ScriptInputs(None, None, None, None)
+        self.assertIsNone(inputs.group_labels)
+        self.assertIsNone(inputs.labels)
+        self.assertIsNone(inputs.additional_metrics)
+        self.assertIsNone(inputs.start_time)
 
-    @patch('scripts.common.urlopen')
-    @patch('scripts.common.logger')
-    def test_send_metrics_to_pushgateway_success(self, mock_logger, mock_urlopen):
-        """Test successful metrics sending."""
-        mock_response = MagicMock()
+
+class TestSendMetricsToPushgateway(unittest.TestCase):
+    @patch('common.urlopen')
+    def test_send_metrics_success(self, mock_urlopen):
+        mock_response = Mock()
         mock_response.status = 200
         mock_urlopen.return_value.__enter__.return_value = mock_response
 
-        result = _send_metrics_to_pushgateway('http://test.com', 'metric 1')
-
+        result = _send_metrics_to_pushgateway("http://test.com", "test_metric 1")
         self.assertEqual(result, 200)
-        mock_urlopen.assert_called_once()
 
-    @patch('scripts.common.urlopen')
-    @patch('scripts.common.logger')
-    def test_send_metrics_to_pushgateway_failure(self, mock_logger, mock_urlopen):
-        """Test metrics sending with exception."""
-        mock_urlopen.side_effect = URLError('Connection failed')
+    @patch('common.urlopen')
+    @patch('common.time.sleep')
+    def test_send_metrics_retry_success(self, mock_sleep, mock_urlopen):
+        from unittest.mock import MagicMock
 
-        result = _send_metrics_to_pushgateway('http://test.com', 'metric 1')
+        mock_response = Mock()
+        mock_response.status = 200
 
+        # Create a proper context manager mock using MagicMock
+        mock_context_manager = MagicMock()
+        mock_context_manager.__enter__.return_value = mock_response
+        mock_context_manager.__exit__.return_value = None
+
+        # First call raises exception, second call returns the context manager
+        mock_urlopen.side_effect = [URLError("Connection failed"), mock_context_manager]
+
+        result = _send_metrics_to_pushgateway("http://test.com", "test_metric 1", max_retries=2)
+        self.assertEqual(result, 200)
+        mock_sleep.assert_called_once_with(1.0)
+
+    @patch('common.urlopen')
+    @patch('common.time.sleep')
+    def test_send_metrics_all_retries_fail(self, mock_sleep, mock_urlopen):
+        mock_urlopen.side_effect = URLError("Connection failed")
+
+        result = _send_metrics_to_pushgateway("http://test.com", "test_metric 1", max_retries=1)
         self.assertEqual(result, 0)
-        mock_logger.error.assert_called_once()
+        self.assertEqual(mock_sleep.call_count, 1)
 
-    @patch('scripts.common._send_metrics_to_pushgateway')
-    @patch('scripts.common.logger')
-    def test_send_metrics_to_pushgateway_without_group_labels(self, mock_logger, mock_send):
-        """Test sending metrics without group labels."""
+    @patch('common.urlopen')
+    def test_send_metrics_non_retryable_error(self, mock_urlopen):
+        mock_urlopen.side_effect = ValueError("Invalid URL")
+
+        result = _send_metrics_to_pushgateway("http://test.com", "test_metric 1")
+        self.assertEqual(result, 0)
+
+
+class TestSendMetricsToPushgatewayWrapper(unittest.TestCase):
+    @patch('common._send_metrics_to_pushgateway')
+    def test_send_metrics_no_group_labels(self, mock_send):
         mock_send.return_value = 200
 
-        metrics = {'test_metric': 42}
-        labels = {'service': 'test'}
+        metrics = {'test_metric': 1.0}
+        labels = {'app': 'test'}
 
         send_metrics_to_pushgateway(metrics, None, labels)
 
         mock_send.assert_called_once()
-        args = mock_send.call_args[0]
-        self.assertIn('test_metric{service="test"} 42', args[1])
+        args = mock_send.call_args
+        self.assertIn('test_metric{app="test"} 1.0', args[0][1])
 
-    @patch('scripts.common._send_metrics_to_pushgateway')
-    @patch('scripts.common.logger')
-    def test_send_metrics_to_pushgateway_with_group_labels(self, mock_logger, mock_send):
-        """Test sending metrics with group labels."""
+    @patch('common._send_metrics_to_pushgateway')
+    def test_send_metrics_with_group_labels(self, mock_send):
         mock_send.return_value = 200
 
-        metrics = {'test_metric': 42}
-        group_labels = {'env': ['prod', 'dev'], 'region': ['us']}
-        labels = {'service': 'test'}
+        metrics = {'test_metric': 1.0}
+        group_labels = {'env': ['dev', 'prod'], 'region': ['us']}
+        labels = {'app': 'test'}
 
         send_metrics_to_pushgateway(metrics, group_labels, labels)
 
-        # Should be called twice for combinations: (prod, us) and (dev, us)
+        # Should be called twice for each combination
         self.assertEqual(mock_send.call_count, 2)
 
-    def test_parse_group_labels_valid_input(self):
-        """Test parsing valid group labels."""
-        input_str = "env:prod,dev\nregion:us-east,us-west"
+    @patch('common._send_metrics_to_pushgateway')
+    def test_send_metrics_no_labels(self, mock_send):
+        mock_send.return_value = 200
+
+        metrics = {'test_metric': 1.0}
+
+        send_metrics_to_pushgateway(metrics, None, None)
+
+        mock_send.assert_called_once()
+        args = mock_send.call_args
+        self.assertIn('test_metric 1.0', args[0][1])
+
+
+class TestParseGroupLabels(unittest.TestCase):
+    def test_parse_group_labels_valid(self):
+        input_str = "env:dev,prod\nregion:us-east,us-west"
         expected = {
-            'env': ['prod', 'dev'],
+            'env': ['dev', 'prod'],
             'region': ['us-east', 'us-west']
         }
-
         result = parse_group_labels(input_str)
-
         self.assertEqual(result, expected)
 
     def test_parse_group_labels_with_slashes(self):
-        """Test parsing group labels with forward slashes."""
-        input_str = "env/type:prod/main,dev/feature"
+        input_str = "env/type:dev/test,prod/live"
         expected = {
-            'env_type': ['prod_main', 'dev_feature']
+            'env_type': ['dev_test', 'prod_live']
         }
-
         result = parse_group_labels(input_str)
-
         self.assertEqual(result, expected)
 
-    def test_parse_metrics_valid_input(self):
-        """Test parsing valid metrics."""
-        input_str = "duration:123.45\ncount:10"
-        expected = {'duration': 123.45, 'count': 10.0}
+    def test_parse_group_labels_empty(self):
+        result = parse_group_labels("")
+        self.assertEqual(result, {})
 
+    def test_parse_group_labels_whitespace(self):
+        input_str = "  env : dev , prod  \n  region : us-east , us-west  "
+        expected = {
+            'env': ['dev', 'prod'],
+            'region': ['us-east', 'us-west']
+        }
+        result = parse_group_labels(input_str)
+        self.assertEqual(result, expected)
+
+
+class TestParseMetrics(unittest.TestCase):
+    def test_parse_metrics_valid(self):
+        input_str = "metric1:1.5\nmetric2:2\nmetric3:0.5"
+        expected = {
+            'metric1': 1.5,
+            'metric2': 2.0,
+            'metric3': 0.5
+        }
         result = parse_metrics(input_str)
-
         self.assertEqual(result, expected)
 
     def test_parse_metrics_invalid_value(self):
-        """Test parsing metrics with invalid numeric value."""
-        input_str = "duration:invalid"
-
+        input_str = "metric1:invalid"
         with self.assertRaises(ValueError):
             parse_metrics(input_str)
 
-    def test_parse_labels_valid_input(self):
-        """Test parsing valid labels."""
-        input_str = "service:api\nversion:1.0.0"
-        expected = {'service': 'api', 'version': '1.0.0'}
+    def test_parse_metrics_empty(self):
+        result = parse_metrics("")
+        self.assertEqual(result, {})
 
-        result = parse_labels(input_str)
-
+    def test_parse_metrics_whitespace(self):
+        input_str = "  metric1 : 1.5  \n  metric2 : 2  "
+        expected = {
+            'metric1': 1.5,
+            'metric2': 2.0
+        }
+        result = parse_metrics(input_str)
         self.assertEqual(result, expected)
 
-    def test_parse_script_input_all_arguments(self):
-        """Test parsing script input with all arguments."""
+
+class TestParseLabels(unittest.TestCase):
+    def test_parse_labels_valid(self):
+        input_str = "app:myapp\nversion:1.0"
+        expected = {
+            'app': 'myapp',
+            'version': '1.0'
+        }
+        result = parse_labels(input_str)
+        self.assertEqual(result, expected)
+
+    def test_parse_labels_empty(self):
+        result = parse_labels("")
+        self.assertEqual(result, {})
+
+    def test_parse_labels_whitespace(self):
+        input_str = "  app : myapp  \n  version : 1.0  "
+        expected = {
+            'app': 'myapp',
+            'version': '1.0'
+        }
+        result = parse_labels(input_str)
+        self.assertEqual(result, expected)
+
+
+class TestParseScriptInput(unittest.TestCase):
+    def test_parse_script_input_all_args(self):
         argv = [
             'script.py',
-            '--group-labels', 'env:prod,dev',
-            '--labels', 'service:api',
-            '--additional-metrics', 'duration:123.45',
-            '--start-time', '2023-01-01T00:00:00Z'
+            '--group-labels', 'env:dev,prod',
+            '--labels', 'app:test',
+            '--additional-metrics', 'count:10',
+            '--start-time', '2023-01-01'
         ]
 
         result = parse_script_input(argv)
 
-        self.assertEqual(result.group_labels, {'env': ['prod', 'dev']})
-        self.assertEqual(result.labels, {'service': 'api'})
-        self.assertEqual(result.additional_metrics, {'duration': 123.45})
-        self.assertEqual(result.start_time, '2023-01-01T00:00:00Z')
+        self.assertEqual(result.group_labels, {'env': ['dev', 'prod']})
+        self.assertEqual(result.labels, {'app': 'test'})
+        self.assertEqual(result.additional_metrics, {'count': 10.0})
+        self.assertEqual(result.start_time, '2023-01-01')
 
-    def test_parse_script_input_minimal_arguments(self):
-        """Test parsing script input with minimal arguments."""
+    def test_parse_script_input_no_args(self):
         argv = ['script.py']
 
         result = parse_script_input(argv)
@@ -159,17 +239,19 @@ class TestCommonModule(unittest.TestCase):
         self.assertIsNone(result.additional_metrics)
         self.assertIsNone(result.start_time)
 
-    def test_parse_empty_strings(self):
-        """Test parsing functions with empty strings."""
-        self.assertEqual(parse_group_labels(""), {})
-        self.assertEqual(parse_metrics(""), {})
-        self.assertEqual(parse_labels(""), {})
+    def test_parse_script_input_partial_args(self):
+        argv = [
+            'script.py',
+            '--labels', 'app:test',
+            '--start-time', '2023-01-01'
+        ]
 
-    def test_parse_whitespace_only_strings(self):
-        """Test parsing functions with whitespace-only strings."""
-        self.assertEqual(parse_group_labels("   \n  \n  "), {})
-        self.assertEqual(parse_metrics("   \n  \n  "), {})
-        self.assertEqual(parse_labels("   \n  \n  "), {})
+        result = parse_script_input(argv)
+
+        self.assertIsNone(result.group_labels)
+        self.assertEqual(result.labels, {'app': 'test'})
+        self.assertIsNone(result.additional_metrics)
+        self.assertEqual(result.start_time, '2023-01-01')
 
 
 if __name__ == '__main__':

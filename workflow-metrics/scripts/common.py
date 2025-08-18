@@ -19,25 +19,41 @@ class ScriptInputs:
     start_time: Optional[str]
 
 
-def _send_metrics_to_pushgateway(url: str, metrics: str) -> int:
+import time
+from urllib.error import URLError
+
+
+def _send_metrics_to_pushgateway(url: str, metrics: str, max_retries: int = 2, retry_delay: float = 1.0) -> int:
     logger.info("=== Request Details ===")
     logger.info(f"URL: {url}")
     logger.info("Method: POST")
     logger.info("Content-Type: text/plain")
     logger.info("Timeout: 10 seconds")
+    logger.info(f"Max retries: {max_retries}")
     logger.info("========================")
 
     logger.info("=== Metrics to be sent to Prometheus ===")
     logger.info(f"\n{metrics}")
     logger.info("========================================")
 
-    try:
-        req = Request(url, data=metrics.encode('utf-8'), method='POST')
-        with urlopen(req, timeout=10) as response:
-            return response.status
-    except Exception as e:
-        logger.error(f"Failed to send metrics: {e}")
-        return 0  # still return 0 to not fail the workflow
+    for attempt in range(max_retries + 1):
+        try:
+            req = Request(url, data=metrics.encode('utf-8'), method='POST')
+            with urlopen(req, timeout=10) as response:
+                if attempt > 0:
+                    logger.info(f"Request succeeded on attempt {attempt + 1}")
+                return response.status
+        except (URLError, TimeoutError) as e:
+            if attempt < max_retries:
+                logger.warning(f"Attempt {attempt + 1} failed: {e}. Retrying in {retry_delay} seconds...")
+                time.sleep(retry_delay)
+                retry_delay *= 2
+            else:
+                logger.error(f"All {max_retries + 1} attempts failed. Last error: {e}")
+        except Exception as e:
+            logger.error(f"Non-retryable error on attempt {attempt + 1}: {e}")
+            break
+    return 0  # still return 0 to not fail the workflow
 
 
 def send_metrics_to_pushgateway(
