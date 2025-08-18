@@ -11,7 +11,7 @@ from common import (
     ScriptInputs,
     _send_metrics_to_pushgateway,
     send_metrics_to_pushgateway,
-    parse_group_labels,
+    parse_grouping_keys,
     parse_metrics,
     parse_labels,
     parse_script_input
@@ -21,19 +21,19 @@ from common import (
 class TestScriptInputs(unittest.TestCase):
     def test_script_inputs_creation(self):
         inputs = ScriptInputs(
-            group_labels={'env': ['dev', 'prod']},
+            grouping_keys={'env': ['dev', 'prod']},
             labels={'app': 'test'},
             additional_metrics={'count': 10},
             start_time='2023-01-01'
         )
-        self.assertEqual(inputs.group_labels, {'env': ['dev', 'prod']})
+        self.assertEqual(inputs.grouping_keys, {'env': ['dev', 'prod']})
         self.assertEqual(inputs.labels, {'app': 'test'})
         self.assertEqual(inputs.additional_metrics, {'count': 10})
         self.assertEqual(inputs.start_time, '2023-01-01')
 
     def test_script_inputs_with_none_values(self):
         inputs = ScriptInputs(None, None, None, None)
-        self.assertIsNone(inputs.group_labels)
+        self.assertIsNone(inputs.grouping_keys)
         self.assertIsNone(inputs.labels)
         self.assertIsNone(inputs.additional_metrics)
         self.assertIsNone(inputs.start_time)
@@ -88,7 +88,7 @@ class TestSendMetricsToPushgateway(unittest.TestCase):
 
 class TestSendMetricsToPushgatewayWrapper(unittest.TestCase):
     @patch('common._send_metrics_to_pushgateway')
-    def test_send_metrics_no_group_labels(self, mock_send):
+    def test_send_metrics_no_grouping_keys(self, mock_send):
         mock_send.return_value = 200
 
         metrics = {'test_metric': 1.0}
@@ -101,14 +101,14 @@ class TestSendMetricsToPushgatewayWrapper(unittest.TestCase):
         self.assertIn('test_metric{app="test"} 1.0', args[0][1])
 
     @patch('common._send_metrics_to_pushgateway')
-    def test_send_metrics_with_group_labels(self, mock_send):
+    def test_send_metrics_with_grouping_keys(self, mock_send):
         mock_send.return_value = 200
 
         metrics = {'test_metric': 1.0}
-        group_labels = {'env': ['dev', 'prod'], 'region': ['us']}
+        grouping_keys = {'env': ['dev', 'prod'], 'region': ['us']}
         labels = {'app': 'test'}
 
-        send_metrics_to_pushgateway(metrics, group_labels, labels)
+        send_metrics_to_pushgateway(metrics, grouping_keys, labels)
 
         # Should be called twice for each combination
         self.assertEqual(mock_send.call_count, 2)
@@ -127,34 +127,34 @@ class TestSendMetricsToPushgatewayWrapper(unittest.TestCase):
 
 
 class TestParseGroupLabels(unittest.TestCase):
-    def test_parse_group_labels_valid(self):
+    def test_parse_grouping_keys_valid(self):
         input_str = "env:dev,prod\nregion:us-east,us-west"
         expected = {
             'env': ['dev', 'prod'],
             'region': ['us-east', 'us-west']
         }
-        result = parse_group_labels(input_str)
+        result = parse_grouping_keys(input_str)
         self.assertEqual(result, expected)
 
-    def test_parse_group_labels_with_slashes(self):
+    def test_parse_grouping_keys_with_slashes(self):
         input_str = "env/type:dev/test,prod/live"
         expected = {
             'env_type': ['dev_test', 'prod_live']
         }
-        result = parse_group_labels(input_str)
+        result = parse_grouping_keys(input_str)
         self.assertEqual(result, expected)
 
-    def test_parse_group_labels_empty(self):
-        result = parse_group_labels("")
+    def test_parse_grouping_keys_empty(self):
+        result = parse_grouping_keys("")
         self.assertEqual(result, {})
 
-    def test_parse_group_labels_whitespace(self):
+    def test_parse_grouping_keys_whitespace(self):
         input_str = "  env : dev , prod  \n  region : us-east , us-west  "
         expected = {
             'env': ['dev', 'prod'],
             'region': ['us-east', 'us-west']
         }
-        result = parse_group_labels(input_str)
+        result = parse_grouping_keys(input_str)
         self.assertEqual(result, expected)
 
 
@@ -216,7 +216,7 @@ class TestParseScriptInput(unittest.TestCase):
     def test_parse_script_input_all_args(self):
         argv = [
             'script.py',
-            '--group-labels', 'env:dev,prod',
+            '--grouping-keys', 'env:dev,prod',
             '--labels', 'app:test',
             '--additional-metrics', 'count:10',
             '--start-time', '2023-01-01'
@@ -224,7 +224,7 @@ class TestParseScriptInput(unittest.TestCase):
 
         result = parse_script_input(argv)
 
-        self.assertEqual(result.group_labels, {'env': ['dev', 'prod']})
+        self.assertEqual(result.grouping_keys, {'env': ['dev', 'prod']})
         self.assertEqual(result.labels, {'app': 'test'})
         self.assertEqual(result.additional_metrics, {'count': 10.0})
         self.assertEqual(result.start_time, '2023-01-01')
@@ -234,7 +234,7 @@ class TestParseScriptInput(unittest.TestCase):
 
         result = parse_script_input(argv)
 
-        self.assertIsNone(result.group_labels)
+        self.assertIsNone(result.grouping_keys)
         self.assertIsNone(result.labels)
         self.assertIsNone(result.additional_metrics)
         self.assertIsNone(result.start_time)
@@ -248,7 +248,7 @@ class TestParseScriptInput(unittest.TestCase):
 
         result = parse_script_input(argv)
 
-        self.assertIsNone(result.group_labels)
+        self.assertIsNone(result.grouping_keys)
         self.assertEqual(result.labels, {'app': 'test'})
         self.assertIsNone(result.additional_metrics)
         self.assertEqual(result.start_time, '2023-01-01')

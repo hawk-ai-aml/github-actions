@@ -13,7 +13,7 @@ logger = setup_logger()
 
 @dataclass
 class ScriptInputs:
-    group_labels: Optional[Dict[str, List[str]]]
+    grouping_keys: Optional[Dict[str, List[str]]]
     labels: Optional[Dict[str, str]]
     additional_metrics: Optional[Dict[str, Union[int, float]]]
     start_time: Optional[str]
@@ -58,7 +58,7 @@ def _send_metrics_to_pushgateway(url: str, metrics: str, max_retries: int = 2, r
 
 def send_metrics_to_pushgateway(
         metrics: Dict[str, Union[int, float]],
-        group_labels: Optional[Dict[str, List[str]]],
+        grouping_keys: Optional[Dict[str, List[str]]],
         labels: Optional[Dict[str, str]]
 ) -> None:
     label_parts: List[str] = []
@@ -78,7 +78,7 @@ def send_metrics_to_pushgateway(
 
     base_url = "http://prometheus-pushgateway.monitoring:9091/metrics"
 
-    if not group_labels:
+    if not grouping_keys:
         logger.info(f"Sending metrics to: {base_url}")
         http_code = _send_metrics_to_pushgateway(base_url, metrics_str)
         logger.info(f"HTTP response code: {http_code}")
@@ -87,8 +87,8 @@ def send_metrics_to_pushgateway(
         return
 
     # Get all combinations of group label values
-    keys: List[str] = list(group_labels.keys())
-    value_lists: List[List[str]] = [group_labels[key] for key in keys]
+    keys: List[str] = list(grouping_keys.keys())
+    value_lists: List[List[str]] = [grouping_keys[key] for key in keys]
 
     for combination in itertools.product(*value_lists):
         url_parts: List[str] = [base_url]
@@ -105,9 +105,9 @@ def send_metrics_to_pushgateway(
             logger.error(f"Failed to send metrics to {url}. HTTP code: {http_code}")
 
 
-def parse_group_labels(group_labels: str) -> Dict[str, List[str]]:
+def parse_grouping_keys(grouping_keys: str) -> Dict[str, List[str]]:
     parsed_labels: Dict[str, List[str]] = {}
-    for line in group_labels.strip().splitlines():
+    for line in grouping_keys.strip().splitlines():
         if line.strip():
             key, value = line.split(':', 1)
             parsed_labels[key.strip().replace('/', '_')] = [v.strip().replace('/', '_') for v in value.split(',')]
@@ -145,7 +145,7 @@ def parse_script_input(argv: List[str]) -> ScriptInputs:
     parser = argparse.ArgumentParser(description='Send workflow metrics to Prometheus Pushgateway')
 
     parser.add_argument(
-        '--group-labels',
+        '--grouping-keys',
         type=str,
         help='Group labels in format "key1:val1,val2\\nkey2:val3,val4"'
     )
@@ -172,7 +172,7 @@ def parse_script_input(argv: List[str]) -> ScriptInputs:
     logger.info("=====================")
 
     inputs = ScriptInputs(
-        group_labels=parse_group_labels(args.group_labels) if args.group_labels else None,
+        grouping_keys=parse_grouping_keys(args.grouping_keys) if args.grouping_keys else None,
         labels=parse_labels(args.labels) if args.labels else None,
         additional_metrics=parse_metrics(args.additional_metrics) if args.additional_metrics else None,
         start_time=args.start_time

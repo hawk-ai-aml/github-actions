@@ -13,7 +13,7 @@ def main() -> None:
 
     collector = MetricsCollector(
         additional_metrics=inputs.additional_metrics,
-        group_labels=inputs.group_labels,
+        grouping_keys=inputs.grouping_keys,
         labels=inputs.labels
     )
 

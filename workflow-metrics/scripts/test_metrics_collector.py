@@ -14,26 +14,26 @@ class TestMetricsCollector(unittest.TestCase):
         collector = MetricsCollector()
         self.assertEqual(collector.base_metrics, {})
         self.assertIsNone(collector.additional_metrics)
-        self.assertIsNone(collector.group_labels)
+        self.assertIsNone(collector.grouping_keys)
         self.assertIsNone(collector.labels)
 
     def test_metrics_collector_creation_with_values(self):
         """Test MetricsCollector creation with custom values."""
         base_metrics = {'metric1': 1.0}
         additional_metrics = {'metric2': 2.0}
-        group_labels = {'env': ['dev', 'prod']}
+        grouping_keys = {'env': ['dev', 'prod']}
         labels = {'app': 'test'}
 
         collector = MetricsCollector(
             base_metrics=base_metrics,
             additional_metrics=additional_metrics,
-            group_labels=group_labels,
+            grouping_keys=grouping_keys,
             labels=labels
         )
 
         self.assertEqual(collector.base_metrics, base_metrics)
         self.assertEqual(collector.additional_metrics, additional_metrics)
-        self.assertEqual(collector.group_labels, group_labels)
+        self.assertEqual(collector.grouping_keys, grouping_keys)
         self.assertEqual(collector.labels, labels)
 
     def test_add_metric(self):
@@ -207,7 +207,7 @@ class TestMetricsCollector(unittest.TestCase):
     def test_send_to_pushgateway_with_labels(self, mock_send):
         """Test send_to_pushgateway with group labels and labels."""
         self.collector.add_metric("test_metric", 1.0)
-        self.collector.group_labels = {"env": ["dev", "prod"]}
+        self.collector.grouping_keys = {"env": ["dev", "prod"]}
         self.collector.labels = {"app": "test"}
 
         self.collector.send_to_pushgateway()
@@ -237,7 +237,7 @@ class TestMetricsCollector(unittest.TestCase):
         """Test a complete workflow scenario."""
         # Setup collector with labels
         collector = MetricsCollector(
-            group_labels={"env": ["prod"]},
+            grouping_keys={"env": ["prod"]},
             labels={"workflow": "test", "version": "1.0"},
             additional_metrics={"custom_metric": 42}
         )

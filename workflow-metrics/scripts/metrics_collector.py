@@ -7,7 +7,7 @@ from typing import Dict, Union, Optional, List
 class MetricsCollector:
     base_metrics: Dict[str, Union[int, float]] = field(default_factory=dict)
     additional_metrics: Optional[Dict[str, Union[int, float]]] = None
-    group_labels: Optional[Dict[str, List[str]]] = None
+    grouping_keys: Optional[Dict[str, List[str]]] = None
     labels: Optional[Dict[str, str]] = None
 
     def add_metric(self, name: str, value: Union[int, float]) -> None:
@@ -39,6 +39,6 @@ class MetricsCollector:
         from common import send_metrics_to_pushgateway
         send_metrics_to_pushgateway(
             self.get_all_metrics(),
-            self.group_labels,
+            self.grouping_keys,
             self.labels
         )

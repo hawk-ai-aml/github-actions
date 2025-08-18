@@ -74,7 +74,7 @@ jobs:
         uses: ./.github-actions/workflow-metrics
         with:
           action: start
-          group-labels: |
+          grouping-keys: |
             job: github_risk_assessment
             repository: ${{ github.repository }}
             ref: ${{ github.ref }}
@@ -209,7 +209,7 @@ jobs:
         uses: ./.github-actions/workflow-metrics
         with:
           action: complete
-          group-labels: |
+          grouping-keys: |
             job: github_risk_assessment
             repository: ${{ github.repository }}
             ref: ${{ github.ref }}
