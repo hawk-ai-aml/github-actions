@@ -1,29 +1,29 @@
 import os
 import sys
-import time
 
-from common import send_metrics_to_pushgateway, parse_script_input
+from common import parse_script_input
+from logger import setup_logger
+from metrics_collector import MetricsCollector
+
+logger = setup_logger()
 
 
-def main():
+def main() -> None:
     inputs = parse_script_input(sys.argv)
 
-    start_time = int(time.time())
+    collector = MetricsCollector(
+        additional_metrics=inputs.additional_metrics,
+        group_labels=inputs.group_labels,
+        labels=inputs.labels
+    )
+
+    start_time = collector.add_start_metrics()
+
     with open(os.environ['GITHUB_OUTPUT'], 'a') as f:
         f.write(f"start-time={start_time}\n")
-    print(f"Start time: {start_time}")
+    logger.info(f"Start time: {start_time}")
 
-    metrics = {
-        "workflow_last_start_timestamp": start_time
-    }
-    if inputs.additional_metrics:
-        metrics.update(inputs.additional_metrics)
-
-    send_metrics_to_pushgateway(
-        metrics,
-        inputs.group_labels,
-        inputs.labels
-    )
+    collector.send_to_pushgateway()
 
 
 if __name__ == "__main__":
