@@ -4,6 +4,10 @@ inputs:
   action:
     description: 'Action to perform: start or complete'
     required: true
+  pushgateway-url:
+    description: 'Prometheus Pushgateway URL'
+    required: false
+    default: 'http://prometheus-pushgateway.monitoring:9091/metrics'
   grouping-keys:
     description: 'Group labels to use for grouping. Supports multiple label values separated by comma. Results in a separate group per label value.'
     required: false
@@ -34,9 +38,10 @@ runs:
       shell: bash
       run: |
         python3 "${{ github.action_path }}/scripts/send_start_metrics.py" \
-          grouping_keys="${{ inputs.grouping-keys }}" \
-          labels="${{ inputs.labels }}" \
-          additional_metrics="${{ inputs.additional-metrics }}" 
+          --pushgateway-url="${{ inputs.pushgateway-url }}" \
+          --grouping-keys="${{ inputs.grouping-keys }}" \
+          --labels="${{ inputs.labels }}" \
+          --additional-metrics="${{ inputs.additional-metrics }}"
 
     - name: Send completion metrics
       id: complete
@@ -44,7 +49,8 @@ runs:
       shell: bash
       run: |
         python3 "${{ github.action_path }}/scripts/send_completion_metrics.py" \
-          grouping_keys="${{ inputs.grouping-keys }}" \
-          labels="${{ inputs.labels }}" \
-          additional_metrics="${{ inputs.additional-metrics }}" \
-          start_time="${{ inputs.start-time }}"
+          --pushgateway-url="${{ inputs.pushgateway-url }}" \
+          --grouping-keys="${{ inputs.grouping-keys }}" \
+          --labels="${{ inputs.labels }}" \
+          --additional-metrics="${{ inputs.additional-metrics }}" \
+          --start-time="${{ inputs.start-time }}"

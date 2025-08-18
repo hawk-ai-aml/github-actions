@@ -1,7 +1,7 @@
 import os
 import sys
 
-from common import parse_script_input
+from input_parser import InputParser
 from logger import setup_logger
 from metrics_collector import MetricsCollector
 
@@ -9,9 +9,10 @@ logger = setup_logger()
 
 
 def main() -> None:
-    inputs = parse_script_input(sys.argv)
+    inputs = InputParser.parse_script_input(sys.argv)
 
     collector = MetricsCollector(
+        pushgateway_url=inputs.pushgateway_url,
         additional_metrics=inputs.additional_metrics,
         grouping_keys=inputs.grouping_keys,
         labels=inputs.labels

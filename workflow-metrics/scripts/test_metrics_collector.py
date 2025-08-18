@@ -1,5 +1,5 @@
 import unittest
-from unittest.mock import patch
+from unittest.mock import patch, Mock
 
 from metrics_collector import MetricsCollector
 
@@ -7,11 +7,13 @@ from metrics_collector import MetricsCollector
 class TestMetricsCollector(unittest.TestCase):
     def setUp(self):
         """Set up test fixtures before each test method."""
-        self.collector = MetricsCollector()
+        self.pushgateway_url = "http://pushgateway:9091/metrics/job/test_job"
+        self.collector = MetricsCollector(self.pushgateway_url)
 
     def test_metrics_collector_creation_default(self):
         """Test MetricsCollector creation with default values."""
-        collector = MetricsCollector()
+        collector = MetricsCollector("http://test.com")
+        self.assertEqual(collector.pushgateway_url, "http://test.com")
         self.assertEqual(collector.base_metrics, {})
         self.assertIsNone(collector.additional_metrics)
         self.assertIsNone(collector.grouping_keys)
@@ -25,12 +27,14 @@ class TestMetricsCollector(unittest.TestCase):
         labels = {'app': 'test'}
 
         collector = MetricsCollector(
+            pushgateway_url="http://test.com",
             base_metrics=base_metrics,
             additional_metrics=additional_metrics,
             grouping_keys=grouping_keys,
             labels=labels
         )
 
+        self.assertEqual(collector.pushgateway_url, "http://test.com")
         self.assertEqual(collector.base_metrics, base_metrics)
         self.assertEqual(collector.additional_metrics, additional_metrics)
         self.assertEqual(collector.grouping_keys, grouping_keys)
@@ -190,53 +194,97 @@ class TestMetricsCollector(unittest.TestCase):
         self.assertNotIn("new_metric", self.collector.base_metrics)
         self.assertNotIn("additional", self.collector.base_metrics)
 
-    @patch('common.send_metrics_to_pushgateway')
-    def test_send_to_pushgateway_all_none(self, mock_send):
-        """Test send_to_pushgateway with all None values."""
+    @patch('metrics_collector.MetricsCollector._send_metrics_to_pushgateway')
+    def test_send_to_pushgateway_no_grouping_keys(self, mock_send):
+        """Test send_to_pushgateway without grouping keys."""
+        mock_send.return_value = 200
         self.collector.add_metric("test_metric", 1.0)
 
         self.collector.send_to_pushgateway()
 
-        mock_send.assert_called_once_with(
-            {"test_metric": 1.0},
-            None,
-            None
-        )
+        expected_metrics = "test_metric 1.0\n"
+        mock_send.assert_called_once_with(self.pushgateway_url, expected_metrics)
 
-    @patch('common.send_metrics_to_pushgateway')
+    @patch('metrics_collector.MetricsCollector._send_metrics_to_pushgateway')
     def test_send_to_pushgateway_with_labels(self, mock_send):
-        """Test send_to_pushgateway with group labels and labels."""
+        """Test send_to_pushgateway with labels."""
+        mock_send.return_value = 200
+        self.collector.add_metric("test_metric", 1.0)
+        self.collector.labels = {"app": "test", "version": "1.0"}
+
+        self.collector.send_to_pushgateway()
+
+        expected_metrics = 'test_metric{app="test",version="1.0"} 1.0\n'
+        mock_send.assert_called_once_with(self.pushgateway_url, expected_metrics)
+
+    @patch('metrics_collector.MetricsCollector._send_metrics_to_pushgateway')
+    def test_send_to_pushgateway_with_grouping_keys(self, mock_send):
+        """Test send_to_pushgateway with grouping keys."""
+        mock_send.return_value = 200
         self.collector.add_metric("test_metric", 1.0)
         self.collector.grouping_keys = {"env": ["dev", "prod"]}
-        self.collector.labels = {"app": "test"}
 
         self.collector.send_to_pushgateway()
 
-        mock_send.assert_called_once_with(
-            {"test_metric": 1.0},
-            {"env": ["dev", "prod"]},
-            {"app": "test"}
-        )
+        # Should be called twice, once for each env value
+        self.assertEqual(mock_send.call_count, 2)
 
-    @patch('common.send_metrics_to_pushgateway')
-    def test_send_to_pushgateway_with_additional_metrics(self, mock_send):
-        """Test send_to_pushgateway includes additional metrics."""
-        self.collector.add_metric("base_metric", 1.0)
-        self.collector.additional_metrics = {"additional_metric": 2.0}
+        # Check the URLs called
+        calls = mock_send.call_args_list
+        expected_urls = [
+            f"{self.pushgateway_url}/env/dev",
+            f"{self.pushgateway_url}/env/prod"
+        ]
+        actual_urls = [call[0][0] for call in calls]
+        self.assertEqual(set(actual_urls), set(expected_urls))
+
+    @patch('metrics_collector.MetricsCollector._send_metrics_to_pushgateway')
+    def test_send_to_pushgateway_with_multiple_grouping_keys(self, mock_send):
+        """Test send_to_pushgateway with multiple grouping keys."""
+        mock_send.return_value = 200
+        self.collector.add_metric("test_metric", 1.0)
+        self.collector.grouping_keys = {"env": ["dev", "prod"], "region": ["us", "eu"]}
 
         self.collector.send_to_pushgateway()
 
-        expected_metrics = {"base_metric": 1.0, "additional_metric": 2.0}
-        mock_send.assert_called_once_with(
-            expected_metrics,
-            None,
-            None
+        # Should be called 4 times (2 * 2 combinations)
+        self.assertEqual(mock_send.call_count, 4)
+
+    @patch('metrics_collector.urlopen')
+    def test_send_metrics_to_pushgateway_success(self, mock_urlopen):
+        """Test _send_metrics_to_pushgateway successful request."""
+        mock_response = Mock()
+        mock_response.status = 200
+        mock_urlopen.return_value.__enter__.return_value = mock_response
+
+        result = MetricsCollector._send_metrics_to_pushgateway(
+            "http://test.com", "test_metric 1.0\n"
         )
+
+        self.assertEqual(result, 200)
+        mock_urlopen.assert_called_once()
+
+    @patch('metrics_collector.urlopen')
+    @patch('time.sleep')
+    def test_send_metrics_to_pushgateway_retry_on_failure(self, mock_sleep, mock_urlopen):
+        """Test _send_metrics_to_pushgateway retries on failure."""
+        from urllib.error import URLError
+
+        mock_urlopen.side_effect = [URLError("Connection failed"), URLError("Still failing")]
+
+        result = MetricsCollector._send_metrics_to_pushgateway(
+            "http://test.com", "test_metric 1.0\n", max_retries=1
+        )
+
+        self.assertEqual(result, 0)
+        self.assertEqual(mock_urlopen.call_count, 2)
+        mock_sleep.assert_called_once()
 
     def test_workflow_integration_scenario(self):
         """Test a complete workflow scenario."""
         # Setup collector with labels
         collector = MetricsCollector(
+            pushgateway_url=self.pushgateway_url,
             grouping_keys={"env": ["prod"]},
             labels={"workflow": "test", "version": "1.0"},
             additional_metrics={"custom_metric": 42}
