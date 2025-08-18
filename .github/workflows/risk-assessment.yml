@@ -68,21 +68,6 @@ jobs:
           ref: ${{ inputs.github-actions-ref }}
           token: ${{ secrets.github-token }}
 
-      - name: Send workflow start metric
-        id: metrics-start
-        continue-on-error: true
-        uses: ./.github-actions/workflow-metrics
-        with:
-          action: start
-          grouping-keys: |
-            job: github_risk_assessment
-            repository: ${{ github.repository }}
-            ref: ${{ github.ref }}
-          labels: |
-            github_actions_ref: ${{ inputs.github-actions-ref }}
-            sra_enabled: ${{ inputs.sra-enabled }}
-            enforce_mode: ${{ inputs.enforce-mode }}
-
       - name: Get PR details and changed files
         id: pr-context
         uses: actions/github-script@v7
@@ -206,19 +191,29 @@ jobs:
         id: metrics-complete
         if: always()
         continue-on-error: true
-        uses: ./.github-actions/workflow-metrics
-        with:
-          action: complete
-          grouping-keys: |
-            job: github_risk_assessment
-            repository: ${{ github.repository }}
-            ref: ${{ github.ref }}
-          labels: |
-            github_actions_ref: ${{ inputs.github-actions-ref }}
-            sra_enabled: ${{ inputs.sra-enabled }}
-            enforce_mode: ${{ inputs.enforce-mode }}
-            tier: ${{ steps.sra.outputs.risk-tier || 'unknown' }}
-            status: ${{ job.status || 'unknown' }}
-          additional-metrics: |
-            github_risk_assessment_score: ${{ steps.sra.outputs.risk-score || '-1' }}
-          start-time: ${{ steps.metrics-start.outputs.start-time }}
+        run: |
+          # Get workflow start time from GitHub API
+          START_TIME_ISO=$(gh run view ${{ github.run_id }} --json createdAt --jq '.createdAt')
+          START_TIMESTAMP=$(date -d "$START_TIME_ISO" +%s)
+
+          # Calculate elapsed time
+          CURRENT_TIMESTAMP=$(date +%s)
+          ELAPSED_SECONDS=$((CURRENT_TIMESTAMP - START_TIMESTAMP))
+
+          echo "Workflow runtime: ${ELAPSED_SECONDS} seconds"
+
+          # Call the workflow-metrics action with calculated start time
+          ./.github-actions/workflow-metrics \
+            --action complete \
+            --grouping-keys "job: github_risk_assessment
+          repository: ${{ github.repository }}
+          ref: ${{ github.ref }}" \
+            --labels "github_actions_ref: ${{ inputs.github-actions-ref }}
+          sra_enabled: ${{ inputs.sra-enabled }}
+          enforce_mode: ${{ inputs.enforce-mode }}
+          tier: ${{ steps.sra.outputs.risk-tier || 'unknown' }}
+          status: ${{ job.status || 'unknown' }}" \
+            --additional-metrics "github_risk_assessment_score: ${{ steps.sra.outputs.risk-score || '-1' }}" \
+            --start-time "${START_TIMESTAMP}"
+        env:
+          GITHUB_TOKEN: ${{ secrets.github-token }}
