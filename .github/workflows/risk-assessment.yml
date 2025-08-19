@@ -42,7 +42,7 @@ permissions:
 
 jobs:
   risk-assessment:
-    runs-on: ubuntu-latest
+    runs-on: [ self-hosted, small-builder ]
     name: Calculate Risk Score
     if: ${{ inputs.sra-enabled }}
     outputs:
@@ -54,18 +54,34 @@ jobs:
       SRA_ENFORCE_MODE: ${{ inputs.enforce-mode }}
 
     steps:
+
       - name: Checkout calling repository
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
-      - name: Checkout risk assessment action
+      - name: Checkout github actions
         uses: actions/checkout@v4
         with:
           repository: hawk-ai-aml/github-actions
           path: .github-actions
           ref: ${{ inputs.github-actions-ref }}
           token: ${{ secrets.github-token }}
+
+      - name: Send workflow start metric
+        id: metrics-start
+        continue-on-error: true
+        uses: ./.github-actions/workflow-metrics
+        with:
+          action: start
+          grouping-keys: |
+            job: github_risk_assessment
+            repository: ${{ github.repository }}
+            ref: ${{ github.ref }}
+          labels: |
+            github_actions_ref: ${{ inputs.github-actions-ref }}
+            sra_enabled: ${{ inputs.sra-enabled }}
+            enforce_mode: ${{ inputs.enforce-mode }}
 
       - name: Get PR details and changed files
         id: pr-context
@@ -134,7 +150,7 @@ jobs:
             ${{ steps.load-config.outputs.questions }}
 
             Evidence format: String that will be rendered as markdown containing specific files, methods, patterns found OR "❌"
-            Links to files or code snippets are encouraged and should be formatted as marked down links 
+            Links to files or code snippets are encouraged and should be formatted as marked down links
             with the url like "https://github.com/${{ github.repository }}/blob/${{ github.head_ref }}/{filepath}".
 
             Please answer each question in this exact format:
@@ -185,3 +201,24 @@ jobs:
               description: description,
               context: 'SRA/risk-assessment'
             });
+
+      - name: Send workflow completion metric
+        id: metrics-complete
+        if: always()
+        continue-on-error: true
+        uses: ./.github-actions/workflow-metrics
+        with:
+          action: complete
+          grouping-keys: |
+            job: github_risk_assessment
+            repository: ${{ github.repository }}
+            ref: ${{ github.ref }}
+          labels: |
+            github_actions_ref: ${{ inputs.github-actions-ref }}
+            sra_enabled: ${{ inputs.sra-enabled }}
+            enforce_mode: ${{ inputs.enforce-mode }}
+            tier: ${{ steps.sra.outputs.risk-tier || 'unknown' }}
+            status: ${{ job.status || 'unknown' }}
+          additional-metrics: |
+            github_risk_assessment_score: ${{ steps.sra.outputs.risk-score || '-1' }}
+          start-time: ${{ steps.metrics-start.outputs.start-time }}

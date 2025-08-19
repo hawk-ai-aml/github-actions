@@ -1,0 +1,56 @@
+name: 'Workflow Metrics'
+description: 'Send workflow start/completion metrics to Pushgateway'
+inputs:
+  action:
+    description: 'Action to perform: start or complete'
+    required: true
+  pushgateway-url:
+    description: 'Prometheus Pushgateway URL'
+    required: false
+    default: 'http://prometheus-pushgateway.monitoring:9091/metrics'
+  grouping-keys:
+    description: 'Group labels to use for grouping. Supports multiple label values separated by comma. Results in a separate group per label value.'
+    required: false
+    default: ''
+  labels:
+    description: 'Labels to add to all metrics'
+    required: false
+    default: ''
+  additional-metrics:
+    description: 'Additional metrics to send'
+    required: false
+    default: ''
+  start-time:
+    description: 'Workflow start time (unix timestamp) - required for complete action'
+    required: false
+
+outputs:
+  start-time:
+    description: 'Workflow start time (unix timestamp)'
+    value: ${{ steps.start.outputs.start-time }}
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Send start metric
+      id: start
+      if: inputs.action == 'start'
+      shell: bash
+      run: |
+        python3 "${{ github.action_path }}/scripts/send_start_metrics.py" \
+          --pushgateway-url="${{ inputs.pushgateway-url }}" \
+          --grouping-keys="${{ inputs.grouping-keys }}" \
+          --labels="${{ inputs.labels }}" \
+          --additional-metrics="${{ inputs.additional-metrics }}"
+
+    - name: Send completion metrics
+      id: complete
+      if: inputs.action == 'complete'
+      shell: bash
+      run: |
+        python3 "${{ github.action_path }}/scripts/send_completion_metrics.py" \
+          --pushgateway-url="${{ inputs.pushgateway-url }}" \
+          --grouping-keys="${{ inputs.grouping-keys }}" \
+          --labels="${{ inputs.labels }}" \
+          --additional-metrics="${{ inputs.additional-metrics }}" \
+          --start-time="${{ inputs.start-time }}"
