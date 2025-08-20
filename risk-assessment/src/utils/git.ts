@@ -11,6 +11,7 @@ function getBranches() {
 
 async function getSimpleLog(file: string) {
   const logResult = await git.log(['--oneline', '--follow', '--', file]);
+  core.info(`Log result: ${JSON.stringify(logResult, null, 2)}`);
   return logResult.all;
 }
 
@@ -70,7 +71,9 @@ async function getListOfChangedFiles() {
     }
   }
 
-  return changedFiles.filter(filterForRelevant);
+  const relevantFiles = changedFiles.filter(filterForRelevant);
+  core.info(`Relevant files: ${relevantFiles}`);
+  return relevantFiles;
 }
 
 async function getDiffStats() {
@@ -80,6 +83,7 @@ async function getDiffStats() {
   for (const branch of branchesToTry) {
     try {
       output = await git.raw(['diff', '--numstat', `${branch}...HEAD`]);
+      core.info(`Diff Stats: ${output}`);
       break;
     } catch (error) { // NOSONAR
       core.warning(`Failed to diff against ${branch}, trying next branch`);
@@ -90,6 +94,7 @@ async function getDiffStats() {
 
 async function getCommitDetails(file: string) {
   const detailedLog = await maybeGetDetailedLog(file)
+  core.debug(`Detailed Log: ${detailedLog}`)
   return detailedLog.trim().split('\n')
     .filter(line => line.trim())
     .map(line => {
@@ -101,4 +106,4 @@ async function getCommitDetails(file: string) {
     });
 }
 
-export {getBranches, getSimpleLog, maybeGetDetailedLog, getDiffStats, getCommitDetails, getListOfChangedFiles};
+export {getBranches, getSimpleLog, getDiffStats, getCommitDetails, getListOfChangedFiles};

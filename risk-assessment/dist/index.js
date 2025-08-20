@@ -37031,7 +37031,6 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.getBranches = getBranches;
 exports.getSimpleLog = getSimpleLog;
-exports.maybeGetDetailedLog = maybeGetDetailedLog;
 exports.getDiffStats = getDiffStats;
 exports.getCommitDetails = getCommitDetails;
 exports.getListOfChangedFiles = getListOfChangedFiles;
@@ -37045,6 +37044,7 @@ function getBranches() {
 }
 async function getSimpleLog(file) {
     const logResult = await git.log(['--oneline', '--follow', '--', file]);
+    core.info(`Log result: ${JSON.stringify(logResult, null, 2)}`);
     return logResult.all;
 }
 async function maybeGetDetailedLog(file) {
@@ -37097,7 +37097,9 @@ async function getListOfChangedFiles() {
             core.warning(`Failed to get changed files against ${branch}, trying next branch`);
         }
     }
-    return changedFiles.filter(filterForRelevant);
+    const relevantFiles = changedFiles.filter(filterForRelevant);
+    core.info(`Relevant files: ${relevantFiles}`);
+    return relevantFiles;
 }
 async function getDiffStats() {
     let output = '';
@@ -37105,6 +37107,7 @@ async function getDiffStats() {
     for (const branch of branchesToTry) {
         try {
             output = await git.raw(['diff', '--numstat', `${branch}...HEAD`]);
+            core.info(`Diff Stats: ${output}`);
             break;
         }
         catch (error) { // NOSONAR
@@ -37115,6 +37118,7 @@ async function getDiffStats() {
 }
 async function getCommitDetails(file) {
     const detailedLog = await maybeGetDetailedLog(file);
+    core.debug(`Detailed Log: ${detailedLog}`);
     return detailedLog.trim().split('\n')
         .filter(line => line.trim())
         .map(line => {
