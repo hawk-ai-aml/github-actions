@@ -90,7 +90,7 @@ jobs:
           script: |
             const pr = context.payload.pull_request;
 
-            // Get changed files
+            // Get changed files with patch content
             const files = await github.rest.pulls.listFiles({
               owner: context.repo.owner,
               repo: context.repo.repo,
@@ -98,13 +98,15 @@ jobs:
             });
 
             const changedFiles = files.data.map(f => f.filename).join(', ');
-            const fileDiffs = files.data.slice(0, 5).map(f =>
-              `${f.filename}: +${f.additions} -${f.deletions}`
-            ).join('\n');
+
+            // TODO these are only the first 5; we need another way to prevent running into token limits
+            const fileDiffs = files.data.slice(0, 5).map(f => {
+              const patch = f.patch || 'Binary file or no changes';
+              return `--- a/${f.filename}\n+++ b/${f.filename}\n${patch}`;
+            }).join('\n\n');
 
             core.setOutput('pr-title', pr.title);
             core.setOutput('pr-body', pr.body || '');
-            core.setOutput('changed-files', changedFiles);
             core.setOutput('file-diffs', fileDiffs);
 
       - name: Load Risk Questions Config
@@ -143,7 +145,6 @@ jobs:
 
             PR Title: ${{ steps.pr-context.outputs.pr-title }}
             PR Description: ${{ steps.pr-context.outputs.pr-body }}
-            Changed Files: ${{ steps.pr-context.outputs.changed-files }}
             File Changes Summary: ${{ steps.pr-context.outputs.file-diffs }}
 
             Questions:

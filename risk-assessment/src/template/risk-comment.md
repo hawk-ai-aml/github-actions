@@ -17,9 +17,7 @@
 
 | Metric                   | Value                   | Points Added                   | Weight                        |
 |--------------------------|-------------------------|--------------------------------|-------------------------------|
-| **Log Churn**            | {{logChurn}}            | +{{logChurnPoints}}            | {{logChurnWeight}}            |
 | **Code Churn**           | {{codeChurn}}           | +{{codeChurnPoints}}           | {{codeChurnWeight}}           |
-| **Halstead Complexity**  | {{halsteadComplexity}}  | +{{halsteadComplexityPoints}}  | {{halsteadComplexityWeight}}  |
 | **Cognitive Complexity** | {{cognitiveComplexity}} | +{{cognitiveComplexityPoints}} | {{cognitiveComplexityWeight}} |
 
 </details>

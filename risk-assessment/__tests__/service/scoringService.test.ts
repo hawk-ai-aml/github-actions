@@ -7,9 +7,7 @@ describe('ScoringService', () => {
       { key: 'question1', title: 'Test Question 1', maxWeight: 3, question: "Is this a question?" },
       { key: 'question2', title: 'Test Question 2', maxWeight: 5, question: "This is a question?" }
     ] as RiskQuestion[],
-    logChurnWeight: 0.1,
     codeChurnWeight: 0.2,
-    halsteadComplexityWeight: 0.15,
     cognitiveComplexityWeight: 0.25
   };
 
@@ -23,9 +21,7 @@ describe('ScoringService', () => {
       const factors: RiskFactors = {
         question1: mockAnswers[0],
         question2: mockAnswers[1],
-        logChurn: 1.0,
         codeChurn: 2.0,
-        halsteadComplexity: 1.5,
         cognitiveComplexity: 0.8
       };
 
@@ -39,9 +35,7 @@ describe('ScoringService', () => {
     it('should handle missing question answers', () => {
       const factors: RiskFactors = {
         question1: mockAnswers[0],
-        logChurn: 5,
         codeChurn: 10,
-        halsteadComplexity: 8,
         cognitiveComplexity: 4
       };
 
@@ -56,9 +50,7 @@ describe('ScoringService', () => {
       const factors: RiskFactors = {
         question1: { weight: "0", answer: "answer", evidence: "evidence" },
         question2: { weight: "0", answer: "answer", evidence: "evidence" },
-        logChurn: 0,
         codeChurn: 0,
-        halsteadComplexity: 0,
         cognitiveComplexity: 0
       };
 
@@ -72,9 +64,7 @@ describe('ScoringService', () => {
     it('should handle empty questions array', () => {
       const configWithNoQuestions = { ...mockRiskConfig, questions: [] };
       const factors: RiskFactors = {
-        logChurn: 10,
         codeChurn: 10,
-        halsteadComplexity: 10,
         cognitiveComplexity: 10
       };
 
@@ -88,9 +78,7 @@ describe('ScoringService', () => {
     it('should handle negative weights and values', () => {
       const factors: RiskFactors = {
         question1: { weight: "-1.5", answer: "answer", evidence: "evidence" },
-        logChurn: -5,
         codeChurn: 10,
-        halsteadComplexity: -3,
         cognitiveComplexity: 2
       };
 

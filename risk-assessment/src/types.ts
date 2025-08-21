@@ -13,18 +13,14 @@ interface RiskQuestion {
 
 interface RiskConfig {
   questions: RiskQuestion[];
-  logChurnWeight: number;
   codeChurnWeight: number;
-  halsteadComplexityWeight: number;
   cognitiveComplexityWeight: number;
 }
 
 interface RiskFactors {
   [key: string]: Answer | undefined | number;
 
-  logChurn: number;
   codeChurn: number;
-  halsteadComplexity: number;
   cognitiveComplexity: number;
 }
 
@@ -59,15 +55,9 @@ interface TemplateData {
   tierName: string;
   tierDescription: string;
   results: any[];
-  logChurn: string;
-  logChurnPoints: number;
-  logChurnWeight: number;
   codeChurn: string;
   codeChurnPoints: number;
   codeChurnWeight: number;
-  halsteadComplexity: string;
-  halsteadComplexityPoints: number;
-  halsteadComplexityWeight: number;
   cognitiveComplexity: string;
   cognitiveComplexityPoints: number;
   cognitiveComplexityWeight: number;

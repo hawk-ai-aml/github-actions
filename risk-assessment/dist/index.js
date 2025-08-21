@@ -36594,11 +36594,19 @@ class CognitiveComplexity {
             // Ternary operators
             const ternaryOps = (trimmedLine.match(/\?.*:/g) || []).length;
             complexity += ternaryOps;
+            // Lambda expressions
+            const lambdaOps = (trimmedLine.match(/->/g) || []).length;
+            complexity += lambdaOps;
             // Update nesting level
             nestingLevel += openBraces - closeBraces;
             nestingLevel = Math.max(0, nestingLevel); // Prevent negative nesting
         }
         return Math.log(1 + complexity);
+    }
+    calculateAddedCognitiveComplexity(addedLines) {
+        // Calculate complexity only for added lines
+        const addedContent = addedLines.join('\n');
+        return this.calculateCognitiveComplexityForFile(addedContent);
     }
     async calculate() {
         const changedFiles = await (0, git_1.getListOfChangedFiles)();
@@ -36606,6 +36614,7 @@ class CognitiveComplexity {
             core.warning('Could not calculate cognitive complexity - no changed files found');
             return 0;
         }
+        const addedLinesByFile = await (0, git_1.parseAddedLines)();
         let totalComplexity = 0;
         let totalFiles = 0;
         for (const file of changedFiles) {
@@ -36613,196 +36622,26 @@ class CognitiveComplexity {
                 if (!node_fs_1.default.existsSync(file)) {
                     continue;
                 }
-                const content = node_fs_1.default.readFileSync(file, 'utf8');
-                const complexity = this.calculateCognitiveComplexityForFile(content);
+                const addedLines = addedLinesByFile.get(file) || [];
+                if (addedLines.length === 0) {
+                    core.info(`File ${file}: No added lines to analyze`);
+                    continue;
+                }
+                const complexity = this.calculateAddedCognitiveComplexity(addedLines);
                 totalComplexity += complexity;
                 totalFiles++;
-                core.info(`File ${file}: Cognitive complexity ${complexity.toFixed(2)}`);
+                core.info(`File ${file}: Added cognitive complexity ${complexity.toFixed(2)} (from ${addedLines.length} added lines)`);
             }
             catch (error) {
                 core.warning(`Failed to analyze cognitive complexity for file ${file}: ${error}`);
             }
         }
         const averageComplexity = totalFiles > 0 ? totalComplexity / totalFiles : 0;
-        core.info(`Cognitive complexity calculation: ${totalFiles} files analyzed, average complexity: ${averageComplexity.toFixed(2)}`);
+        core.info(`Added cognitive complexity calculation: ${totalFiles} files analyzed, average added complexity: ${averageComplexity.toFixed(2)}`);
         return averageComplexity;
     }
 }
 exports.cognitiveComplexityCalculator = new CognitiveComplexity();
-
-
-/***/ }),
-
-/***/ 577:
-/***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
-
-"use strict";
-
-var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    var desc = Object.getOwnPropertyDescriptor(m, k);
-    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
-      desc = { enumerable: true, get: function() { return m[k]; } };
-    }
-    Object.defineProperty(o, k2, desc);
-}) : (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    o[k2] = m[k];
-}));
-var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
-    Object.defineProperty(o, "default", { enumerable: true, value: v });
-}) : function(o, v) {
-    o["default"] = v;
-});
-var __importStar = (this && this.__importStar) || (function () {
-    var ownKeys = function(o) {
-        ownKeys = Object.getOwnPropertyNames || function (o) {
-            var ar = [];
-            for (var k in o) if (Object.prototype.hasOwnProperty.call(o, k)) ar[ar.length] = k;
-            return ar;
-        };
-        return ownKeys(o);
-    };
-    return function (mod) {
-        if (mod && mod.__esModule) return mod;
-        var result = {};
-        if (mod != null) for (var k = ownKeys(mod), i = 0; i < k.length; i++) if (k[i] !== "default") __createBinding(result, mod, k[i]);
-        __setModuleDefault(result, mod);
-        return result;
-    };
-})();
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
-};
-Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.halsteadComplexityCalculator = void 0;
-const core = __importStar(__nccwpck_require__(7484));
-const node_fs_1 = __importDefault(__nccwpck_require__(3024));
-const git_1 = __nccwpck_require__(6737);
-class HalsteadComplexity {
-    constructor() {
-        this.name = 'Halstead Complexity';
-    }
-    calculateHalsteadForFile(content) {
-        // TODO Simplified implementation;
-        //  We should get this from an external service like SonarQube and not build our own parser.
-        const withoutComments = content
-            .replace(/\/\*[\s\S]*?\*\//g, '') // Remove /* */ comments
-            .replace(/\/\/.*$/gm, ''); // Remove // comments
-        const operators = withoutComments.match(/[+\-*/=<>!&|%^~?:;,(){}[\]]/g) || [];
-        const keywords = withoutComments.match(/\b(if|else|for|while|do|switch|case|break|continue|return|function|class|const|let|var|import|export)\b/g) || [];
-        const identifiers = withoutComments.match(/\b[a-zA-Z_$][a-zA-Z0-9_$]*\b/g) || [];
-        const literals = withoutComments.match(/\b\d+(\.\d+)?\b|"[^"]*"|'[^']*'|`[^`]*`/g) || [];
-        const uniqueOperators = new Set([...operators, ...keywords]);
-        const uniqueOperands = new Set([...identifiers, ...literals]);
-        const n1 = uniqueOperators.size;
-        const n2 = uniqueOperands.size;
-        const N1 = operators.length + keywords.length;
-        const N2 = identifiers.length + literals.length;
-        if (n1 === 0 || n2 === 0)
-            return 0;
-        const length = N1 + N2;
-        const difficulty = (n1 / 2) * (N2 / n2);
-        const effort = difficulty * length;
-        return Math.log(1 + effort);
-    }
-    async calculate() {
-        const changedFiles = await (0, git_1.getListOfChangedFiles)();
-        if (changedFiles.length === 0) {
-            core.warning('Could not calculate Halstead complexity - no changed files found');
-            return 0;
-        }
-        let totalComplexity = 0;
-        let totalFiles = 0;
-        for (const file of changedFiles) {
-            try {
-                if (!node_fs_1.default.existsSync(file)) {
-                    continue;
-                }
-                const content = node_fs_1.default.readFileSync(file, 'utf8');
-                const complexity = this.calculateHalsteadForFile(content);
-                totalComplexity += complexity;
-                totalFiles++;
-                core.info(`File ${file}: Halstead complexity ${complexity.toFixed(2)}`);
-            }
-            catch (error) {
-                core.warning(`Failed to analyze Halstead complexity for file ${file}: ${error}`);
-            }
-        }
-        const averageComplexity = totalFiles > 0 ? totalComplexity / totalFiles : 0;
-        core.info(`Halstead complexity calculation: ${totalFiles} files analyzed, average complexity: ${averageComplexity.toFixed(2)}`);
-        return averageComplexity;
-    }
-}
-exports.halsteadComplexityCalculator = new HalsteadComplexity();
-
-
-/***/ }),
-
-/***/ 6413:
-/***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
-
-"use strict";
-
-var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    var desc = Object.getOwnPropertyDescriptor(m, k);
-    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
-      desc = { enumerable: true, get: function() { return m[k]; } };
-    }
-    Object.defineProperty(o, k2, desc);
-}) : (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    o[k2] = m[k];
-}));
-var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
-    Object.defineProperty(o, "default", { enumerable: true, value: v });
-}) : function(o, v) {
-    o["default"] = v;
-});
-var __importStar = (this && this.__importStar) || (function () {
-    var ownKeys = function(o) {
-        ownKeys = Object.getOwnPropertyNames || function (o) {
-            var ar = [];
-            for (var k in o) if (Object.prototype.hasOwnProperty.call(o, k)) ar[ar.length] = k;
-            return ar;
-        };
-        return ownKeys(o);
-    };
-    return function (mod) {
-        if (mod && mod.__esModule) return mod;
-        var result = {};
-        if (mod != null) for (var k = ownKeys(mod), i = 0; i < k.length; i++) if (k[i] !== "default") __createBinding(result, mod, k[i]);
-        __setModuleDefault(result, mod);
-        return result;
-    };
-})();
-Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.logChurnCalculator = void 0;
-const core = __importStar(__nccwpck_require__(7484));
-const git_1 = __nccwpck_require__(6737);
-class LogChurn {
-    constructor() {
-        this.name = 'Log Churn';
-    }
-    async calculate() {
-        const output = await (0, git_1.getDiffStats)();
-        if (!output) {
-            core.warning('Could not calculate log churn - no diff stats found');
-            return 0;
-        }
-        let totalLines = 0;
-        const lines = output.trim().split('\n');
-        for (const line of lines) {
-            if (line.trim()) {
-                const [added, deleted] = line.split('\t').map(num => parseInt(num) || 0);
-                totalLines += added + deleted;
-            }
-        }
-        return Math.log(1 + totalLines);
-    }
-}
-exports.logChurnCalculator = new LogChurn();
 
 
 /***/ }),
@@ -36848,33 +36687,19 @@ var __importStar = (this && this.__importStar) || (function () {
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.MetricsRegistry = void 0;
 const core = __importStar(__nccwpck_require__(7484));
-const logChurn_1 = __nccwpck_require__(6413);
 const codeChurn_1 = __nccwpck_require__(6172);
-const halsteadComplexity_1 = __nccwpck_require__(577);
 const cognitiveComplexity_1 = __nccwpck_require__(5365);
 class MetricsRegistry {
     static async calculateAll() {
-        const [logChurn, codeChurn, halsteadComplexity, cognitiveComplexity] = await Promise.all([
-            this.calculateLogChurn(),
+        const [codeChurn, cognitiveComplexity] = await Promise.all([
             this.calculateCodeChurn(),
-            this.calculateHalsteadComplexity(),
             this.calculateCognitiveComplexity()
         ]);
-        return { logChurn, codeChurn, halsteadComplexity, cognitiveComplexity };
-    }
-    static async calculateLogChurn() {
-        const result = await logChurn_1.logChurnCalculator.calculate();
-        core.info(`Calculated log churn: ${result}`);
-        return result;
+        return { codeChurn, cognitiveComplexity };
     }
     static async calculateCodeChurn() {
         const result = await codeChurn_1.codeChurnCalculator.calculate();
         core.info(`Calculated code churn: ${result}`);
-        return result;
-    }
-    static async calculateHalsteadComplexity() {
-        const result = await halsteadComplexity_1.halsteadComplexityCalculator.calculate();
-        core.info(`Calculated Halstead complexity: ${result}`);
         return result;
     }
     static async calculateCognitiveComplexity() {
@@ -36910,9 +36735,7 @@ class ScoringService {
     }
     static calculateMetricScore(factors, config) {
         const metrics = [
-            factors.logChurn * config.logChurnWeight,
             factors.codeChurn * config.codeChurnWeight,
-            factors.halsteadComplexity * config.halsteadComplexityWeight,
             factors.cognitiveComplexity * config.cognitiveComplexityWeight
         ];
         return metrics.reduce((sum, metric) => sum + metric, 0);
@@ -36945,15 +36768,9 @@ class CommentGenerator {
             tierName: tier.name + advisoryNote,
             tierDescription: tier.message,
             results,
-            logChurn: factors.logChurn?.toFixed(1) || '0.0',
-            logChurnPoints: Math.round((factors.logChurn || 0) * riskConfig.logChurnWeight * 100) / 100,
-            logChurnWeight: riskConfig.logChurnWeight,
             codeChurn: factors.codeChurn?.toFixed(1) || '0.0',
             codeChurnPoints: Math.round((factors.codeChurn || 0) * riskConfig.codeChurnWeight * 100) / 100,
             codeChurnWeight: riskConfig.codeChurnWeight,
-            halsteadComplexity: factors.halsteadComplexity?.toFixed(1) || '0.0',
-            halsteadComplexityPoints: Math.round((factors.halsteadComplexity || 0) * riskConfig.halsteadComplexityWeight * 100) / 100,
-            halsteadComplexityWeight: riskConfig.halsteadComplexityWeight,
             cognitiveComplexity: factors.cognitiveComplexity?.toFixed(1) || '0.0',
             cognitiveComplexityPoints: Math.round((factors.cognitiveComplexity || 0) * riskConfig.cognitiveComplexityWeight * 100) / 100,
             cognitiveComplexityWeight: riskConfig.cognitiveComplexityWeight,
@@ -37031,9 +36848,9 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.getBranches = getBranches;
 exports.getSimpleLog = getSimpleLog;
-exports.getDiffStats = getDiffStats;
 exports.getCommitDetails = getCommitDetails;
 exports.getListOfChangedFiles = getListOfChangedFiles;
+exports.parseAddedLines = parseAddedLines;
 const core = __importStar(__nccwpck_require__(7484));
 const simple_git_1 = __importDefault(__nccwpck_require__(9065));
 const git = (0, simple_git_1.default)();
@@ -37101,21 +36918,6 @@ async function getListOfChangedFiles() {
     core.info(`Relevant files: ${relevantFiles}`);
     return relevantFiles;
 }
-async function getDiffStats() {
-    let output = '';
-    const branchesToTry = getBranches();
-    for (const branch of branchesToTry) {
-        try {
-            output = await git.raw(['diff', '--numstat', `${branch}...HEAD`]);
-            core.info(`Diff Stats: ${output}`);
-            break;
-        }
-        catch (error) { // NOSONAR
-            core.warning(`Failed to diff against ${branch}, trying next branch`);
-        }
-    }
-    return output;
-}
 async function getCommitDetails(file) {
     const detailedLog = await maybeGetDetailedLog(file);
     core.debug(`Detailed Log: ${detailedLog}`);
@@ -37128,6 +36930,47 @@ async function getCommitDetails(file) {
             date: new Date(dateStr)
         };
     });
+}
+async function getDetailedDiff() {
+    const git = (0, simple_git_1.default)();
+    const branchesToTry = getBranches();
+    for (const branch of branchesToTry) {
+        try {
+            return await git.raw(['diff', `${branch}...HEAD`]);
+        }
+        catch (error) {
+            core.warning(`Failed to get detailed diff against ${branch}, trying next branch`);
+        }
+    }
+    return '';
+}
+async function parseAddedLines() {
+    const diffOutput = await getDetailedDiff();
+    core.info(`Diff Output length: ${diffOutput.length}`);
+    const fileChanges = new Map();
+    const lines = diffOutput.split('\n');
+    let currentFile = '';
+    for (const line of lines) {
+        if (line.startsWith('+++ ')) {
+            const match = line.match(/^\+{3}\s+[ab]\/(.+)$/);
+            if (match) {
+                currentFile = match[1];
+                if (!fileChanges.has(currentFile)) {
+                    fileChanges.set(currentFile, []);
+                }
+                core.debug(`Found file: ${currentFile}`);
+            }
+        }
+        else if (line.startsWith('+') && !line.startsWith('+++') && !line.startsWith('@@')) {
+            if (currentFile && fileChanges.has(currentFile)) {
+                const addedLine = line.substring(1); // Remove leading +
+                fileChanges.get(currentFile).push(addedLine);
+                core.debug(`Added line to ${currentFile}: ${addedLine}`);
+            }
+        }
+    }
+    core.info(`Parsed file changes: ${JSON.stringify(Object.fromEntries(fileChanges), null, 2)}`);
+    return fileChanges;
 }
 
 
@@ -37243,9 +37086,7 @@ class LlmResponseParser {
     }
     static createBaseFactors() {
         return {
-            logChurn: -1,
             codeChurn: -1,
-            halsteadComplexity: -1,
             cognitiveComplexity: -1
         };
     }
