@@ -211,7 +211,16 @@ jobs:
         id: status
         if: steps.run-e2e-test.outcome != 'success'
         run: |
+          mkdir -p failed-test
+          echo "${{ inputs.test }}" > failed-test/test.json
           echo "test_status=1" >> $GITHUB_OUTPUT
+
+      - name: Upload Allure results to GitHub Artifact
+        if: steps.run-e2e-test.outcome != 'success'
+        uses: actions/upload-artifact@v4
+        with:
+          name: failed-test-${{ inputs.test }}
+          path: failed-test
 
     # -------------------------------------- END-REPORT --------------------------------------
   test-results:
