@@ -1,6 +1,6 @@
 import * as core from "@actions/core";
 import fs from "node:fs";
-import {getListOfChangedFiles} from "@/utils/git";
+import {getListOfChangedFiles, parseAddedLines} from "@/utils/git";
 import {Metric} from "@/types";
 
 class CognitiveComplexity implements Metric {
@@ -35,12 +35,22 @@ class CognitiveComplexity implements Metric {
       const ternaryOps = (trimmedLine.match(/\?.*:/g) || []).length;
       complexity += ternaryOps;
 
+      // Lambda expressions
+      const lambdaOps = (trimmedLine.match(/->/g) || []).length;
+      complexity += lambdaOps;
+
       // Update nesting level
       nestingLevel += openBraces - closeBraces;
       nestingLevel = Math.max(0, nestingLevel); // Prevent negative nesting
     }
 
     return Math.log(1 + complexity);
+  }
+
+  calculateAddedCognitiveComplexity(addedLines: string[]): number {
+    // Calculate complexity only for added lines
+    const addedContent = addedLines.join('\n');
+    return this.calculateCognitiveComplexityForFile(addedContent);
   }
 
   async calculate(): Promise<number> {
@@ -51,6 +61,7 @@ class CognitiveComplexity implements Metric {
       return 0;
     }
 
+    const addedLinesByFile = await parseAddedLines()
     let totalComplexity = 0;
     let totalFiles = 0;
 
@@ -60,19 +71,24 @@ class CognitiveComplexity implements Metric {
           continue;
         }
 
-        const content = fs.readFileSync(file, 'utf8');
-        const complexity = this.calculateCognitiveComplexityForFile(content);
+        const addedLines = addedLinesByFile.get(file) || [];
+        if (addedLines.length === 0) {
+          core.info(`File ${file}: No added lines to analyze`);
+          continue;
+        }
+
+        const complexity = this.calculateAddedCognitiveComplexity(addedLines);
         totalComplexity += complexity;
         totalFiles++;
 
-        core.info(`File ${file}: Cognitive complexity ${complexity.toFixed(2)}`);
+        core.info(`File ${file}: Added cognitive complexity ${complexity.toFixed(2)} (from ${addedLines.length} added lines)`);
       } catch (error) {
         core.warning(`Failed to analyze cognitive complexity for file ${file}: ${error}`);
       }
     }
 
     const averageComplexity = totalFiles > 0 ? totalComplexity / totalFiles : 0;
-    core.info(`Cognitive complexity calculation: ${totalFiles} files analyzed, average complexity: ${averageComplexity.toFixed(2)}`);
+    core.info(`Added cognitive complexity calculation: ${totalFiles} files analyzed, average added complexity: ${averageComplexity.toFixed(2)}`);
 
     return averageComplexity;
   }

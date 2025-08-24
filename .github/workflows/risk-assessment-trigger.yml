@@ -4,7 +4,7 @@ on:
   pull_request:
     types: [ opened, synchronize, reopened, edited ]
     branches:
-      - master
+      - feature/DC-2273
 
 permissions:
   checks: write
@@ -15,10 +15,10 @@ permissions:
 
 jobs:
   risk-assessment:
-    uses: hawk-ai-aml/github-actions/.github/workflows/risk-assessment.yml@master
+    uses: hawk-ai-aml/github-actions/.github/workflows/risk-assessment.yml@feature/DC-2276
     with:
       enforce-mode: false
       sra-enabled: true
-      github-actions-ref: master
+      github-actions-ref: feature/DC-2276
     secrets:
       github-token: ${{ secrets.REPO_ACCESS_PAT }}
