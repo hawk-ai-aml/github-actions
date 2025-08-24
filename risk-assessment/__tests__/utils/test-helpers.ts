@@ -148,7 +148,6 @@ export function createMockConfig() {
     ],
     logChurnWeight: 0.1,
     codeChurnWeight: 0.2,
-    halsteadComplexityWeight: 0.3,
     cognitiveComplexityWeight: 0.4
   };
 }

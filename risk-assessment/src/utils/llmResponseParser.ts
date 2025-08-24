@@ -38,7 +38,6 @@ export class LlmResponseParser {
     return {
       logChurn: -1,
       codeChurn: -1,
-      halsteadComplexity: -1,
       cognitiveComplexity: -1
     };
   }
