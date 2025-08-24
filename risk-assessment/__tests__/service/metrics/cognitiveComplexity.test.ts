@@ -47,7 +47,7 @@ describe('cognitiveComplexity', () => {
 
     expect(result).toBeGreaterThan(0);
     expect(core.info).toHaveBeenCalledWith(
-      expect.stringContaining('File test.js: Added cognitive complexity')
+      expect.stringContaining('File test.js: Cognitive complexity')
     );
   });
 
@@ -75,7 +75,7 @@ describe('cognitiveComplexity', () => {
 
     expect(result).toBeGreaterThan(0);
     expect(core.info).toHaveBeenCalledWith(
-      expect.stringContaining('File test.js: Added cognitive complexity')
+      expect.stringContaining('File test.js: Cognitive complexity')
     );
   });
 
@@ -98,7 +98,7 @@ describe('cognitiveComplexity', () => {
 
     expect(result).toBeGreaterThan(0);
     expect(core.info).toHaveBeenCalledWith(
-      expect.stringContaining('File test.js: Added cognitive complexity')
+      expect.stringContaining('File test.js: Cognitive complexity')
     );
   });
 
@@ -119,7 +119,7 @@ describe('cognitiveComplexity', () => {
 
     expect(result).toBeGreaterThan(0);
     expect(core.info).toHaveBeenCalledWith(
-      expect.stringContaining('File test.js: Added cognitive complexity')
+      expect.stringContaining('File test.js: Cognitive complexity')
     );
   });
 
@@ -148,7 +148,7 @@ describe('cognitiveComplexity', () => {
 
     expect(result).toBeGreaterThan(0);
     expect(core.info).toHaveBeenCalledWith(
-      expect.stringContaining('File test.js: Added cognitive complexity')
+      expect.stringContaining('File test.js: Cognitive complexity')
     );
   });
 
@@ -176,7 +176,7 @@ describe('cognitiveComplexity', () => {
 
     expect(result).toBeGreaterThan(0);
     expect(core.info).toHaveBeenCalledWith(
-      expect.stringContaining('Added cognitive complexity calculation: 2 files analyzed')
+      expect.stringContaining('Cognitive complexity calculation: 2 files analyzed')
     );
   });
 
@@ -195,7 +195,7 @@ describe('cognitiveComplexity', () => {
 
     expect(result).toBeGreaterThanOrEqual(0);
     expect(core.info).toHaveBeenCalledWith(
-      expect.stringContaining('Added cognitive complexity calculation: 1 files analyzed')
+      expect.stringContaining('Cognitive complexity calculation: 1 files analyzed')
     );
   });
 
@@ -265,7 +265,7 @@ describe('cognitiveComplexity', () => {
 
     expect(result).toBeGreaterThan(0);
     expect(core.info).toHaveBeenCalledWith(
-      expect.stringContaining('File test.js: Added cognitive complexity')
+      expect.stringContaining('File test.js: Cognitive complexity')
     );
   });
 });

@@ -81,14 +81,14 @@ class CognitiveComplexity implements Metric {
         totalComplexity += complexity;
         totalFiles++;
 
-        core.info(`File ${file}: Added cognitive complexity ${complexity.toFixed(2)} (from ${addedLines.length} added lines)`);
+        core.info(`File ${file}: Cognitive complexity ${complexity.toFixed(2)} (from ${addedLines.length} added lines)`);
       } catch (error) {
         core.warning(`Failed to analyze cognitive complexity for file ${file}: ${error}`);
       }
     }
 
     const averageComplexity = totalFiles > 0 ? totalComplexity / totalFiles : 0;
-    core.info(`Added cognitive complexity calculation: ${totalFiles} files analyzed, average added complexity: ${averageComplexity.toFixed(2)}`);
+    core.info(`Cognitive complexity calculation: ${totalFiles} files analyzed, average added complexity: ${averageComplexity.toFixed(2)}`);
 
     return averageComplexity;
   }
