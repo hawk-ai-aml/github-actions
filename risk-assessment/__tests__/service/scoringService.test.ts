@@ -7,7 +7,6 @@ describe('ScoringService', () => {
       { key: 'question1', title: 'Test Question 1', maxWeight: 3, question: "Is this a question?" },
       { key: 'question2', title: 'Test Question 2', maxWeight: 5, question: "This is a question?" }
     ] as RiskQuestion[],
-    logChurnWeight: 0.1,
     codeChurnWeight: 0.2,
     halsteadComplexityWeight: 0.15,
     cognitiveComplexityWeight: 0.25
@@ -23,7 +22,6 @@ describe('ScoringService', () => {
       const factors: RiskFactors = {
         question1: mockAnswers[0],
         question2: mockAnswers[1],
-        logChurn: 1.0,
         codeChurn: 2.0,
         halsteadComplexity: 1.5,
         cognitiveComplexity: 0.8
@@ -32,14 +30,13 @@ describe('ScoringService', () => {
       const result = ScoringService.calculate(factors, mockRiskConfig);
 
       expect(result.questionScore).toBe(4.3); // 2.5 + 1.8
-      expect(result.metricScore).toBe(0.925); // (1.0*0.1) + (2.0*0.2) + (1.5*0.15) + (0.8*0.25)
-      expect(result.totalScore).toBe(5.23); // Rounded to 2 decimal places
+      expect(result.metricScore).toBe(0.825); // (2.0*0.2) + (1.5*0.15) + (0.8*0.25)
+      expect(result.totalScore).toBe(5.13);
     });
 
     it('should handle missing question answers', () => {
       const factors: RiskFactors = {
         question1: mockAnswers[0],
-        logChurn: 5,
         codeChurn: 10,
         halsteadComplexity: 8,
         cognitiveComplexity: 4
@@ -48,15 +45,14 @@ describe('ScoringService', () => {
       const result = ScoringService.calculate(factors, mockRiskConfig);
 
       expect(result.questionScore).toBe(2.5); // Only question1 answer
-      expect(result.metricScore).toBe(4.7); // (5*0.1) + (10*0.2) + (8*0.15) + (4*0.25)
-      expect(result.totalScore).toBe(7.2);
+      expect(result.metricScore).toBe(4.2); // (10*0.2) + (8*0.15) + (4*0.25)
+      expect(result.totalScore).toBe(6.7);
     });
 
     it('should handle zero values', () => {
       const factors: RiskFactors = {
         question1: { weight: "0", answer: "answer", evidence: "evidence" },
         question2: { weight: "0", answer: "answer", evidence: "evidence" },
-        logChurn: 0,
         codeChurn: 0,
         halsteadComplexity: 0,
         cognitiveComplexity: 0
@@ -72,7 +68,6 @@ describe('ScoringService', () => {
     it('should handle empty questions array', () => {
       const configWithNoQuestions = { ...mockRiskConfig, questions: [] };
       const factors: RiskFactors = {
-        logChurn: 10,
         codeChurn: 10,
         halsteadComplexity: 10,
         cognitiveComplexity: 10
@@ -81,14 +76,13 @@ describe('ScoringService', () => {
       const result = ScoringService.calculate(factors, configWithNoQuestions);
 
       expect(result.questionScore).toBe(0);
-      expect(result.metricScore).toBe(7);
-      expect(result.totalScore).toBe(7);
+      expect(result.metricScore).toBe(6); // (10*0.2) + (10*0.15) + (10*0.25)
+      expect(result.totalScore).toBe(6);
     });
 
     it('should handle negative weights and values', () => {
       const factors: RiskFactors = {
         question1: { weight: "-1.5", answer: "answer", evidence: "evidence" },
-        logChurn: -5,
         codeChurn: 10,
         halsteadComplexity: -3,
         cognitiveComplexity: 2
@@ -97,8 +91,8 @@ describe('ScoringService', () => {
       const result = ScoringService.calculate(factors, mockRiskConfig);
 
       expect(result.questionScore).toBe(-1.5);
-      expect(result.metricScore).toBe(1.55); // (-5*0.1) + (10*0.2) + (-3*0.15) + (2*0.25)
-      expect(result.totalScore).toBe(0.05);
+      expect(result.metricScore).toBe(2.05); // (10*0.2) + (-3*0.15) + (2*0.25)
+      expect(result.totalScore).toBe(0.55);
     });
   });
 });
