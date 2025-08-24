@@ -22,7 +22,7 @@
       "key": "dependencies",
       "maxWeight": 1.5,
       "title": "Dependencies",
-      "question": "Does this change involve a major version upgrade of a core dependency? Does this change involve external dependencies update?"
+      "question": "Does this change update dependencies (Any lib: major/minor versions; Core framework updates like Spring Boot/Cloud: major/minor/patch)?"
     },
     {
       "key": "libraries",
