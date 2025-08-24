@@ -35,11 +35,6 @@
       "question": "Does this change activate a feature flag that exposes a significant new feature to users?"
     },
     {
-      "key": "rollback",
-      "maxWeight": 1,
-      "question": "Does this change lack a documented, tested rollback plan?"
-    },
-    {
       "key": "apiIncompatibility",
       "maxWeight": 2.5,
       "question": "Does this change introduce changes to an API used by other services that make it not forwards compatible?"
