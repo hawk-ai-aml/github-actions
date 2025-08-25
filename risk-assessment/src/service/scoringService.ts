@@ -18,7 +18,6 @@ export class ScoringService {
 
   private static calculateMetricScore(factors: RiskFactors, config: RiskConfig): number {
     const metrics = [
-      factors.logChurn * config.logChurnWeight,
       factors.codeChurn * config.codeChurnWeight,
       factors.halsteadComplexity * config.halsteadComplexityWeight,
       factors.cognitiveComplexity * config.cognitiveComplexityWeight

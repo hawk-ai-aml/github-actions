@@ -36739,74 +36739,6 @@ exports.halsteadComplexityCalculator = new HalsteadComplexity();
 
 /***/ }),
 
-/***/ 6413:
-/***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
-
-"use strict";
-
-var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    var desc = Object.getOwnPropertyDescriptor(m, k);
-    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
-      desc = { enumerable: true, get: function() { return m[k]; } };
-    }
-    Object.defineProperty(o, k2, desc);
-}) : (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    o[k2] = m[k];
-}));
-var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
-    Object.defineProperty(o, "default", { enumerable: true, value: v });
-}) : function(o, v) {
-    o["default"] = v;
-});
-var __importStar = (this && this.__importStar) || (function () {
-    var ownKeys = function(o) {
-        ownKeys = Object.getOwnPropertyNames || function (o) {
-            var ar = [];
-            for (var k in o) if (Object.prototype.hasOwnProperty.call(o, k)) ar[ar.length] = k;
-            return ar;
-        };
-        return ownKeys(o);
-    };
-    return function (mod) {
-        if (mod && mod.__esModule) return mod;
-        var result = {};
-        if (mod != null) for (var k = ownKeys(mod), i = 0; i < k.length; i++) if (k[i] !== "default") __createBinding(result, mod, k[i]);
-        __setModuleDefault(result, mod);
-        return result;
-    };
-})();
-Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.logChurnCalculator = void 0;
-const core = __importStar(__nccwpck_require__(7484));
-const git_1 = __nccwpck_require__(6737);
-class LogChurn {
-    constructor() {
-        this.name = 'Log Churn';
-    }
-    async calculate() {
-        const output = await (0, git_1.getDiffStats)();
-        if (!output) {
-            core.warning('Could not calculate log churn - no diff stats found');
-            return 0;
-        }
-        let totalLines = 0;
-        const lines = output.trim().split('\n');
-        for (const line of lines) {
-            if (line.trim()) {
-                const [added, deleted] = line.split('\t').map(num => parseInt(num) || 0);
-                totalLines += added + deleted;
-            }
-        }
-        return Math.log(1 + totalLines);
-    }
-}
-exports.logChurnCalculator = new LogChurn();
-
-
-/***/ }),
-
 /***/ 4105:
 /***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
 
@@ -36848,24 +36780,17 @@ var __importStar = (this && this.__importStar) || (function () {
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.MetricsRegistry = void 0;
 const core = __importStar(__nccwpck_require__(7484));
-const logChurn_1 = __nccwpck_require__(6413);
 const codeChurn_1 = __nccwpck_require__(6172);
 const halsteadComplexity_1 = __nccwpck_require__(577);
 const cognitiveComplexity_1 = __nccwpck_require__(5365);
 class MetricsRegistry {
     static async calculateAll() {
-        const [logChurn, codeChurn, halsteadComplexity, cognitiveComplexity] = await Promise.all([
-            this.calculateLogChurn(),
+        const [codeChurn, halsteadComplexity, cognitiveComplexity] = await Promise.all([
             this.calculateCodeChurn(),
             this.calculateHalsteadComplexity(),
             this.calculateCognitiveComplexity()
         ]);
-        return { logChurn, codeChurn, halsteadComplexity, cognitiveComplexity };
-    }
-    static async calculateLogChurn() {
-        const result = await logChurn_1.logChurnCalculator.calculate();
-        core.info(`Calculated log churn: ${result}`);
-        return result;
+        return { codeChurn, halsteadComplexity, cognitiveComplexity };
     }
     static async calculateCodeChurn() {
         const result = await codeChurn_1.codeChurnCalculator.calculate();
@@ -36910,7 +36835,6 @@ class ScoringService {
     }
     static calculateMetricScore(factors, config) {
         const metrics = [
-            factors.logChurn * config.logChurnWeight,
             factors.codeChurn * config.codeChurnWeight,
             factors.halsteadComplexity * config.halsteadComplexityWeight,
             factors.cognitiveComplexity * config.cognitiveComplexityWeight
@@ -36945,9 +36869,6 @@ class CommentGenerator {
             tierName: tier.name + advisoryNote,
             tierDescription: tier.message,
             results,
-            logChurn: factors.logChurn?.toFixed(1) || '0.0',
-            logChurnPoints: Math.round((factors.logChurn || 0) * riskConfig.logChurnWeight * 100) / 100,
-            logChurnWeight: riskConfig.logChurnWeight,
             codeChurn: factors.codeChurn?.toFixed(1) || '0.0',
             codeChurnPoints: Math.round((factors.codeChurn || 0) * riskConfig.codeChurnWeight * 100) / 100,
             codeChurnWeight: riskConfig.codeChurnWeight,
@@ -37239,7 +37160,6 @@ class LlmResponseParser {
     }
     static createBaseFactors() {
         return {
-            logChurn: -1,
             codeChurn: -1,
             halsteadComplexity: -1,
             cognitiveComplexity: -1
