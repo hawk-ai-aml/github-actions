@@ -52,6 +52,5 @@
   ],
   "logChurnWeight": 0.15,
   "codeChurnWeight": 0.1,
-  "halsteadComplexityWeight": 0.2,
-  "cognitiveComplexityWeight": 0.2
+  "cognitiveComplexityWeight": 0.4
 }

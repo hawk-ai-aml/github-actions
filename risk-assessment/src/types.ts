@@ -15,7 +15,6 @@ interface RiskConfig {
   questions: RiskQuestion[];
   logChurnWeight: number;
   codeChurnWeight: number;
-  halsteadComplexityWeight: number;
   cognitiveComplexityWeight: number;
 }
 
@@ -24,7 +23,6 @@ interface RiskFactors {
 
   logChurn: number;
   codeChurn: number;
-  halsteadComplexity: number;
   cognitiveComplexity: number;
 }
 
@@ -65,9 +63,6 @@ interface TemplateData {
   codeChurn: string;
   codeChurnPoints: number;
   codeChurnWeight: number;
-  halsteadComplexity: string;
-  halsteadComplexityPoints: number;
-  halsteadComplexityWeight: number;
   cognitiveComplexity: string;
   cognitiveComplexityPoints: number;
   cognitiveComplexityWeight: number;
