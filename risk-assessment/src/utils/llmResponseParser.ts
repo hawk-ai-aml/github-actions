@@ -36,7 +36,6 @@ export class LlmResponseParser {
 
   private static createBaseFactors(): RiskFactors {
     return {
-      logChurn: -1,
       codeChurn: -1,
       cognitiveComplexity: -1
     };

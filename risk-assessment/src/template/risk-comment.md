@@ -17,7 +17,6 @@
 
 | Metric                   | Value                   | Points Added                   | Weight                        |
 |--------------------------|-------------------------|--------------------------------|-------------------------------|
-| **Log Churn**            | {{logChurn}}            | +{{logChurnPoints}}            | {{logChurnWeight}}            |
 | **Code Churn**           | {{codeChurn}}           | +{{codeChurnPoints}}           | {{codeChurnWeight}}           |
 | **Cognitive Complexity** | {{cognitiveComplexity}} | +{{cognitiveComplexityPoints}} | {{cognitiveComplexityWeight}} |
 

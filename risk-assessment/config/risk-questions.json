@@ -50,7 +50,6 @@
       "question": "Is this change yet to be deployed to a development environment for testing?"
     }
   ],
-  "logChurnWeight": 0.15,
-  "codeChurnWeight": 0.1,
+  "codeChurnWeight": 0.4,
   "cognitiveComplexityWeight": 0.4
 }
