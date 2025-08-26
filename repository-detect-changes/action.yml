@@ -109,9 +109,12 @@ runs:
             done
 
             for module in $REPOSITORY_MODULES; do
+              echo "== MODULE: [$module] =="
               for file in $FILES; do
                 IFS='/' read -ra ADDR <<< "$file"
+                echo "== ADDRS: [${ADDR[0]}] =="
                 if [[ ${ADDR[0]} == *"$module"* && $MODULES != *"$module"* ]];  then
+                  echo "  cond1: YES"
                   MODULES="${MODULES}\"$module\","
                   MODULE_LIST_STRING=${MODULE_LIST_STRING}${module}${SPACE}
                   break
