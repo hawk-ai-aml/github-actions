@@ -114,7 +114,7 @@ runs:
                 IFS='/' read -ra ADDR <<< "$file"
                 top="${ADDR[0]}"
                 echo "  file: [$file]"
-                echo "  top : [$top]""
+                echo "  top : [$top]"
                 # Show cond1 result
                 printf '  cond1: [[ %q == *%q* ]] -> ' "$top" "$module"
                 if [[ "$top" == *"$module"* ]]; then echo YES; else echo NO; fi
