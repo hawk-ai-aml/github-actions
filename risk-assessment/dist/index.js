@@ -36646,112 +36646,6 @@ exports.cognitiveComplexityCalculator = new CognitiveComplexity();
 
 /***/ }),
 
-/***/ 577:
-/***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
-
-"use strict";
-
-var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    var desc = Object.getOwnPropertyDescriptor(m, k);
-    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
-      desc = { enumerable: true, get: function() { return m[k]; } };
-    }
-    Object.defineProperty(o, k2, desc);
-}) : (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    o[k2] = m[k];
-}));
-var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
-    Object.defineProperty(o, "default", { enumerable: true, value: v });
-}) : function(o, v) {
-    o["default"] = v;
-});
-var __importStar = (this && this.__importStar) || (function () {
-    var ownKeys = function(o) {
-        ownKeys = Object.getOwnPropertyNames || function (o) {
-            var ar = [];
-            for (var k in o) if (Object.prototype.hasOwnProperty.call(o, k)) ar[ar.length] = k;
-            return ar;
-        };
-        return ownKeys(o);
-    };
-    return function (mod) {
-        if (mod && mod.__esModule) return mod;
-        var result = {};
-        if (mod != null) for (var k = ownKeys(mod), i = 0; i < k.length; i++) if (k[i] !== "default") __createBinding(result, mod, k[i]);
-        __setModuleDefault(result, mod);
-        return result;
-    };
-})();
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
-};
-Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.halsteadComplexityCalculator = void 0;
-const core = __importStar(__nccwpck_require__(7484));
-const node_fs_1 = __importDefault(__nccwpck_require__(3024));
-const git_1 = __nccwpck_require__(6737);
-class HalsteadComplexity {
-    constructor() {
-        this.name = 'Halstead Complexity';
-    }
-    calculateHalsteadForFile(content) {
-        // TODO Simplified implementation;
-        //  We should get this from an external service like SonarQube and not build our own parser.
-        const withoutComments = content
-            .replace(/\/\*[\s\S]*?\*\//g, '') // Remove /* */ comments
-            .replace(/\/\/.*$/gm, ''); // Remove // comments
-        const operators = withoutComments.match(/[+\-*/=<>!&|%^~?:;,(){}[\]]/g) || [];
-        const keywords = withoutComments.match(/\b(if|else|for|while|do|switch|case|break|continue|return|function|class|const|let|var|import|export)\b/g) || [];
-        const identifiers = withoutComments.match(/\b[a-zA-Z_$][a-zA-Z0-9_$]*\b/g) || [];
-        const literals = withoutComments.match(/\b\d+(\.\d+)?\b|"[^"]*"|'[^']*'|`[^`]*`/g) || [];
-        const uniqueOperators = new Set([...operators, ...keywords]);
-        const uniqueOperands = new Set([...identifiers, ...literals]);
-        const n1 = uniqueOperators.size;
-        const n2 = uniqueOperands.size;
-        const N1 = operators.length + keywords.length;
-        const N2 = identifiers.length + literals.length;
-        if (n1 === 0 || n2 === 0)
-            return 0;
-        const length = N1 + N2;
-        const difficulty = (n1 / 2) * (N2 / n2);
-        const effort = difficulty * length;
-        return Math.log(1 + effort);
-    }
-    async calculate() {
-        const changedFiles = await (0, git_1.getListOfChangedFiles)();
-        if (changedFiles.length === 0) {
-            core.warning('Could not calculate Halstead complexity - no changed files found');
-            return 0;
-        }
-        let totalComplexity = 0;
-        let totalFiles = 0;
-        for (const file of changedFiles) {
-            try {
-                if (!node_fs_1.default.existsSync(file)) {
-                    continue;
-                }
-                const content = node_fs_1.default.readFileSync(file, 'utf8');
-                const complexity = this.calculateHalsteadForFile(content);
-                totalComplexity += complexity;
-                totalFiles++;
-                core.info(`File ${file}: Halstead complexity ${complexity.toFixed(2)}`);
-            }
-            catch (error) {
-                core.warning(`Failed to analyze Halstead complexity for file ${file}: ${error}`);
-            }
-        }
-        const averageComplexity = totalFiles > 0 ? totalComplexity / totalFiles : 0;
-        core.info(`Halstead complexity calculation: ${totalFiles} files analyzed, average complexity: ${averageComplexity.toFixed(2)}`);
-        return averageComplexity;
-    }
-}
-exports.halsteadComplexityCalculator = new HalsteadComplexity();
-
-
-/***/ }),
-
 /***/ 4105:
 /***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
 
@@ -36794,25 +36688,18 @@ Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.MetricsRegistry = void 0;
 const core = __importStar(__nccwpck_require__(7484));
 const codeChurn_1 = __nccwpck_require__(6172);
-const halsteadComplexity_1 = __nccwpck_require__(577);
 const cognitiveComplexity_1 = __nccwpck_require__(5365);
 class MetricsRegistry {
     static async calculateAll() {
-        const [codeChurn, halsteadComplexity, cognitiveComplexity] = await Promise.all([
+        const [codeChurn, cognitiveComplexity] = await Promise.all([
             this.calculateCodeChurn(),
-            this.calculateHalsteadComplexity(),
             this.calculateCognitiveComplexity()
         ]);
-        return { codeChurn, halsteadComplexity, cognitiveComplexity };
+        return { codeChurn, cognitiveComplexity };
     }
     static async calculateCodeChurn() {
         const result = await codeChurn_1.codeChurnCalculator.calculate();
         core.info(`Calculated code churn: ${result}`);
-        return result;
-    }
-    static async calculateHalsteadComplexity() {
-        const result = await halsteadComplexity_1.halsteadComplexityCalculator.calculate();
-        core.info(`Calculated Halstead complexity: ${result}`);
         return result;
     }
     static async calculateCognitiveComplexity() {
@@ -36849,7 +36736,6 @@ class ScoringService {
     static calculateMetricScore(factors, config) {
         const metrics = [
             factors.codeChurn * config.codeChurnWeight,
-            factors.halsteadComplexity * config.halsteadComplexityWeight,
             factors.cognitiveComplexity * config.cognitiveComplexityWeight
         ];
         return metrics.reduce((sum, metric) => sum + metric, 0);
@@ -36885,9 +36771,6 @@ class CommentGenerator {
             codeChurn: factors.codeChurn?.toFixed(1) || '0.0',
             codeChurnPoints: Math.round((factors.codeChurn || 0) * riskConfig.codeChurnWeight * 100) / 100,
             codeChurnWeight: riskConfig.codeChurnWeight,
-            halsteadComplexity: factors.halsteadComplexity?.toFixed(1) || '0.0',
-            halsteadComplexityPoints: Math.round((factors.halsteadComplexity || 0) * riskConfig.halsteadComplexityWeight * 100) / 100,
-            halsteadComplexityWeight: riskConfig.halsteadComplexityWeight,
             cognitiveComplexity: factors.cognitiveComplexity?.toFixed(1) || '0.0',
             cognitiveComplexityPoints: Math.round((factors.cognitiveComplexity || 0) * riskConfig.cognitiveComplexityWeight * 100) / 100,
             cognitiveComplexityWeight: riskConfig.cognitiveComplexityWeight,
@@ -37204,7 +37087,6 @@ class LlmResponseParser {
     static createBaseFactors() {
         return {
             codeChurn: -1,
-            halsteadComplexity: -1,
             cognitiveComplexity: -1
         };
     }
