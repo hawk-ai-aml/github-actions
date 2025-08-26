@@ -112,7 +112,9 @@ runs:
               echo "== MODULE: [$module] =="
               for file in $FILES; do
                 IFS='/' read -ra ADDR <<< "$file"
-                echo "== ADDRS: [${ADDR[0]}] =="
+                top="${ADDR[0]}"
+                echo "  file: [$file]"
+                echo "  top : [$top]""
                 # Show cond1 result
                 printf '  cond1: [[ %q == *%q* ]] -> ' "$top" "$module"
                 if [[ "$top" == *"$module"* ]]; then echo YES; else echo NO; fi
