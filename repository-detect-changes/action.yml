@@ -113,8 +113,16 @@ runs:
               for file in $FILES; do
                 IFS='/' read -ra ADDR <<< "$file"
                 echo "== ADDRS: [${ADDR[0]}] =="
+                # Show cond1 result
+                printf '  cond1: [[ %q == *%q* ]] -> ' "$top" "$module"
+                if [[ "$top" == *"$module"* ]]; then echo YES; else echo NO; fi
+            
+                # Show cond2 result (checks if "module" is already in MODULES)
+                printf '  cond2: [[ %q != *"\"%q\""* ]] -> ' "$MODULES" "$module"
+                if [[ $MODULES != *"\"$module\""* ]]; then echo YES; else echo NO; fi
+                
                 if [[ ${ADDR[0]} == *"$module"* && $MODULES != *"$module"* ]];  then
-                  echo "  cond1: YES"
+                  echo "  cond: YES"
                   MODULES="${MODULES}\"$module\","
                   MODULE_LIST_STRING=${MODULE_LIST_STRING}${module}${SPACE}
                   break
