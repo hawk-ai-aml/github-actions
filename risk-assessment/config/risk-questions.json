@@ -22,7 +22,7 @@
       "key": "dependencies",
       "maxWeight": 1.5,
       "title": "Dependencies",
-      "question": "Does this change involve a major version upgrade of a core dependency? Does this change involve external dependencies update?"
+      "question": "Does this change update dependencies (Any lib: major/minor versions; Core framework updates like Spring Boot/Cloud: major/minor/patch)?"
     },
     {
       "key": "libraries",
@@ -33,11 +33,6 @@
       "key": "features",
       "maxWeight": 2,
       "question": "Does this change activate a feature flag that exposes a significant new feature to users?"
-    },
-    {
-      "key": "rollback",
-      "maxWeight": 1,
-      "question": "Does this change lack a documented, tested rollback plan?"
     },
     {
       "key": "apiIncompatibility",
@@ -56,6 +51,5 @@
     }
   ],
   "codeChurnWeight": 0.4,
-  "halsteadComplexityWeight": 0.2,
-  "cognitiveComplexityWeight": 0.2
+  "cognitiveComplexityWeight": 0.4
 }

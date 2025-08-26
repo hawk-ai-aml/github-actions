@@ -90,29 +90,6 @@ describe('Risk Assessment', () => {
       expect(core.setFailed).not.toHaveBeenCalled();
     });
 
-    it('should skip complexity calculations when disabled', async () => {
-      process.env.SRA_DISABLE_HALSTEAD_COMPLEXITY = 'true';
-      process.env.SRA_DISABLE_COGNITIVE_COMPLEXITY = 'true';
-
-      testSetup
-        .setInputs({
-          'github-token': 'mock-token',
-          'config': encodeConfig(mockConfig),
-          'llm-response': createMockAIResponse({
-            authentication: {answer: 'No', evidence: 'No auth changes', weight: "0"}
-          })
-        })
-        .setGitDiff({files: [{added: 10, deleted: 5, filename: 'file1.ts'}]})
-        .setExistingComments([]);
-
-      await run();
-
-      expect(core.setFailed).not.toHaveBeenCalled();
-
-      delete process.env.SRA_DISABLE_HALSTEAD_COMPLEXITY;
-      delete process.env.SRA_DISABLE_COGNITIVE_COMPLEXITY;
-    });
-
     it('should return success status in advisory mode regardless of risk tier', async () => {
       process.env.SRA_ENFORCE_MODE = 'false';
 

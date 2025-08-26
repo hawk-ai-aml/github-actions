@@ -147,7 +147,6 @@ export function createMockConfig() {
       }
     ],
     codeChurnWeight: 0.2,
-    halsteadComplexityWeight: 0.3,
     cognitiveComplexityWeight: 0.4
   };
 }
