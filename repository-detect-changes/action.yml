@@ -121,7 +121,7 @@ runs:
             
                 # Show cond2 result (checks if "module" is already in MODULES)
                 printf '  cond2: [[ %q != *"\"%q\""* ]] -> ' "$MODULES" "$module"
-                if [[ $MODULES != *"\"$module\""* ]]; then echo YES; else echo NO; fi
+                if [[ $MODULES != *"$module"* ]]; then echo YES; else echo NO; fi
                 
                 if [[ ${ADDR[0]} == *"$module"* && $MODULES != *"$module"* ]];  then
                   echo "  cond: YES"
