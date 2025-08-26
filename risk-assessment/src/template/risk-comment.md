@@ -1,6 +1,6 @@
 # 🔍 Risk Assessment Results
 
-<div align="center">
+<div style="text-align: center;">
 
 # Risk Level: **{{tierName}}**
 
@@ -18,7 +18,6 @@
 | Metric                   | Value                   | Points Added                   | Weight                        |
 |--------------------------|-------------------------|--------------------------------|-------------------------------|
 | **Code Churn**           | {{codeChurn}}           | +{{codeChurnPoints}}           | {{codeChurnWeight}}           |
-| **Halstead Complexity**  | {{halsteadComplexity}}  | +{{halsteadComplexityPoints}}  | {{halsteadComplexityWeight}}  |
 | **Cognitive Complexity** | {{cognitiveComplexity}} | +{{cognitiveComplexityPoints}} | {{cognitiveComplexityWeight}} |
 
 </details>

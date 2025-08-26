@@ -44,7 +44,7 @@ jobs:
   risk-assessment:
     runs-on: [ self-hosted, small-builder ]
     name: Calculate Risk Score
-    if: ${{ inputs.sra-enabled }}
+    if: ${{ inputs.sra-enabled && !github.event.pull_request.draft }}
     outputs:
       risk-score: ${{ steps.sra.outputs.risk-score }}
       risk-tier: ${{ steps.sra.outputs.risk-tier }}

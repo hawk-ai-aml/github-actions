@@ -14,7 +14,6 @@ interface RiskQuestion {
 interface RiskConfig {
   questions: RiskQuestion[];
   codeChurnWeight: number;
-  halsteadComplexityWeight: number;
   cognitiveComplexityWeight: number;
 }
 
@@ -22,7 +21,6 @@ interface RiskFactors {
   [key: string]: Answer | undefined | number;
 
   codeChurn: number;
-  halsteadComplexity: number;
   cognitiveComplexity: number;
 }
 
@@ -60,9 +58,6 @@ interface TemplateData {
   codeChurn: string;
   codeChurnPoints: number;
   codeChurnWeight: number;
-  halsteadComplexity: string;
-  halsteadComplexityPoints: number;
-  halsteadComplexityWeight: number;
   cognitiveComplexity: string;
   cognitiveComplexityPoints: number;
   cognitiveComplexityWeight: number;
