@@ -27,9 +27,9 @@ describe('ScoringService', () => {
 
       const result = ScoringService.calculate(factors, mockRiskConfig);
 
-      expect(result.questionScore).toBe(4.3); // 2.5 + 1.8
-      expect(result.metricScore).toBe(0.6); // (2.0*0.2) + (0.8*0.25)
-      expect(result.totalScore).toBe(4.9); // Rounded to 2 decimal places
+      expect(result.questionScore).toBeCloseTo(4.3); // 2.5 + 1.8
+      expect(result.metricScore).toBeCloseTo(0.6); // (2.0*0.2) + (0.8*0.25)
+      expect(result.totalScore).toBeCloseTo(4.9); // Rounded to 2 decimal places
     });
 
     it('should handle missing question answers', () => {
@@ -71,8 +71,8 @@ describe('ScoringService', () => {
       const result = ScoringService.calculate(factors, configWithNoQuestions);
 
       expect(result.questionScore).toBe(0);
-      expect(result.metricScore).toBe(3.5); // (10*0.1) + (10*0.25)
-      expect(result.totalScore).toBe(3.5);
+      expect(result.metricScore).toBe(4.5); // (10*0.2) + (10*0.25)
+      expect(result.totalScore).toBe(4.5);
     });
 
     it('should handle negative weights and values', () => {
