@@ -144,11 +144,12 @@ jobs:
           PY_UTILS_PAT: ${{ secrets.PY_UTILS_PAT }}
 
       - name: Install dependencies
+        if: needs.init.outputs.skip-tests != 'true'
         id: install-dependencies
         run: poetry install
 
       - name: Build Rust libraries
-        if: ${{ inputs.buildRustLibraries == true }}
+        if: needs.init.outputs.skip-tests != 'true' && ${{ inputs.buildRustLibraries == true }}
         run: source scripts/build_rust_libraries.sh
 
       - name: Run tests
