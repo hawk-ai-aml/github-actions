@@ -149,7 +149,7 @@ jobs:
         run: poetry install
 
       - name: Build Rust libraries
-        if: needs.init.outputs.skip-tests != 'true' && ${{ inputs.buildRustLibraries == true }}
+        if: ${{ needs.init.outputs.skip-tests != 'true' && inputs.buildRustLibraries == true }}
         run: source scripts/build_rust_libraries.sh
 
       - name: Run tests
