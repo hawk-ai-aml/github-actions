@@ -76,7 +76,7 @@ runs:
               for module in $REPOSITORY_MODULES; do
                 for file in $FILES; do
                   IFS='/' read -ra ADDR <<< "$file"
-                  if [[ ${ADDR[0]} == *"$module"* && $MODULES != *"$module"* ]];  then
+                  if [[ ${ADDR[0]} == "$module" && "$MODULES" != *"\"$module\","* ]];  then
                     MODULES="${MODULES}\"$module\","
                     MODULE_LIST_STRING=${MODULE_LIST_STRING}${module}${SPACE}
                     break
@@ -109,22 +109,9 @@ runs:
             done
 
             for module in $REPOSITORY_MODULES; do
-              echo "== MODULE: [$module] =="
               for file in $FILES; do
                 IFS='/' read -ra ADDR <<< "$file"
-                top="${ADDR[0]}"
-                echo "  file: [$file]"
-                echo "  top : [$top]"
-                # Show cond1 result
-                printf '  cond1: [[ %q == *%q* ]] -> ' "$top" "$module"
-                if [[ "$top" == *"$module"* ]]; then echo YES; else echo NO; fi
-            
-                # Show cond2 result (checks if "module" is already in MODULES)
-                printf '  cond2: [[ %q != *"\"%q\""* ]] -> ' "$MODULES" "$module"
-                if [[ $MODULES != *"$module"* ]]; then echo YES; else echo NO; fi
-                
-                if [[ ${ADDR[0]} == *"$module"* && $MODULES != *"$module"* ]];  then
-                  echo "  cond: YES"
+                if [[ ${ADDR[0]} == "$module" && "$MODULES" != *"\"$module\","* ]];  then
                   MODULES="${MODULES}\"$module\","
                   MODULE_LIST_STRING=${MODULE_LIST_STRING}${module}${SPACE}
                   break
