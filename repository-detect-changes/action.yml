@@ -112,8 +112,8 @@ runs:
               for file in $FILES; do
                 IFS='/' read -ra ADDR <<< "$file"
                 if [[ ${ADDR[0]} == "$module" && ",$MODULES," != *",\"$module\","* ]];  then
-                  MODULES="${MODULES:+$MODULES,}\"$module\""
-                  MODULE_LIST_STRING+="${module}${SPACE}"
+                  MODULES="${MODULES}\"$module\","
+                  MODULE_LIST_STRING=${MODULE_LIST_STRING}${module}${SPACE}
                   break
                 fi
               done
