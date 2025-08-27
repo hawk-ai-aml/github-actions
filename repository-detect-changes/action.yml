@@ -76,7 +76,7 @@ runs:
               for module in $REPOSITORY_MODULES; do
                 for file in $FILES; do
                   IFS='/' read -ra ADDR <<< "$file"
-                  if [[ ${ADDR[0]} == *"$module"* && $MODULES != *"$module"* ]];  then
+                  if [[ ${ADDR[0]} == "$module" && ",$MODULES," != *",\"$module\","* ]];  then
                     MODULES="${MODULES}\"$module\","
                     MODULE_LIST_STRING=${MODULE_LIST_STRING}${module}${SPACE}
                     break
