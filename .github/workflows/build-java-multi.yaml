@@ -80,7 +80,7 @@ jobs:
 
       - id: detect-changes
         name: Detect changes
-        uses: hawk-ai-aml/github-actions/repository-detect-changes@master
+        uses: hawk-ai-aml/github-actions/repository-detect-changes@PE-4837
         with:
           repository: hawk-ai-aml/${{ inputs.component }}
           repository-ref: ${{ env.GITHUB_REF_NAME }}
