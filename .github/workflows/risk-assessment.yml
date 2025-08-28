@@ -128,41 +128,34 @@ jobs:
           echo "$JSON_STRUCTURE" >> $GITHUB_OUTPUT
           echo "EOF" >> $GITHUB_OUTPUT
 
-      - name: AI Risk Assessment
-        id: ai-inference
-        uses: actions/ai-inference@v1
+      - name: AI Risk Assessment (Primary)
+        id: ai-inference-primary
+        continue-on-error: true
+        uses: actions/ai-inference@v2
         with:
           max-tokens: 1000
           model: openai/gpt-4.1
           token: ${{ secrets.github-token }}
-          prompt: |
-            You are a senior software engineer performing a risk assessment on a pull request.
-            For each question, provide:
-            - Concrete evidence (markdown, or "❌" if none)
-            - A risk score between 0 (no risk) and the max weight (high risk) for the question, using decimals if needed
+          prompt-file: '.github-actions/risk-assessment/config/prompt.md'
 
-            PR Title: ${{ steps.pr-context.outputs.pr-title }}
-            PR Description: ${{ steps.pr-context.outputs.pr-body }}
-            Changed Files: ${{ steps.pr-context.outputs.changed-files }}
-            File Changes Summary: ${{ steps.pr-context.outputs.file-diffs }}
+      - name: AI Risk Assessment (Fallback)
+        id: ai-inference-fallback
+        if: steps.ai-inference-primary.outcome == 'failure'
+        uses: actions/ai-inference@v2
+        with:
+          max-tokens: 1000
+          model: openai/gpt-4o
+          token: ${{ secrets.github-token }}
+          prompt-file: '.github-actions/risk-assessment/config/prompt.md'
 
-            Questions:
-            ${{ steps.load-config.outputs.questions }}
-
-            Evidence format: String that will be rendered as markdown containing specific files, methods, patterns found OR "❌"
-            Links to files or code snippets are encouraged and should be formatted as marked down links
-            with the url like "https://github.com/${{ github.repository }}/blob/${{ github.head_ref }}/{filepath}".
-
-            Please answer each question in this exact format:
-            ${{ steps.load-config.outputs.json-structure }}
-
-            Only assign a score above 0 if:
-            - You find concrete evidence in the changed files, AND
-            - The question is relevant and applicable to the specific changes in this pull request.
-
-            If the question does not apply to these changes, bring that up in the evidence field, and set the score to 0.
-            If the question only partially applies, provide the evidence and a score that reflects the partial risk.
-            If there is no evidence, set score to 0 and evidence to "❌".
+      - name: Set AI Response
+        id: ai-inference
+        run: |
+          if [ "${{ steps.ai-inference-primary.outcome }}" == "success" ]; then
+            echo "response=${{ steps.ai-inference-primary.outputs.response }}" >> $GITHUB_OUTPUT
+          else
+            echo "response=${{ steps.ai-inference-fallback.outputs.response }}" >> $GITHUB_OUTPUT
+          fi
 
       - name: Run Risk Assessment
         id: sra
