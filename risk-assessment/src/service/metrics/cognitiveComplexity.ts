@@ -44,7 +44,7 @@ class CognitiveComplexity implements Metric {
       nestingLevel = Math.max(0, nestingLevel); // Prevent negative nesting
     }
 
-    return Math.log(1 + complexity);
+    return Math.log10(1 + complexity);
   }
 
   calculateAddedCognitiveComplexity(addedLines: string[]): number {
@@ -87,10 +87,10 @@ class CognitiveComplexity implements Metric {
       }
     }
 
-    const averageComplexity = totalFiles > 0 ? totalComplexity / totalFiles : 0;
-    core.info(`Cognitive complexity calculation: ${totalFiles} files analyzed, average added complexity: ${averageComplexity.toFixed(2)}`);
+    const normalizedScore = Math.min(6, totalComplexity); // TODO the min should be extracted to the config
 
-    return averageComplexity;
+    core.info(`Cognitive complexity calculation: ${totalFiles} files, sum: ${totalComplexity.toFixed(2)}, normalized score: ${normalizedScore.toFixed(2)}/10`);
+    return normalizedScore;
   }
 }
 

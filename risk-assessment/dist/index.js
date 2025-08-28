@@ -36601,7 +36601,7 @@ class CognitiveComplexity {
             nestingLevel += openBraces - closeBraces;
             nestingLevel = Math.max(0, nestingLevel); // Prevent negative nesting
         }
-        return Math.log(1 + complexity);
+        return Math.log10(1 + complexity);
     }
     calculateAddedCognitiveComplexity(addedLines) {
         // Calculate complexity only for added lines
@@ -36636,9 +36636,9 @@ class CognitiveComplexity {
                 core.warning(`Failed to analyze cognitive complexity for file ${file}: ${error}`);
             }
         }
-        const averageComplexity = totalFiles > 0 ? totalComplexity / totalFiles : 0;
-        core.info(`Cognitive complexity calculation: ${totalFiles} files analyzed, average added complexity: ${averageComplexity.toFixed(2)}`);
-        return averageComplexity;
+        const normalizedScore = Math.min(6, totalComplexity); // TODO the min should be extracted to the config
+        core.info(`Cognitive complexity calculation: ${totalFiles} files, sum: ${totalComplexity.toFixed(2)}, normalized score: ${normalizedScore.toFixed(2)}/10`);
+        return normalizedScore;
     }
 }
 exports.cognitiveComplexityCalculator = new CognitiveComplexity();
