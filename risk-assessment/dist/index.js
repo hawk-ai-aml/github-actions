@@ -36594,11 +36594,19 @@ class CognitiveComplexity {
             // Ternary operators
             const ternaryOps = (trimmedLine.match(/\?.*:/g) || []).length;
             complexity += ternaryOps;
+            // Lambda expressions
+            const lambdaOps = (trimmedLine.match(/->/g) || []).length;
+            complexity += lambdaOps;
             // Update nesting level
             nestingLevel += openBraces - closeBraces;
             nestingLevel = Math.max(0, nestingLevel); // Prevent negative nesting
         }
-        return Math.log(1 + complexity);
+        return Math.log10(1 + complexity);
+    }
+    calculateAddedCognitiveComplexity(addedLines) {
+        // Calculate complexity only for added lines
+        const addedContent = addedLines.join('\n');
+        return this.calculateCognitiveComplexityForFile(addedContent);
     }
     async calculate() {
         const changedFiles = await (0, git_1.getListOfChangedFiles)();
@@ -36606,6 +36614,7 @@ class CognitiveComplexity {
             core.warning('Could not calculate cognitive complexity - no changed files found');
             return 0;
         }
+        const addedLinesByFile = await (0, git_1.parseAddedLines)();
         let totalComplexity = 0;
         let totalFiles = 0;
         for (const file of changedFiles) {
@@ -36613,19 +36622,23 @@ class CognitiveComplexity {
                 if (!node_fs_1.default.existsSync(file)) {
                     continue;
                 }
-                const content = node_fs_1.default.readFileSync(file, 'utf8');
-                const complexity = this.calculateCognitiveComplexityForFile(content);
+                const addedLines = addedLinesByFile.get(file) || [];
+                if (addedLines.length === 0) {
+                    core.info(`File ${file}: No added lines to analyze`);
+                    continue;
+                }
+                const complexity = this.calculateAddedCognitiveComplexity(addedLines);
                 totalComplexity += complexity;
                 totalFiles++;
-                core.info(`File ${file}: Cognitive complexity ${complexity.toFixed(2)}`);
+                core.info(`File ${file}: Cognitive complexity ${complexity.toFixed(2)} (from ${addedLines.length} added lines)`);
             }
             catch (error) {
                 core.warning(`Failed to analyze cognitive complexity for file ${file}: ${error}`);
             }
         }
-        const averageComplexity = totalFiles > 0 ? totalComplexity / totalFiles : 0;
-        core.info(`Cognitive complexity calculation: ${totalFiles} files analyzed, average complexity: ${averageComplexity.toFixed(2)}`);
-        return averageComplexity;
+        const normalizedScore = Math.min(6, totalComplexity); // TODO the min should be extracted to the config
+        core.info(`Cognitive complexity calculation: ${totalFiles} files, sum: ${totalComplexity.toFixed(2)}, normalized score: ${normalizedScore.toFixed(2)}/10`);
+        return normalizedScore;
     }
 }
 exports.cognitiveComplexityCalculator = new CognitiveComplexity();
@@ -36835,10 +36848,9 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.getBranches = getBranches;
 exports.getSimpleLog = getSimpleLog;
-exports.maybeGetDetailedLog = maybeGetDetailedLog;
-exports.getDiffStats = getDiffStats;
 exports.getCommitDetails = getCommitDetails;
 exports.getListOfChangedFiles = getListOfChangedFiles;
+exports.parseAddedLines = parseAddedLines;
 const core = __importStar(__nccwpck_require__(7484));
 const simple_git_1 = __importDefault(__nccwpck_require__(9065));
 const git = (0, simple_git_1.default)();
@@ -36849,6 +36861,7 @@ function getBranches() {
 }
 async function getSimpleLog(file) {
     const logResult = await git.log(['--oneline', '--follow', '--', file]);
+    core.info(`Log result: ${JSON.stringify(logResult, null, 2)}`);
     return logResult.all;
 }
 async function maybeGetDetailedLog(file) {
@@ -36901,24 +36914,13 @@ async function getListOfChangedFiles() {
             core.warning(`Failed to get changed files against ${branch}, trying next branch`);
         }
     }
-    return changedFiles.filter(filterForRelevant);
-}
-async function getDiffStats() {
-    let output = '';
-    const branchesToTry = getBranches();
-    for (const branch of branchesToTry) {
-        try {
-            output = await git.raw(['diff', '--numstat', `${branch}...HEAD`]);
-            break;
-        }
-        catch (error) { // NOSONAR
-            core.warning(`Failed to diff against ${branch}, trying next branch`);
-        }
-    }
-    return output;
+    const relevantFiles = changedFiles.filter(filterForRelevant);
+    core.info(`Relevant files: ${relevantFiles}`);
+    return relevantFiles;
 }
 async function getCommitDetails(file) {
     const detailedLog = await maybeGetDetailedLog(file);
+    core.debug(`Detailed Log: ${detailedLog}`);
     return detailedLog.trim().split('\n')
         .filter(line => line.trim())
         .map(line => {
@@ -36928,6 +36930,47 @@ async function getCommitDetails(file) {
             date: new Date(dateStr)
         };
     });
+}
+async function getDetailedDiff() {
+    const git = (0, simple_git_1.default)();
+    const branchesToTry = getBranches();
+    for (const branch of branchesToTry) {
+        try {
+            return await git.raw(['diff', `${branch}...HEAD`]);
+        }
+        catch (error) {
+            core.warning(`Failed to get detailed diff against ${branch}, trying next branch`);
+        }
+    }
+    return '';
+}
+async function parseAddedLines() {
+    const diffOutput = await getDetailedDiff();
+    core.info(`Diff Output length: ${diffOutput.length}`);
+    const fileChanges = new Map();
+    const lines = diffOutput.split('\n');
+    let currentFile = '';
+    for (const line of lines) {
+        if (line.startsWith('+++ ')) {
+            const match = line.match(/^\+{3}\s+[ab]\/(.+)$/);
+            if (match) {
+                currentFile = match[1];
+                if (!fileChanges.has(currentFile)) {
+                    fileChanges.set(currentFile, []);
+                }
+                core.debug(`Found file: ${currentFile}`);
+            }
+        }
+        else if (line.startsWith('+') && !line.startsWith('+++') && !line.startsWith('@@')) {
+            if (currentFile && fileChanges.has(currentFile)) {
+                const addedLine = line.substring(1); // Remove leading +
+                fileChanges.get(currentFile).push(addedLine);
+                core.debug(`Added line to ${currentFile}: ${addedLine}`);
+            }
+        }
+    }
+    core.info(`Parsed file changes: ${JSON.stringify(Object.fromEntries(fileChanges), null, 2)}`);
+    return fileChanges;
 }
 
 
