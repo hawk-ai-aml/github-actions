@@ -200,9 +200,6 @@ jobs:
           echo "$JSON_STRUCTURE" >> $GITHUB_OUTPUT
           echo "EOF" >> $GITHUB_OUTPUT
 
-      - name: AI Risk Assessment
-        id: ai-inference
-        uses: actions/ai-inference@v2
       - name: AI Risk Assessment (Primary)
         id: ai-inference-primary
         continue-on-error: true
@@ -211,7 +208,30 @@ jobs:
           max-tokens: 1000
           model: openai/gpt-4.1
           token: ${{ secrets.github-token }}
-          prompt-file: '.github-actions/risk-assessment/config/prompt.md'
+          prompt: |
+            Risk assessment for PR. For each question, provide evidence and score (0 to max weight).
+            
+            PR: ${{ steps.pr-context.outputs.pr-title }}
+            Description: 
+            ```
+            ${{ steps.pr-context.outputs.pr-body }}
+            ```
+            
+            Files (${{ steps.pr-context.outputs.selected-files }}/${{ steps.pr-context.outputs.total-files }} analyzed):
+            ${{ steps.pr-context.outputs.file-summary }}
+            
+            Key Changes:
+            ${{ steps.pr-context.outputs.file-diffs }}
+            
+            Questions:
+            ${{ steps.load-config.outputs.questions }}
+            
+            Response format: ${{ steps.load-config.outputs.json-structure }}
+            
+            Rules:
+            - Evidence: Specific findings from code/PR. If no evidence found, respond with exactly "❌" and nothing else
+            - Score: 0 if not applicable/no evidence, otherwise 0 to max weight
+            - Use GitHub links: https://github.com/${{ github.repository }}/blob/${{ github.head_ref }}/{filepath}
 
       - name: AI Risk Assessment (Fallback)
         id: ai-inference-fallback
@@ -221,16 +241,46 @@ jobs:
           max-tokens: 1000
           model: openai/gpt-4o
           token: ${{ secrets.github-token }}
-          prompt-file: '.github-actions/risk-assessment/config/prompt.md'
+          prompt: |
+            Risk assessment for PR. For each question, provide evidence and score (0 to max weight).
+            
+            PR: ${{ steps.pr-context.outputs.pr-title }}
+            Description: 
+            ```
+            ${{ steps.pr-context.outputs.pr-body }}
+            ```
+            
+            Files (${{ steps.pr-context.outputs.selected-files }}/${{ steps.pr-context.outputs.total-files }} analyzed):
+            ${{ steps.pr-context.outputs.file-summary }}
+            
+            Key Changes:
+            ${{ steps.pr-context.outputs.file-diffs }}
+            
+            Questions:
+            ${{ steps.load-config.outputs.questions }}
+            
+            Response format: ${{ steps.load-config.outputs.json-structure }}
+            
+            Rules:
+            - Evidence: Specific findings from code/PR. If no evidence found, respond with exactly "❌" and nothing else
+            - Score: 0 if not applicable/no evidence, otherwise 0 to max weight
+            - Use GitHub links: https://github.com/${{ github.repository }}/blob/${{ github.head_ref }}/{filepath}
 
       - name: Set AI Response
         id: ai-inference
         run: |
           if [ "${{ steps.ai-inference-primary.outcome }}" == "success" ]; then
-            echo "response=${{ steps.ai-inference-primary.outputs.response }}" >> $GITHUB_OUTPUT
+            echo 'response<<EOF' >> $GITHUB_OUTPUT
+            cat << 'RESPONSE_EOF' >> $GITHUB_OUTPUT
+          ${{ steps.ai-inference-primary.outputs.response }}
+          RESPONSE_EOF
           else
-            echo "response=${{ steps.ai-inference-fallback.outputs.response }}" >> $GITHUB_OUTPUT
+            echo 'response<<EOF' >> $GITHUB_OUTPUT
+            cat << 'RESPONSE_EOF' >> $GITHUB_OUTPUT
+          ${{ steps.ai-inference-fallback.outputs.response }}
+          RESPONSE_EOF
           fi
+          echo 'EOF' >> $GITHUB_OUTPUT
 
       - name: Run Risk Assessment
         id: sra
