@@ -270,11 +270,13 @@ jobs:
         id: ai-inference
         run: |
           if [ "${{ steps.ai-inference-primary.outcome }}" == "success" ]; then
+            echo "fallback=false" >> $GITHUB_OUTPUT
             echo 'response<<EOF' >> $GITHUB_OUTPUT
             cat << 'RESPONSE_EOF' >> $GITHUB_OUTPUT
           ${{ steps.ai-inference-primary.outputs.response }}
           RESPONSE_EOF
           else
+            echo "fallback=true" >> $GITHUB_OUTPUT
             echo 'response<<EOF' >> $GITHUB_OUTPUT
             cat << 'RESPONSE_EOF' >> $GITHUB_OUTPUT
           ${{ steps.ai-inference-fallback.outputs.response }}
@@ -301,6 +303,7 @@ jobs:
             job: github_risk_assessment
             repository: ${{ github.repository }}
             ref: ${{ github.ref }}
+            fallback: ${{ steps.ai-inference.outputs.fallback }}
           labels: |
             github_actions_ref: ${{ inputs.github-actions-ref }}
             sra_enabled: ${{ inputs.sra-enabled }}
