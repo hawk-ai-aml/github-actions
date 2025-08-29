@@ -42,7 +42,7 @@ runs:
       uses: actions/checkout@v4
       with:
         repository: hawk-ai-aml/github-actions
-        ref: master
+        ref: pe-4836
 
     - name: Make script executable
       shell: bash -l -ET -eo pipefail {0}

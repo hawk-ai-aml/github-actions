@@ -107,7 +107,7 @@ jobs:
 
       - name: Update Jira ticket labels
         if: ${{ github.workflow == 'pr' }}
-        uses: hawk-ai-aml/github-actions/update-jira-ticket-label@master
+        uses: hawk-ai-aml/github-actions/update-jira-ticket-label@pe-4836
         with:
           repository: ${{ inputs.component }}
           github-branch: ${{ github.head_ref }}
