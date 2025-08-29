@@ -5,7 +5,7 @@ set -euo pipefail
 # Function: Extract Jira ticket from branch name or PR title
 # --------------------------------------
 extract_jira_ticket() {
-  local TEAMS="pe tm cmi nfr workflow cds dc crr"
+  local TEAMS="pe tm cmi nfr workflow cds dc crr gen"
   local GITHUB_BRANCH="$1"
   local PR_TITLE="$2"
 

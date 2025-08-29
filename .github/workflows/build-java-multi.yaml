@@ -108,6 +108,7 @@ jobs:
       - name: Update Jira ticket labels
         if: ${{ github.workflow == 'pr' }}
         uses: hawk-ai-aml/github-actions/update-jira-ticket-label@master
+        continue-on-error: true
         with:
           repository: ${{ inputs.component }}
           github-branch: ${{ github.head_ref }}
@@ -271,7 +272,7 @@ jobs:
           RED='\033[0;31m'
           MODULE_ECR_REPO=$(echo ${METADATA} | jq -cr --arg MODULE ${{ matrix.module }} '.modules[$MODULE].ecr.repository')
           echo "ECR_REPO=$MODULE_ECR_REPO"
-          
+
           if [[ $KUSTOMIZE_OVERLAYS == "prod" ]]; then
             MATCHED_TAG=$(echo "$CUSTOM_TAGS" | tr ' ' '\n' | grep -E "(^|[-])$MODULE_ECR_REPO-[0-9]"  | head -n 1 || true)
           else

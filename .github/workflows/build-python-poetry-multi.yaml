@@ -115,6 +115,7 @@ jobs:
       - name: Update Jira ticket labels
         if: ${{ github.workflow == 'pr' }}
         uses: hawk-ai-aml/github-actions/update-jira-ticket-label@master
+        continue-on-error: true
         with:
           repository: ${{ inputs.component }}
           github-branch: ${{ github.head_ref }}
@@ -175,7 +176,7 @@ jobs:
 
       - name: Build Rust libraries
         if: ${{ inputs.buildRustLibraries == true }}
-        run: source scripts/build_rust_libraries.sh        
+        run: source scripts/build_rust_libraries.sh
 
       - name: Run tests for module
         if: inputs.skipTests != true && (success() || failure())
@@ -227,12 +228,12 @@ jobs:
         run: |
           MODULE_ECR=$(echo ${METADATA} | jq -cr --arg MODULE ${{ matrix.module }} '.modules[$MODULE].ecr')
           echo "ECR=$MODULE_ECR"
-          
+
           echo "CUSTOM_TAGS=$CUSTOM_TAGS"
           if [[ "$MODULE" == *"_"* ]]; then
             MODULE="${MODULE//_/-}"
           fi
-          
+
           if [[ $KUSTOMIZE_OVERLAYS == "prod" ]]; then
             MATCHED_TAG=$(echo "$CUSTOM_TAGS" | tr ' ' '\n' | grep "^$MODULE-[0-9]"  | head -n 1 || true)
           else
