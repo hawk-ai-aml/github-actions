@@ -67,6 +67,19 @@ jobs:
           done
           echo "custom_tags=$CUSTOM_TAGS" >> $GITHUB_OUTPUT
 
+      - name: Update Jira ticket labels
+        if: ${{ github.workflow == 'pr' }}
+        uses: hawk-ai-aml/github-actions/update-jira-ticket-label@master
+        with:
+          repository: ${{ inputs.component }}
+          github-branch: ${{ github.head_ref }}
+          pr-title: ${{ github.event.pull_request.title }}
+          modules-string: ""
+          multiple-modules: "false"
+          jira-user: ${{ secrets.JIRA_ACCOUNT_NAME }}
+          jira-token: ${{ secrets.JIRA_TOKEN }}
+
+
   setup-and-lint:
     needs: [ init ]
     runs-on: [ "self-hosted", "small-builder" ]

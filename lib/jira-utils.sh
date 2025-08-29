@@ -61,19 +61,21 @@ update_jira_labels() {
   # Split string into array
   IFS=' ' read -r -a LABELS <<< "$LABELS_STRING"
 
-  # Build JSON array
-  local LABELS_JSON
-  LABELS_JSON=$(printf '"%s",' "${LABELS[@]}")
+  # Build JSON array for appending
+  local LABELS_JSON=""
+  for label in "${LABELS[@]}"; do
+    LABELS_JSON+="{\"add\":\"$label\"},"
+  done
   LABELS_JSON="[${LABELS_JSON%,}]"
 
-  echo "Updating labels for $ISSUE_KEY -> ${LABELS[*]}"
+  echo "Appending labels for $ISSUE_KEY -> ${LABELS[*]}"
 
   curl -s -X PUT \
     -u "$JIRA_USER:$JIRA_API_TOKEN" \
     -H "Accept: application/json" \
     -H "Content-Type: application/json" \
     --data "{
-      \"fields\": {
+      \"update\": {
         \"labels\": $LABELS_JSON
       }
     }" \

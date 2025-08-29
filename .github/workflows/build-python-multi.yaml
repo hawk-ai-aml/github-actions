@@ -41,6 +41,10 @@ on:
         type: boolean
         required: false
         default: false
+      jira-label-prefix:
+        type: string
+        required: false
+        default: ""
 
 jobs:
   init:
@@ -95,6 +99,20 @@ jobs:
             CUSTOM_TAGS="$CUSTOM_TAGS $NEW_TAG"
           done
           echo "custom_tags=$CUSTOM_TAGS" >> $GITHUB_OUTPUT
+
+      - name: Update Jira ticket labels
+        if: ${{ github.workflow == 'pr' }}
+        uses: hawk-ai-aml/github-actions/update-jira-ticket-label@master
+        with:
+          repository: ${{ inputs.component }}
+          github-branch: ${{ github.head_ref }}
+          pr-title: ${{ github.event.pull_request.title }}
+          modules-string: ${{ steps.detect-changes.outputs.updated-modules-string }}
+          multiple-modules: "true"
+          label-prefix: ${{ inputs.jira-label-prefix }}
+          jira-user: ${{ secrets.JIRA_ACCOUNT_NAME }}
+          jira-token: ${{ secrets.JIRA_TOKEN }}
+
 
   build:
     needs: init

@@ -1,0 +1,86 @@
+name: update-jira-ticket-label
+description: Update Jira ticket label
+
+inputs:
+  repository:
+    description: "Name of repository"
+    required: true
+
+  github-branch:
+    description: "Name of the Github branch"
+    required: true
+
+  pr-title:
+    description: "Title of PR"
+    required: true
+
+  modules-string:
+    description: "Module names as string"
+    required: true
+
+  multiple-modules:
+    description: "Flag indicating that the project has multiple modules"
+    required: true
+
+  label-prefix:
+    description: "Prefix string for the label"
+    required: true
+
+  jira-user:
+    description: "Jira username"
+    required: true
+
+  jira-token:
+    description: "Jira login token"
+    required: true
+
+
+runs:
+  using: composite
+  steps:
+    - name: Checkout github-actions repo to load the script
+      uses: actions/checkout@v4
+      with:
+        repository: hawk-ai-aml/github-actions
+        ref: master
+
+    - name: Make script executable
+      shell: bash -l -ET -eo pipefail {0}
+      run: chmod +x ./lib/jira-utils.sh
+
+    - name: Update Jira ticket labels
+      shell: bash -l -ET -eo pipefail {0}
+      env:
+        GITHUB_BRANCH: ${{ inputs.github-branch }}
+        PR_TITLE: ${{ inputs.pr-title }}
+        MODULES_STRING: ${{ inputs.modules-string }}
+        REPOSITORY: ${{ inputs.repository }}
+        LABEL_PREFIX: ${{ inputs.label-prefix }}
+        JIRA_USER: ${{ inputs.jira-user }}
+        JIRA_TOKEN: ${{ inputs.jira-token }}
+        MULTIPLE_MODULES: ${{ inputs.multiple-modules }}
+      run: |
+        source ./lib/jira-utils.sh
+
+        echo "Github branch for the PR: $GITHUB_BRANCH"
+        echo "PR Title: $PR_TITLE"
+
+        JIRA_TICKET=$(extract_jira_ticket "$GITHUB_BRANCH" "$PR_TITLE") || exit 1
+        echo "Jira ticket: $JIRA_TICKET"
+
+        LABELS=""
+        if [[ $MULTIPLE_MODULES == "true" ]]; then
+          for module in $MODULES_STRING; do
+            if [[ $LABEL_PREFIX != "" ]]; then
+              LABELS="$LABELS $LABEL_PREFIX-$module"
+            else
+              LABELS="$LABELS $module"
+            fi
+          done
+        else
+          LABELS=$REPOSITORY
+        fi
+
+        echo "Jira labels: $LABELS"
+        update_jira_labels "$JIRA_TICKET" "$JIRA_USER" "$JIRA_TOKEN" "$LABELS"
+
