@@ -39,7 +39,6 @@ interface Metric {
 
 interface ValidationResult {
   token: string;
-  aiResponse: string;
   riskConfig: RiskConfig;
   prNumber: number;
 }

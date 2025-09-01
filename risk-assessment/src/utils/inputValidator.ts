@@ -5,13 +5,12 @@ import * as github from "@actions/github";
 export class InputValidator {
   static async validate(): Promise<ValidationResult> {
     const token = core.getInput('github-token', {required: true});
-    const aiResponse = core.getInput('llm-response', {required: true});
     const configInput = core.getInput('config');
 
     const riskConfig = this.parseConfig(configInput);
     const prNumber = this.validatePRContext();
 
-    return {token, aiResponse, riskConfig, prNumber};
+    return {token, riskConfig, prNumber};
   }
 
   private static parseConfig(configInput: string): RiskConfig {

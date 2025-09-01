@@ -1,8 +1,6 @@
 import * as core from '@actions/core';
 import * as github from '@actions/github';
 import simpleGit from 'simple-git';
-import * as fs from 'node:fs';
-import * as path from 'node:path';
 import {Answer} from "@/types";
 
 export interface MockGitFile {
@@ -50,24 +48,51 @@ export class TestSetup {
     };
     (simpleGit as jest.Mock).mockReturnValue(mockGit);
 
-    // Setup fs mocks
-    (fs.readFileSync as jest.Mock).mockReturnValue('mock file content');
-    (fs.existsSync as jest.Mock).mockReturnValue(true);
-
-    // Setup path mocks
-    (path.resolve as jest.Mock).mockImplementation((...args) => args.join('/'));
-
     // Setup GitHub API mocks
     const mockOctokit = {
       rest: {
+        pulls: {
+          listFiles: jest.fn().mockResolvedValue({
+            data: this.gitFiles.map(f => ({
+              filename: f.filename,
+              additions: f.added,
+              deletions: f.deleted,
+              changes: f.added + f.deleted,
+              status: 'modified',
+              patch: `@@ -1,1 +1,1 @@\n-old line\n+new line`
+            }))
+          })
+        },
         issues: {
           listComments: jest.fn().mockResolvedValue({data: this.comments}),
           createComment: jest.fn().mockResolvedValue({data: {id: 456}}),
-          updateComment: jest.fn().mockResolvedValue({data: {id: 123}})
+          updateComment: jest.fn().mockResolvedValue({data: {id: 456}})
         }
       }
     };
     (github.getOctokit as jest.Mock).mockReturnValue(mockOctokit);
+
+    // Setup AI inference and PR context service mocks with default responses
+    const {AIInferenceService} = require('@/service/aiInferenceService');
+    const {PRContextService} = require('@/service/prContextService');
+
+    PRContextService.gatherContext.mockResolvedValue({
+      title: 'Test PR',
+      body: 'Test PR description',
+      fileSummary: this.gitFiles.map(f => `${f.filename}: modified (+${f.added}/-${f.deleted})`).join('\n'),
+      fileDiffs: 'Mock file diffs',
+      selectedFiles: this.gitFiles.length,
+      totalFiles: this.gitFiles.length,
+      headRef: 'feature/test'
+    });
+
+    // Default AI response - will be overridden in individual tests
+    AIInferenceService.performRiskAssessment.mockResolvedValue(
+      JSON.stringify({
+        authentication: {answer: 'No', evidence: 'No changes', weight: "0"},
+        schema: {answer: 'No', evidence: 'No changes', weight: "0"}
+      })
+    );
   }
 
   setInputs(inputs: Record<string, string>): this {
@@ -108,12 +133,6 @@ export class TestSetup {
 
   expectOutputSet(name: string): string | undefined {
     return this.outputs[name];
-  }
-
-  expectFailureWithMessage(expectedMessage: string): void {
-    expect(core.setFailed).toHaveBeenCalledWith(
-      expect.stringContaining(expectedMessage)
-    );
   }
 }
 

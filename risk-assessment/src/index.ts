@@ -7,12 +7,36 @@ import {LlmResponseParser} from "@/utils/llmResponseParser";
 import {ScoringService} from "@/service/scoringService";
 import {CommentGenerator} from "@/utils/commentGenerator";
 import {GithubService} from "@/service/githubService";
+import {AIInferenceService} from "@/service/aiInferenceService";
+import {PRContextService} from "@/service/prContextService";
+import * as github from "@actions/github";
 
 class RiskAssessmentRunner {
   private static readonly riskAssessment = new RiskAssessment();
 
   static async execute(): Promise<void> {
-    const {token, aiResponse, riskConfig, prNumber} = await InputValidator.validate();
+    const {token, riskConfig, prNumber} = await InputValidator.validate();
+
+    // Gather PR context information
+    core.info('Gathering PR context and changed files...');
+    const prContext = await PRContextService.gatherContext(token, prNumber);
+    core.info(`PR Context: ${prContext.title}`);
+    core.info(`Files analyzed: ${prContext.selectedFiles}/${prContext.totalFiles}`);
+
+    // Perform AI risk assessment
+    core.info('Performing AI risk assessment...');
+    const aiResponse = await AIInferenceService.performRiskAssessment(
+      token,
+      prContext.title,
+      prContext.body,
+      prContext.fileSummary,
+      prContext.fileDiffs,
+      prContext.selectedFiles,
+      prContext.totalFiles,
+      riskConfig,
+      prContext.headRef,
+      github.context.repo.owner + '/' + github.context.repo.repo
+    );
 
     core.info(`Raw AI response: ${aiResponse}`);
     const aiFactors = LlmResponseParser.parse(aiResponse, riskConfig);
@@ -39,11 +63,41 @@ class RiskAssessmentRunner {
   }
 
   private static setOutputs(riskScore: number, riskTier: RiskTier, enforceMode: boolean): void {
-    const finalStatus = enforceMode ? riskTier.status : 'success';
-
     core.setOutput('risk-score', riskScore.toString());
     core.setOutput('risk-tier', riskTier.name);
-    core.setOutput('status', finalStatus);
+    core.setOutput('status', riskTier.status);
+
+    // Only fail the action if enforce mode is on AND the risk tier status is failure
+    if (enforceMode && riskTier.status === 'failure') {
+      core.setFailed(`Risk assessment failed: ${riskTier.message}`);
+    }
+  }
+
+  static handleGenericRuntimeError(error: unknown): void {
+    if (error instanceof Error && error.message === 'SRA_DISABLED') {
+      return;
+    }
+
+    let errorMessage: string;
+    if (error instanceof Error) {
+      errorMessage = error.message;
+      core.error(`Stack trace: ${error.stack}`);
+    } else if (typeof error === 'string') {
+      errorMessage = error;
+    } else {
+      errorMessage = JSON.stringify(error);
+      core.error(`Non-Error object thrown: ${errorMessage}`);
+    }
+
+    core.error(`Risk assessment error: ${errorMessage}`);
+
+    // Set safe default outputs when an error occurs
+    core.setOutput('risk-score', '-1');
+    core.setOutput('risk-tier', 'unknown');
+    core.setOutput('status', 'unknown');
+
+    // Never fail the action due to errors - only log them
+    core.warning('Risk assessment encountered an error but will not fail the action');
   }
 }
 
@@ -51,10 +105,8 @@ export async function run(): Promise<void> {
   try {
     await RiskAssessmentRunner.execute();
   } catch (error) {
-    if (error instanceof Error && error.message === 'SRA_DISABLED') {
-      return;
-    }
-    core.setFailed(`Action failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    // Log the error but don't fail the action
+    RiskAssessmentRunner.handleGenericRuntimeError(error);
   }
 }
 
