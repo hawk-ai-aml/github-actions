@@ -49,6 +49,7 @@ jobs:
       risk-score: ${{ steps.sra.outputs.risk-score }}
       risk-tier: ${{ steps.sra.outputs.risk-tier }}
       status: ${{ steps.sra.outputs.status }}
+      fallback: ${{ steps.sra.outputs.fallback }}
 
     env:
       SRA_ENFORCE_MODE: ${{ inputs.enforce-mode }}
@@ -83,102 +84,6 @@ jobs:
             sra_enabled: ${{ inputs.sra-enabled }}
             enforce_mode: ${{ inputs.enforce-mode }}
 
-      - name: Get PR details and changed files
-        id: pr-context
-        uses: actions/github-script@v7
-        with:
-          script: |
-            const pr = context.payload.pull_request;
-
-            // Get changed files
-            const files = await github.rest.pulls.listFiles({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              pull_number: pr.number
-            });
-
-            core.info(`Total files changed: ${files.data.length}`);
-
-            // Log file stats
-            const fileStats = files.data.map(f => ({
-              filename: f.filename,
-              status: f.status,
-              additions: f.additions,
-              deletions: f.deletions,
-              changes: f.changes,
-              patchSize: f.patch ? f.patch.length : 0
-            }));
-
-            core.info('File change statistics:');
-            core.info(JSON.stringify(fileStats, null, 2));
-
-            // Calculate total patch size
-            const totalPatchSize = files.data.reduce((sum, f) => sum + (f.patch ? f.patch.length : 0), 0);
-            core.info(`Total patch size: ${totalPatchSize} characters`);
-
-            // Smart file selection and summarization
-            const MAX_PATCH_SIZE = 4000; // Conservative limit for diffs
-            let accumulatedSize = 0;
-            const selectedFiles = [];
-
-            // Sort by importance: new files first, then by change size
-            const sortedFiles = files.data.sort((a, b) => {
-              if (a.status === 'added' && b.status !== 'added') return -1;
-              if (b.status === 'added' && a.status !== 'added') return 1;
-              return b.changes - a.changes;
-            });
-
-            for (const file of sortedFiles) {
-              const patchSize = file.patch ? file.patch.length : 0;
-
-              if (accumulatedSize + patchSize <= MAX_PATCH_SIZE) {
-                selectedFiles.push(file);
-                accumulatedSize += patchSize;
-              } else {
-                // For large files, create a summary instead of full diff
-                const summary = `File: ${file.filename} (${file.status})
-            Changes: +${file.additions}/-${file.deletions}
-            Summary: ${file.status === 'added' ? 'New file' :
-                      file.status === 'removed' ? 'Deleted file' :
-                      `Modified with ${file.changes} changes`}`;
-
-                selectedFiles.push({
-                  ...file,
-                  patch: summary,
-                  isSummary: true
-                });
-              }
-
-              if (selectedFiles.length >= 15) break; // TODO Find out what a reasonable file limit is
-            }
-
-            core.info(`Selected ${selectedFiles.length} files for analysis`);
-            core.info(`Summarized ${selectedFiles.filter(f => f.isSummary).length} large files`);
-            core.info(`Accumulated patch size: ${accumulatedSize} characters`);
-
-            // Generate concise file changes
-            const fileDiffs = selectedFiles.map(f => {
-              if (f.isSummary) {
-                return f.patch; // Already a summary
-              }
-
-              const patch = f.patch || `${f.status} file: ${f.filename}`;
-              return `--- ${f.filename} (${f.status}, +${f.additions}/-${f.deletions})
-            ${patch}`;
-            }).join('\n\n');
-
-            // Create file summary for context
-            const fileSummary = files.data.map(f =>
-              `${f.filename}: ${f.status} (+${f.additions}/-${f.deletions})`
-            ).join('\n');
-
-            core.setOutput('pr-title', pr.title);
-            core.setOutput('pr-body', pr.body ? pr.body.substring(0, 1000) : ''); // Limit PR body
-            core.setOutput('file-diffs', fileDiffs);
-            core.setOutput('file-summary', fileSummary);
-            core.setOutput('total-files', files.data.length.toString());
-            core.setOutput('selected-files', selectedFiles.length.toString());
-
       - name: Load Risk Questions Config
         id: load-config
         run: |
@@ -188,108 +93,11 @@ jobs:
           CONFIG_B64=$(cat "$CONFIG_PATH" | base64 -w 0)
           echo "config-b64=$CONFIG_B64" >> $GITHUB_OUTPUT
 
-          # Generate questions list for prompt
-          QUESTIONS=$(cat "$CONFIG_PATH" | jq -r '.questions | to_entries | map("\(.key + 1). \(.value.key): \(.value.question) Max Weight: \(.value.maxWeight)") | join("\n")')
-          echo "questions<<EOF" >> $GITHUB_OUTPUT
-          echo "$QUESTIONS" >> $GITHUB_OUTPUT
-          echo "EOF" >> $GITHUB_OUTPUT
-
-          # Generate JSON structure for response
-          JSON_STRUCTURE=$(cat "$CONFIG_PATH" | jq -r '.questions | map({(.key): {"evidence": "❌ if no, only if yes then evidence", "answer": "Yes/No", "weight": "0 <= weight <= maxWeight; string field"}}) | add')
-          echo "json-structure<<EOF" >> $GITHUB_OUTPUT
-          echo "$JSON_STRUCTURE" >> $GITHUB_OUTPUT
-          echo "EOF" >> $GITHUB_OUTPUT
-
-      - name: AI Risk Assessment (Primary)
-        id: ai-inference-primary
-        continue-on-error: true
-        uses: actions/ai-inference@v2
-        with:
-          max-tokens: 1000
-          model: openai/gpt-4.1
-          token: ${{ secrets.github-token }}
-          prompt: |
-            Risk assessment for PR. For each question, provide evidence and score (0 to max weight).
-            
-            PR: ${{ steps.pr-context.outputs.pr-title }}
-            Description: 
-            ```
-            ${{ steps.pr-context.outputs.pr-body }}
-            ```
-            
-            Files (${{ steps.pr-context.outputs.selected-files }}/${{ steps.pr-context.outputs.total-files }} analyzed):
-            ${{ steps.pr-context.outputs.file-summary }}
-            
-            Key Changes:
-            ${{ steps.pr-context.outputs.file-diffs }}
-            
-            Questions:
-            ${{ steps.load-config.outputs.questions }}
-            
-            Response format: ${{ steps.load-config.outputs.json-structure }}
-            
-            Rules:
-            - Evidence: Specific findings from code/PR. If no evidence found, respond with exactly "❌" and nothing else
-            - Score: 0 if not applicable/no evidence, otherwise 0 to max weight
-            - Use GitHub links: https://github.com/${{ github.repository }}/blob/${{ github.head_ref }}/{filepath}
-
-      - name: AI Risk Assessment (Fallback)
-        id: ai-inference-fallback
-        if: steps.ai-inference-primary.outcome == 'failure'
-        uses: actions/ai-inference@v2
-        with:
-          max-tokens: 1000
-          model: openai/gpt-4o
-          token: ${{ secrets.github-token }}
-          prompt: |
-            Risk assessment for PR. For each question, provide evidence and score (0 to max weight).
-            
-            PR: ${{ steps.pr-context.outputs.pr-title }}
-            Description: 
-            ```
-            ${{ steps.pr-context.outputs.pr-body }}
-            ```
-            
-            Files (${{ steps.pr-context.outputs.selected-files }}/${{ steps.pr-context.outputs.total-files }} analyzed):
-            ${{ steps.pr-context.outputs.file-summary }}
-            
-            Key Changes:
-            ${{ steps.pr-context.outputs.file-diffs }}
-            
-            Questions:
-            ${{ steps.load-config.outputs.questions }}
-            
-            Response format: ${{ steps.load-config.outputs.json-structure }}
-            
-            Rules:
-            - Evidence: Specific findings from code/PR. If no evidence found, respond with exactly "❌" and nothing else
-            - Score: 0 if not applicable/no evidence, otherwise 0 to max weight
-            - Use GitHub links: https://github.com/${{ github.repository }}/blob/${{ github.head_ref }}/{filepath}
-
-      - name: Set AI Response
-        id: ai-inference
-        run: |
-          if [ "${{ steps.ai-inference-primary.outcome }}" == "success" ]; then
-            echo "fallback=false" >> $GITHUB_OUTPUT
-            echo 'response<<EOF' >> $GITHUB_OUTPUT
-            cat << 'RESPONSE_EOF' >> $GITHUB_OUTPUT
-          ${{ steps.ai-inference-primary.outputs.response }}
-          RESPONSE_EOF
-          else
-            echo "fallback=true" >> $GITHUB_OUTPUT
-            echo 'response<<EOF' >> $GITHUB_OUTPUT
-            cat << 'RESPONSE_EOF' >> $GITHUB_OUTPUT
-          ${{ steps.ai-inference-fallback.outputs.response }}
-          RESPONSE_EOF
-          fi
-          echo 'EOF' >> $GITHUB_OUTPUT
-
       - name: Run Risk Assessment
         id: sra
         uses: ./.github-actions/risk-assessment
         with:
           github-token: ${{ secrets.github-token }}
-          llm-response: ${{ steps.ai-inference.outputs.response }}
           config: ${{ steps.load-config.outputs.config-b64 }}
 
       - name: Send workflow completion metric
@@ -303,7 +111,7 @@ jobs:
             job: github_risk_assessment
             repository: ${{ github.repository }}
             ref: ${{ github.ref }}
-            fallback: ${{ steps.ai-inference.outputs.fallback }}
+            fallback: ${{ steps.sra.outputs.fallback }}
           labels: |
             github_actions_ref: ${{ inputs.github-actions-ref }}
             sra_enabled: ${{ inputs.sra-enabled }}

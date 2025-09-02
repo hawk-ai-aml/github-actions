@@ -17,7 +17,7 @@ The questionnaire can be found in [risk-assessment.md](../.github/workflows/risk
 
 ### Automated Metrics
 
-The system also calculates automated metrics such as code churn and log churn to provide additional risk context.
+The system also calculates automated metrics such as code churn and cognitive complexity to provide additional risk context.
 The metrics can be found in the [metrics](./src/service/metrics) directory.
 
 ### Risk Scoring
@@ -25,8 +25,8 @@ The metrics can be found in the [metrics](./src/service/metrics) directory.
 The risk assessment system categorizes pull requests into four tiers based on their risk score,
 which is calculated from the checklist responses and automated metrics.
 The risk score is a sum of weighted checklist items and code churn.
-Based in the score, PRs can be blocked with option to override, require additional code owner review, or merge directly.
-The weights and limits can be found in [index.ts](./src/index.ts).
+Based on the score, PRs can be blocked with option to override, require additional code owner review, or merge directly.
+The weights and limits can be found in [risk configuration](./config/risk-questions.json).
 
 ## 🚀 Quick Start
 
@@ -40,8 +40,8 @@ The weights and limits can be found in [index.ts](./src/index.ts).
 ### Build
 
 1. **Install dependencies and build script**:
-This step is optional, the built sources are committed in the repository.
-But if you want to make changes to the action, you need to install dependencies and build the action.
+   This step is optional, the built sources are committed in the repository.
+   But if you want to make changes to the action, you need to install dependencies and build the action.
    ```bash
    cd risk-assessment/
    npm i
