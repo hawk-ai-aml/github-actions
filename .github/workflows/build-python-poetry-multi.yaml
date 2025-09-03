@@ -46,6 +46,11 @@ on:
         type: boolean
         required: false
         default: false
+      disableDockerBuildCache:
+        description: "Disable Docker build cache"
+        type: boolean
+        required: false
+        default: false
       jira-label-prefix:
         type: string
         required: false
@@ -263,6 +268,7 @@ jobs:
           ecr-region: ${{ needs.init.outputs.ecr-region }}
           ecr-registry-code: ${{ needs.init.outputs.ecr-registry-code }}
           py-utils-pat: ${{ secrets.PY_UTILS_PAT }}
+          disabled-cache: ${{ inputs.disableDockerBuildCache }}
 
       - name: Check if SonarCloud code analysis has passed
         if: inputs.skipTests != true && (success() || failure()) && inputs.useSonarCloud && inputs.blockPullRequestIfSonarFails
