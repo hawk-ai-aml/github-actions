@@ -46,6 +46,11 @@ on:
         type: boolean
         required: false
         default: false
+      disableDockerBuildCache:
+        description: "Disable Docker build cache"
+        type: boolean
+        required: false
+        default: false
       jira-label-prefix:
         type: string
         required: false
@@ -247,7 +252,7 @@ jobs:
 
       - name: Build and tag images
         if: ${{ github.workflow != 'pr' && steps.ecr-info.outputs.module_ecr != 'null' }}
-        uses: hawk-ai-aml/github-actions/build-docker-image-python@master
+        uses: hawk-ai-aml/github-actions/build-docker-image-python@fd573db378978261e64f3e29f5417613c1badbbd
         with:
           multiple-modules: "true"
           module: ${{ matrix.module }}
@@ -263,6 +268,7 @@ jobs:
           ecr-region: ${{ needs.init.outputs.ecr-region }}
           ecr-registry-code: ${{ needs.init.outputs.ecr-registry-code }}
           py-utils-pat: ${{ secrets.PY_UTILS_PAT }}
+          disabled-cache: ${{ inputs.disableDockerBuildCache }}
 
       - name: Check if SonarCloud code analysis has passed
         if: inputs.skipTests != true && (success() || failure()) && inputs.useSonarCloud && inputs.blockPullRequestIfSonarFails

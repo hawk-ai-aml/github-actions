@@ -66,6 +66,10 @@ inputs:
     description: Python utils pat
     required: true
 
+  disabled-cache:
+    description: Disable docker build cache
+    required: false
+
 runs:
   using: composite
   steps:
@@ -120,14 +124,19 @@ runs:
         IMAGE_TAG: ${{ inputs.image-tag }}
         CUSTOM_IMAGE_TAG: ${{ inputs.custom-image-tag }}
         PY_UTILS_PAT: ${{ inputs.py-utils-pat }}
+        DISABLED_CACHE: ${{ inputs.disabled-cache }}
       run: |
         source ./action.sh
         echo -e "${GREEN}✅ Building images for modules...${NC}"
 
         REPOSITORY_FOLDER=$(echo "${MODULE}" | sed 's/_/-/g')
         REPOSITORY_FULL_NAME="${ECR_REGISTRY}/${ECR_REPOSITORY_PREFIX}${REPOSITORY_FOLDER}"
-
-        build_and_push "${REPOSITORY_FULL_NAME}" "--build-arg SERVICE=${MODULE} --build-arg PY_UTILS_PAT=${PY_UTILS_PAT}"
+        
+        BUILD_ARGS="--build-arg SERVICE=${MODULE} --build-arg PY_UTILS_PAT=${PY_UTILS_PAT}"
+        if [[ "$DISABLED_CACHE" == "true" ]]; then
+          BUILD_ARGS="--no-cache ${BUILD_ARGS}"
+        fi
+        build_and_push "${REPOSITORY_FULL_NAME}" "${BUILD_ARGS}"
 
         if [[ -n "$HAWK_PLATFORM_REPOSITORY" && "$KUSTOMIZE_OVERLAYS" == "prod" ]]; then
             tag_and_push "${REPOSITORY_FULL_NAME}" "${ECR_REGISTRY}/${HAWK_PLATFORM_REPOSITORY}" "${CUSTOM_IMAGE_TAG}"
@@ -149,13 +158,19 @@ runs:
         PY_UTILS_PAT: ${{ inputs.py-utils-pat}}
         GHCR_REPOSITORY_ENABLED: ${{ inputs.pushGHCR }}
         GHCR_REGISTRY: ghcr.io/hawk-ai-aml
+        DISABLED_CACHE: ${{ inputs.disabled-cache }}
       run: |
         source ./action.sh
         echo -e "${GREEN}✅ Building images for single build...${NC}"
 
         if [ -n "$ECR_REPOSITORY" ]; then
           IMAGE_NAME="${ECR_REGISTRY}/${ECR_REPOSITORY}"
-          build_and_push "${IMAGE_NAME}" "--build-arg PY_UTILS_PAT=${PY_UTILS_PAT}"
+        
+          BUILD_ARGS="--build-arg SERVICE=${MODULE} --build-arg PY_UTILS_PAT=${PY_UTILS_PAT}"
+          if [[ "$DISABLED_CACHE" == "true" ]]; then
+            BUILD_ARGS="--no-cache ${BUILD_ARGS}"
+          fi
+          build_and_push "${IMAGE_NAME}" "${BUILD_ARGS}"
 
           if [[ "$GHCR_REPOSITORY_ENABLED" == "true" ]]; then
               tag_and_push "${IMAGE_NAME}" "${GHCR_REGISTRY}/${ECR_REPOSITORY}" "${IMAGE_TAG}"

@@ -40,6 +40,11 @@ on:
         type: boolean
         required: false
         default: false
+      disableDockerBuildCache:
+        description: "Disable Docker build cache"
+        type: boolean
+        required: false
+        default: false
 
 
 env:
@@ -230,7 +235,7 @@ jobs:
 
       - name: Build Docker Image
         if: ${{ github.workflow != 'pr' }}
-        uses: hawk-ai-aml/github-actions/build-docker-image-python@master
+        uses: hawk-ai-aml/github-actions/build-docker-image-python@fd573db378978261e64f3e29f5417613c1badbbd
         with:
           multiple-modules: "false"
           module: ${{ inputs.component }}
@@ -246,6 +251,7 @@ jobs:
           ecr-region: ${{ needs.init.outputs.ecr-region }}
           ecr-registry-code: ${{ needs.init.outputs.ecr-registry-code }}
           py-utils-pat: ${{ secrets.PY_UTILS_PAT }}
+          disabled-cache: ${{ inputs.disableDockerBuildCache }}
 
       - name: Slack notification for failed build status
         uses: hawk-ai-aml/github-actions/send-slack-notification@master
