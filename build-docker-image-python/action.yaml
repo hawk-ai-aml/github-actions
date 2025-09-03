@@ -133,7 +133,7 @@ runs:
         REPOSITORY_FULL_NAME="${ECR_REGISTRY}/${ECR_REPOSITORY_PREFIX}${REPOSITORY_FOLDER}"
         
         BUILD_ARGS="--build-arg SERVICE=${MODULE} --build-arg PY_UTILS_PAT=${PY_UTILS_PAT}"
-        if [[ -n "$DISABLED_CACHE" == "true" ]]; then
+        if [[ "$DISABLED_CACHE" == "true" ]]; then
           BUILD_ARGS="--no-cache ${BUILD_ARGS}"
         fi
         build_and_push "${REPOSITORY_FULL_NAME}" "${BUILD_ARGS}"
@@ -167,7 +167,7 @@ runs:
           IMAGE_NAME="${ECR_REGISTRY}/${ECR_REPOSITORY}"
         
           BUILD_ARGS="--build-arg SERVICE=${MODULE} --build-arg PY_UTILS_PAT=${PY_UTILS_PAT}"
-          if [[ -n "$DISABLED_CACHE" == "true" ]]; then
+          if [[ "$DISABLED_CACHE" == "true" ]]; then
             BUILD_ARGS="--no-cache ${BUILD_ARGS}"
           fi
           build_and_push "${IMAGE_NAME}" "${BUILD_ARGS}"
