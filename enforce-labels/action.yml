@@ -1,5 +1,5 @@
 name: enforce-labels
-description: Enforce labels for pull request
+description: Enforce labels for pull request and perform risk assessment
 
 inputs:
   repository-ref:
@@ -26,45 +26,35 @@ inputs:
     default: "impact 2 * likelyhood 2 = risk 4;impact 2 * likelyhood 3 = risk 6;impact 3 * likelyhood 2 = risk 6;impact 3 * likelyhood 3 = risk 9"
     required: false
 
-  enable-risk-assessment:
-    description: "Enable risk assessment integration"
+  sra-enabled:
+    description: 'Enable or disable the entire risk assessment workflow'
     required: false
-    default: "true"
+    default: 'true'
 
-  sra-enforce-mode:
-    description: "Whether to enforce risk assessment results"
+  enforce-mode:
+    description: 'Whether to enforce risk assessment results'
     required: false
-    default: "false"
+    default: 'false'
 
   github-actions-ref:
-    description: "Branch/ref to use for github-actions repository"
+    description: 'Branch/ref to use for hawk-ai-aml/github-actions repository'
     required: false
-    default: "master"
+    default: 'master'
 
 outputs:
   risk-score:
-    description: "Calculated risk score from assessment"
+    description: 'Calculated risk score'
     value: ${{ steps.risk-assessment.outputs.risk-score }}
   risk-tier:
-    description: "Risk tier from assessment"
+    description: 'Risk tier'
     value: ${{ steps.risk-assessment.outputs.risk-tier }}
-  assessment-status:
-    description: "Risk assessment status"
+  status:
+    description: 'Assessment status'
     value: ${{ steps.risk-assessment.outputs.status }}
 
 runs:
   using: composite
   steps:
-    - name: Run Risk Assessment
-      if: ${{ inputs.enable-risk-assessment == 'true' }}
-      id: risk-assessment
-      continue-on-error: true
-      uses: hawk-ai-aml/github-actions/risk-assessment@${{ inputs.github-actions-ref }}
-      with:
-        sra-enabled: true
-        enforce-mode: ${{ inputs.sra-enforce-mode }}
-        github-actions-ref: ${{ inputs.github-actions-ref }}
-        github-token: ${{ inputs.repository-access-token }}
 
     - name: Check required labels
       shell: bash -l -ET -eo pipefail {0}
@@ -151,3 +141,77 @@ runs:
         else
             echo "All label sets passed the check."
         fi
+
+    - name: Checkout calling repository
+      if: ${{ inputs.sra-enabled == 'true' && !github.event.pull_request.draft }}
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+
+    - name: Checkout github actions for risk assessment
+      if: ${{ inputs.sra-enabled == 'true' && !github.event.pull_request.draft }}
+      uses: actions/checkout@v4
+      with:
+        repository: hawk-ai-aml/github-actions
+        path: .github-actions
+        ref: ${{ inputs.github-actions-ref }}
+        token: ${{ inputs.repository-access-token }}
+
+    - name: Send workflow start metric
+      id: metrics-start
+      if: ${{ inputs.sra-enabled == 'true' && !github.event.pull_request.draft }}
+      continue-on-error: true
+      uses: ./.github-actions/workflow-metrics
+      with:
+        action: start
+        grouping-keys: |
+          job: github_risk_assessment
+          repository: ${{ github.repository }}
+          ref: ${{ github.ref }}
+        labels: |
+          github_actions_ref: ${{ inputs.github-actions-ref }}
+          sra_enabled: ${{ inputs.sra-enabled }}
+          enforce_mode: ${{ inputs.enforce-mode }}
+
+    - name: Load Risk Questions Config
+      id: load-config
+      if: ${{ inputs.sra-enabled == 'true' && !github.event.pull_request.draft }}
+      shell: bash
+      run: |
+        CONFIG_PATH=".github-actions/risk-assessment/config/risk-questions.json"
+
+        # Read and encode config as base64
+        CONFIG_B64=$(cat "$CONFIG_PATH" | base64 -w 0)
+        echo "config-b64=$CONFIG_B64" >> $GITHUB_OUTPUT
+
+    - name: Run Risk Assessment
+      id: risk-assessment
+      if: ${{ inputs.sra-enabled == 'true' && !github.event.pull_request.draft }}
+      uses: ./.github-actions/risk-assessment
+      env:
+        SRA_ENFORCE_MODE: ${{ inputs.enforce-mode }}
+      with:
+        github-token: ${{ inputs.repository-access-token }}
+        config: ${{ steps.load-config.outputs.config-b64 }}
+
+    - name: Send workflow completion metric
+      id: metrics-complete
+      if: ${{ always() && inputs.sra-enabled == 'true' && !github.event.pull_request.draft }}
+      continue-on-error: true
+      uses: ./.github-actions/workflow-metrics
+      with:
+        action: complete
+        grouping-keys: |
+          job: github_risk_assessment
+          repository: ${{ github.repository }}
+          ref: ${{ github.ref }}
+          fallback: ${{ steps.risk-assessment.outputs.fallback }}
+        labels: |
+          github_actions_ref: ${{ inputs.github-actions-ref }}
+          sra_enabled: ${{ inputs.sra-enabled }}
+          enforce_mode: ${{ inputs.enforce-mode }}
+          tier: ${{ steps.risk-assessment.outputs.risk-tier || 'unknown' }}
+          status: ${{ job.status || 'unknown' }}
+        additional-metrics: |
+          github_risk_assessment_score: ${{ steps.risk-assessment.outputs.risk-score || '-1' }}
+        start-time: ${{ steps.metrics-start.outputs.start-time }}
