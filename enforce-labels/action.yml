@@ -59,12 +59,11 @@ runs:
       if: ${{ inputs.enable-risk-assessment == 'true' }}
       id: risk-assessment
       continue-on-error: true
-      uses: hawk-ai-aml/github-actions/.github/workflows/risk-assessment.yml@${{ inputs.github-actions-ref }}
+      uses: hawk-ai-aml/github-actions/risk-assessment@${{ inputs.github-actions-ref }}
       with:
         sra-enabled: true
         enforce-mode: ${{ inputs.sra-enforce-mode }}
         github-actions-ref: ${{ inputs.github-actions-ref }}
-      secrets:
         github-token: ${{ inputs.repository-access-token }}
 
     - name: Check required labels
