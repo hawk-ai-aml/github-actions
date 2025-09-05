@@ -26,9 +26,47 @@ inputs:
     default: "impact 2 * likelyhood 2 = risk 4;impact 2 * likelyhood 3 = risk 6;impact 3 * likelyhood 2 = risk 6;impact 3 * likelyhood 3 = risk 9"
     required: false
 
+  enable-risk-assessment:
+    description: "Enable risk assessment integration"
+    required: false
+    default: "true"
+
+  sra-enforce-mode:
+    description: "Whether to enforce risk assessment results"
+    required: false
+    default: "false"
+
+  github-actions-ref:
+    description: "Branch/ref to use for github-actions repository"
+    required: false
+    default: "master"
+
+outputs:
+  risk-score:
+    description: "Calculated risk score from assessment"
+    value: ${{ steps.risk-assessment.outputs.risk-score }}
+  risk-tier:
+    description: "Risk tier from assessment"
+    value: ${{ steps.risk-assessment.outputs.risk-tier }}
+  assessment-status:
+    description: "Risk assessment status"
+    value: ${{ steps.risk-assessment.outputs.status }}
+
 runs:
   using: composite
   steps:
+    - name: Run Risk Assessment
+      if: ${{ inputs.enable-risk-assessment == 'true' }}
+      id: risk-assessment
+      continue-on-error: true
+      uses: hawk-ai-aml/github-actions/.github/workflows/risk-assessment.yml@${{ inputs.github-actions-ref }}
+      with:
+        sra-enabled: true
+        enforce-mode: ${{ inputs.sra-enforce-mode }}
+        github-actions-ref: ${{ inputs.github-actions-ref }}
+      secrets:
+        github-token: ${{ inputs.repository-access-token }}
+
     - name: Check required labels
       shell: bash -l -ET -eo pipefail {0}
       env:
