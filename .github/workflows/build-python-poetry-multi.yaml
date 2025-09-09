@@ -252,7 +252,7 @@ jobs:
 
       - name: Build and tag images
         if: ${{ github.workflow != 'pr' && steps.ecr-info.outputs.module_ecr != 'null' }}
-        uses: hawk-ai-aml/github-actions/build-docker-image-python@fd573db378978261e64f3e29f5417613c1badbbd
+        uses: hawk-ai-aml/github-actions/build-docker-image-python@master
         with:
           multiple-modules: "true"
           module: ${{ matrix.module }}
