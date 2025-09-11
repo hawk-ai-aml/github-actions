@@ -71,7 +71,7 @@ jobs:
           docker tag ${ECR_REGISTRY}/${ECR_REPOSITORY}:${IMAGE_TAG}
 
   update-overlays:
-    needs: [ init, build ]
+    needs: [ init, tag ]
     runs-on: [ "self-hosted", "small-builder" ]
 
     steps:
