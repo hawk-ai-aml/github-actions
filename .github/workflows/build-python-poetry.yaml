@@ -134,6 +134,9 @@ jobs:
           # Disabling shallow clone is recommended for improving relevancy of reporting
           fetch-depth: 1000
 
+      - name: Check disk usage
+        run: df -h
+
       - name: Install Poetry
         run: pipx install "poetry==${{ env.POETRY_VERSION }}"
 
@@ -183,6 +186,9 @@ jobs:
           poetry run pytest --junitxml=report.xml
           poetry run junit2html report.xml report.html
           mkdir -p report-dir && mv report.html report-dir
+
+      - name: Check disk usage
+        run: df -h
 
       - name: Upload reports to S3
         if: needs.init.outputs.skip-tests != 'true' && success()
