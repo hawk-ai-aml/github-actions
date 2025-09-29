@@ -45,6 +45,11 @@ on:
         type: boolean
         required: false
         default: false
+      runner:
+        description: "The type of runner to use for the init job"
+        type: string
+        required: false
+        default: ubuntu-latest
 
 
 env:
@@ -116,7 +121,7 @@ jobs:
 
   build:
     needs: init
-    runs-on: ubuntu-latest
+    runs-on: ${{ inputs.runner }}
     steps:
       - name: Checkout master
         uses: actions/checkout@v4
