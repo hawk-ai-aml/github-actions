@@ -48,6 +48,7 @@ on:
       runner:
         description: "The type of runner to use for the init job"
         required: false
+        type: string
         default: ubuntu-latest
 
 
