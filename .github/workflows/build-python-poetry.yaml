@@ -139,6 +139,10 @@ jobs:
           # Disabling shallow clone is recommended for improving relevancy of reporting
           fetch-depth: 1000
 
+      - name: Install pipx
+        if: ${{ inputs.runner != 'ubuntu-latest' }}
+        run: sudo apt update && sudo apt install -y pipx && /usr/bin/pipx ensurepath
+
       - name: Install Poetry
         run: pipx install "poetry==${{ env.POETRY_VERSION }}"
 
