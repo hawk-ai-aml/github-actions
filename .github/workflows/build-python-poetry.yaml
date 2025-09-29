@@ -214,11 +214,16 @@ jobs:
 
       - name: Clean up workspace
         run: |
+          echo "Current disk usage:"
+          df -h /
           echo "Current virtualenv size:"
           du -hcs $(poetry env info --path)
           poetry env remove --all
+          rm -rf $HOME/.cache/huggingface/hub
+          rm -rf cache_dir
           echo "Current disk usage:"
           df -h /
+          
 
       - name: Get ECR info
         id: ecr-info
