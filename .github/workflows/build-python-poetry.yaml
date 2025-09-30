@@ -222,7 +222,7 @@ jobs:
           echo "Current disk usage:"
           df -h /
           if [ -f "scripts/clean_disk.sh" ]; then
-            sh scripts/clean_disk.sh
+            bash scripts/clean_disk.sh
           
 
       - name: Get ECR info
