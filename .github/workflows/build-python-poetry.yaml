@@ -169,6 +169,8 @@ jobs:
       - name: Build Rust libraries
         if: ${{ inputs.buildRustLibraries == true }}
         run: source scripts/build_rust_libraries.sh
+        env:
+          PY_UTILS_PAT: ${{ secrets.PY_UTILS_PAT }}
 
       - name: Run tests
         if: needs.init.outputs.skip-tests != 'true' && success()
