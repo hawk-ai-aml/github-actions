@@ -223,7 +223,7 @@ jobs:
           df -h /
           if [ -f "scripts/clean_disk.sh" ]; then
             bash scripts/clean_disk.sh
-          
+          fi
 
       - name: Get ECR info
         id: ecr-info
