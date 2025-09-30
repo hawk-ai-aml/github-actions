@@ -219,10 +219,10 @@ jobs:
           echo "Current virtualenv size:"
           du -hcs $(poetry env info --path)
           poetry env remove --all
-          rm -rf $HOME/.cache/huggingface/hub
-          rm -rf cache_dir
           echo "Current disk usage:"
           df -h /
+          if [ -f "scripts/clean_disk.sh" ]; then
+            sh scripts/clean_disk.sh
           
 
       - name: Get ECR info
