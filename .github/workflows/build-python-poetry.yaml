@@ -45,6 +45,11 @@ on:
         type: boolean
         required: false
         default: false
+      runner:
+        description: "The type of runner to use for the init job"
+        required: false
+        type: string
+        default: ubuntu-latest
 
 
 env:
@@ -116,7 +121,7 @@ jobs:
 
   build:
     needs: init
-    runs-on: ubuntu-latest
+    runs-on: ${{ inputs.runner }}
     steps:
       - name: Checkout master
         uses: actions/checkout@v4
@@ -133,6 +138,10 @@ jobs:
           # From SonarCloud Scan GitHub Action
           # Disabling shallow clone is recommended for improving relevancy of reporting
           fetch-depth: 1000
+
+      - name: Install pipx
+        if: ${{ inputs.runner != 'ubuntu-latest' }}
+        run: sudo apt update && sudo apt install -y pipx && /usr/bin/pipx ensurepath
 
       - name: Install Poetry
         run: pipx install "poetry==${{ env.POETRY_VERSION }}"
@@ -207,11 +216,16 @@ jobs:
 
       - name: Clean up workspace
         run: |
+          echo "Current disk usage:"
+          df -h /
           echo "Current virtualenv size:"
           du -hcs $(poetry env info --path)
           poetry env remove --all
           echo "Current disk usage:"
           df -h /
+          if [ -f "scripts/clean_disk.sh" ]; then
+            bash scripts/clean_disk.sh
+          fi
 
       - name: Get ECR info
         id: ecr-info
