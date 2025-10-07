@@ -244,8 +244,6 @@ jobs:
           aws-access-key-id: ${{ secrets.AWS_ORG_ECR_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_ORG_ECR_SECRET_ACCESS_KEY }}
           java-offline-mode: ${{ env.LACEWORK_JAVA_OFFLINE_MODE }}
-          lacework-account-name: ${{ secrets.LACEWORK_ACCOUNT_NAME }}
-          lacework-access-token: ${{ secrets.LACEWORK_ACCESS_TOKEN }}
 
   update-overlays:
     needs: [ init, build ]
