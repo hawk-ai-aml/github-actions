@@ -34,6 +34,7 @@ jobs:
       updated-modules: ${{ steps.detect-changes.outputs.updated-modules }}
       updated-modules-string: ${{ steps.detect-changes.outputs.updated-modules-string }}
       metadata: ${{ steps.init.outputs.metadata }}
+      custom-tags: ${{ steps.custom-tags.outputs.custom_tags }}
 
     steps:
       - id: init
@@ -56,6 +57,19 @@ jobs:
           repository-access-token: ${{ secrets.REPO_ACCESS_PAT }}
           modules-string: ${{ steps.init.outputs.kustomize-modules-string }}
 
+      - id: custom-tags
+        name: Generate a list of Docker tags for all modules
+        env:
+          ECR_REPOSITORIES: ${{ steps.init.outputs.ecr-repositories }}
+          IMAGE_TAG: ${{ steps.init.outputs.image-tag }}
+        run: |
+          CUSTOM_TAGS=""
+          for repo in $ECR_REPOSITORIES; do
+            NEW_TAG=${repo}-${IMAGE_TAG}
+            CUSTOM_TAGS="$CUSTOM_TAGS $NEW_TAG"
+          done
+          echo "custom_tags=$CUSTOM_TAGS" >> $GITHUB_OUTPUT
+
       - name: Slack notification for failed init workflow
         uses: hawk-ai-aml/github-actions/send-slack-notification@master
         if: failure()
@@ -74,37 +88,65 @@ jobs:
         module: ${{ fromJson(needs.init.outputs.updated-modules) }}
 
     steps:
-      - uses: actions/checkout@v4
-
-      - name: Configure HAWK AWS credentials
-        uses: aws-actions/configure-aws-credentials@v4
+      - name: Checkout master
+        uses: actions/checkout@v4
         with:
-          aws-access-key-id: ${{ secrets.AWS_ORG_ECR_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_ORG_ECR_SECRET_ACCESS_KEY }}
-          aws-region: eu-central-1
+          ref: master
+          # From SonarCloud Scan GitHub Action
+          # Disabling shallow clone is recommended for improving relevancy of reporting
+          fetch-depth: 1000
 
-      - name: Login to HAWK Amazon ECR
-        id: login-ecr
-        uses: aws-actions/amazon-ecr-login@v2
+      - name: Checkout current branch
+        uses: actions/checkout@v4
         with:
-          registries: "860641649575"
+          ref: ${{ env.GITHUB_REF_NAME }}
+          # From SonarCloud Scan GitHub Action
+          # Disabling shallow clone is recommended for improving relevancy of reporting
+          fetch-depth: 1000
 
-      - name: Build image
+      - name: Get ECR info
+        id: ecr-info
         env:
-          ECR_REGISTRY: ${{ needs.init.outputs.ecr-url }}
-          ECR_REPOSITORY: ${{ matrix.module }}
-          IMAGE_TAG: ${{ needs.init.outputs.image-tag }}
+          METADATA: ${{ needs.init.outputs.metadata }}
+          CUSTOM_TAGS: ${{ needs.init.outputs.custom-tags }}
+          MODULE: ${{ matrix.module }}
+          KUSTOMIZE_OVERLAYS: ${{ inputs.kustomizeOverlays }}
         run: |
-          docker build -t ${ECR_REGISTRY}/${ECR_REPOSITORY}:${IMAGE_TAG} ./${ECR_REPOSITORY}
+          RED='\033[0;31m'
+          MODULE_ECR=$(echo ${METADATA} | jq -cr --arg MODULE ${{ matrix.module }} '.modules[$MODULE].ecr')
+          echo "ECR=$MODULE_ECR"
 
-      - name: Push Image
-        id: push-image
-        env:
-          ECR_REGISTRY: ${{ needs.init.outputs.ecr-url }}
-          ECR_REPOSITORY: ${{ matrix.module }}
-          IMAGE_TAG: ${{ needs.init.outputs.image-tag }}
-        run: |
-          docker push ${ECR_REGISTRY}/${ECR_REPOSITORY}:${IMAGE_TAG}
+          if [[ "$MODULE" == *"_"* ]]; then
+            MODULE="${MODULE//_/-}"
+          fi
+
+          if [[ $KUSTOMIZE_OVERLAYS == "prod" ]]; then
+            MATCHED_TAG=$(echo "$CUSTOM_TAGS" | tr ' ' '\n' | grep -E "(^|[-])$MODULE-[0-9]"  | head -n 1 || true)
+          else
+            MATCHED_TAG=$(echo "$CUSTOM_TAGS" | tr ' ' '\n' | grep -E "(^|[-])${MODULE}([-]|$)" | head -n 1 || true)
+          fi
+          echo -e "${RED}MATCHED_TAG=$MATCHED_TAG"
+          echo "module_ecr=$MODULE_ECR" >> $GITHUB_OUTPUT
+          echo "matched_tag=$MATCHED_TAG" >> $GITHUB_OUTPUT
+
+      - name: Build Docker Image
+        if: ${{ github.workflow != 'pr' }}
+        uses: hawk-ai-aml/github-actions/build-docker-image-python@master
+        with:
+          multiple-modules: "true"
+          module-isolated: "true"
+          module: ${{ matrix.module }}
+          image-tag: ${{ needs.init.outputs.image-tag }}
+          ecr-repository-prefix: ""
+          custom-image-tag: ${{ steps.ecr-info.outputs.matched_tag }}
+          kustomize-overlays: ${{ inputs.kustomizeOverlays }}
+          ecr-repository: ${{ steps.ecr-info.outputs.module_ecr }}
+          hawk-platform-repository: "hawk-platform"
+          aws-org-ecr-access-key-id: ${{ secrets.AWS_ORG_ECR_ACCESS_KEY_ID }}
+          aws-org-ecr-secret-access-key: ${{ secrets.AWS_ORG_ECR_SECRET_ACCESS_KEY }}
+          ecr-region: ${{ needs.init.outputs.ecr-region }}
+          ecr-registry-code: ${{ needs.init.outputs.ecr-registry-code }}
+          py-utils-pat: ${{ secrets.PY_UTILS_PAT }}
 
       - name: Slack notification for failed build status
         uses: hawk-ai-aml/github-actions/send-slack-notification@master
