@@ -56,7 +56,7 @@ runs:
 
     - name: Make script executable
       shell: bash -l -ET -eo pipefail {0}
-      run: chmod +x ./lib/docker-image-utils.sh
+      run: chmod +x ./github-actions/lib/docker-image-utils.sh
 
     - name: Checkout Kustomize
       uses: actions/checkout@v4
