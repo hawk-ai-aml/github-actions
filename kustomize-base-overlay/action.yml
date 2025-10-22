@@ -10,12 +10,20 @@ inputs:
     description: "List of overlay in string"
     required: true
 
+  kustomize-overlays:
+    description: "The indicated overlays (dev, test, qa, prod)"
+    required: true
+
   modules:
     description: "List of module name in string"
     required: true
 
   component-tag:
     description: "New component tag"
+    required: true
+
+  component-custom-tags:
+    description: "List of component tag for hawk-platform ECR repo"
     required: true
 
   kustomize-access-token:
@@ -66,16 +74,26 @@ runs:
         token: ${{ inputs.kustomize-access-token }}
         path: kustomize-base
 
+    - name: Get external overlays info
+      shell: bash -l -ET -eo pipefail {0}
+      id: external-overlays-info
+      run: |
+        EXTERNAL_OVERLAYS_JSON=$(yj -y < .github/workflows/external-overlays.json)
+        echo "external_overlays_info=${EXTERNAL_OVERLAYS_JSON}" >> $GITHUB_OUTPUT
+
     - name: Update
       shell: bash -l -ET -eo pipefail {0}
       env:
         METADATA: ${{ inputs.metadata }}
         MODULES: ${{ inputs.modules }}
         OVERLAYS: ${{ inputs.overlays }}
+        KUSTOMIZE_OVERLAYS: ${{ inputs.kustomize-overlays }}
         TAG: ${{ inputs.component-tag }}
         COMPONENT: ${{ inputs.component-name }}
+        CUSTOM_TAGS: ${{ inputs.component-custom-tags }}
         ECR_REGION: ${{ inputs.ecr-region }}
         ECR_REGISTRY: ${{ inputs.ecr-registry-code }}
+        EXTERNAL_OVERLAYS_JSON: ${{ steps.external-overlays-info.outputs.external_overlays_info }}
       run: |
         source ./github-actions/lib/docker-image-utils.sh
         cd kustomize-base

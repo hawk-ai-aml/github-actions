@@ -170,6 +170,7 @@ jobs:
           slack-access-token: ${{ secrets.SLACK_RELEASE_BOT_ACCESS_TOKEN }}
           github-users-access-token: ${{ secrets.USER_GITHUB_ACCESS }}
           overlays: "prod/ap-southeast-1 prod/ap-southeast-2 eco-bank/uat eco-bank/prod"
+          kustomize-overlays: ${{ inputs.kustomizeOverlays }}
 #          overlays: ${{ needs.init.outputs.overlays }}
           modules: ${{ needs.init.outputs.kustomize-modules-string }}
           component-name: ${{ inputs.component }}
