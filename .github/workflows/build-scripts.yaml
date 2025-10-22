@@ -173,7 +173,7 @@ jobs:
 #          kustomize-overlays: ${{ inputs.kustomizeOverlays }}
           kustomize-overlays: "dev"
 #          overlays: ${{ needs.init.outputs.overlays }}
-          modules: ${{ needs.init.outputs.kustomize-modules-string }}
+          modules: ${{ needs.init.outputs.updated-modules-string }}
           component-name: ${{ inputs.component }}
           component-tag: ${{ needs.init.outputs.image-tag }}
           component-custom-tags: ${{ needs.init.outputs.custom-tags }}
