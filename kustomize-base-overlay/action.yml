@@ -47,16 +47,22 @@ runs:
   using: composite
   steps:
 
+    - name: Checkout github-actions repo to load the script
+      uses: actions/checkout@v4
+      with:
+        repository: hawk-ai-aml/github-actions
+        ref: master
+
+    - name: Make script executable
+      shell: bash -l -ET -eo pipefail {0}
+      run: chmod +x ./lib/docker-image-utils.sh
+
     - name: Checkout Kustomize
       uses: actions/checkout@v4
       with:
         repository: hawk-ai-aml/kustomize-base.git
         ref: pe-check
         token: ${{ inputs.kustomize-access-token }}
-
-    - name: Make script executable
-      shell: bash -l -ET -eo pipefail {0}
-      run: chmod +x ./lib/docker-image-utils.sh
 
     - name: Update
       shell: bash -l -ET -eo pipefail {0}
