@@ -66,7 +66,7 @@ runs:
       shell: bash -l -ET -eo pipefail {0}
       run: chmod +x ./github-actions/lib/docker-image-utils.sh
 
-    - name: Checkout Kustomize
+    - name: Checkout Kustomize Base
       uses: actions/checkout@v4
       with:
         repository: hawk-ai-aml/kustomize-base.git
@@ -78,7 +78,8 @@ runs:
       shell: bash -l -ET -eo pipefail {0}
       id: external-overlays-info
       run: |
-        EXTERNAL_OVERLAYS_JSON=$(yj -y < ./kustomize-base/github/workflows/external-overlays.json)
+        ls
+        EXTERNAL_OVERLAYS_JSON=$(yj -y < .kustomize-base/github/workflows/external-overlays.json)
         echo "external_overlays_info=${EXTERNAL_OVERLAYS_JSON}" >> $GITHUB_OUTPUT
 
     - name: Update
