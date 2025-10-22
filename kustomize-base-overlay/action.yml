@@ -78,8 +78,8 @@ runs:
       shell: bash -l -ET -eo pipefail {0}
       id: external-overlays-info
       run: |
-        ls
-        EXTERNAL_OVERLAYS_JSON=$(yj -y < .kustomize-base/github/workflows/external-overlays.json)
+        ls *
+        EXTERNAL_OVERLAYS_JSON=$(yj -y < ./kustomize-base/github/workflows/external-overlays.json)
         echo "external_overlays_info=${EXTERNAL_OVERLAYS_JSON}" >> $GITHUB_OUTPUT
 
     - name: Update
