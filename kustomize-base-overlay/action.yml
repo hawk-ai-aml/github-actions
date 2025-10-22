@@ -130,7 +130,7 @@ runs:
                 MATCHED_TAG=$(get_tag "$METADATA" "$module" "$KUSTOMIZE_OVERLAYS" "$CUSTOM_TAGS")
                 echo -e "${RED}MATCHED_TAG=$MATCHED_TAG"
 
-                # When MATCHED_TAG is empty, which means we are trying to find the tag name for the single module Java project  
+                # When MATCHED_TAG is empty, which means we are trying to find the tag name for the single module  
                 if [[ -z "$MATCHED_TAG" ]]; then
                   MATCHED_TAG="${CUSTOM_TAGS// /}"
                   echo -e "${RED}Matching tag for a single module"
@@ -144,7 +144,7 @@ runs:
                   NEW_IMAGE_NAME=$(echo "$item" | jq -r '."image-path"')
 
                   # Update tag if external overlay matches current overlay
-                  if [[ "$OVERLAY_NAME" == "$overlay" && -n "$MATCHED_TAG" && $KUSTOMIZE_OVERLAYS == "prod" ]]; then
+                  if [[ "$OVERLAY_NAME" == "$overlay" && -n "$MATCHED_TAG" ]]; then
                     kustomize edit set image ${IMAGE_NAME}=${NEW_IMAGE_NAME}:${MATCHED_TAG}
                     MATCHED_EXTERNAL_OVERLAY=$((MATCHED_EXTERNAL_OVERLAY + 1))
                     echo "Updated overlay ${overlay} of ${ECR_REPOSITORY} to ${MATCHED_TAG}"
