@@ -10,12 +10,20 @@ inputs:
     description: "List of overlay in string"
     required: true
 
+  kustomize-overlays:
+    description: "The indicated overlays (dev, test, qa, prod)"
+    required: true
+
   modules:
     description: "List of module name in string"
     required: true
 
   component-tag:
     description: "New component tag"
+    required: true
+
+  component-custom-tags:
+    description: "List of component tag for hawk-platform ECR repo"
     required: true
 
   kustomize-access-token:
@@ -47,12 +55,31 @@ runs:
   using: composite
   steps:
 
-    - name: Checkout Kustomize
+    - name: Checkout github-actions repo to load the script
+      uses: actions/checkout@v4
+      with:
+        repository: hawk-ai-aml/github-actions
+        ref: master
+        path: github-actions
+
+    - name: Make script executable
+      shell: bash -l -ET -eo pipefail {0}
+      run: chmod +x ./github-actions/lib/docker-image-utils.sh
+
+    - name: Checkout Kustomize Base
       uses: actions/checkout@v4
       with:
         repository: hawk-ai-aml/kustomize-base.git
         ref: master
         token: ${{ inputs.kustomize-access-token }}
+        path: kustomize-base
+
+    - name: Get external overlays info
+      shell: bash -l -ET -eo pipefail {0}
+      id: external-overlays-info
+      run: |
+        EXTERNAL_OVERLAYS_JSON=$(yj -y < kustomize-base/.github/workflows/external-overlays.json)
+        echo "external_overlays_info=${EXTERNAL_OVERLAYS_JSON}" >> $GITHUB_OUTPUT
 
     - name: Update
       shell: bash -l -ET -eo pipefail {0}
@@ -60,18 +87,19 @@ runs:
         METADATA: ${{ inputs.metadata }}
         MODULES: ${{ inputs.modules }}
         OVERLAYS: ${{ inputs.overlays }}
+        KUSTOMIZE_OVERLAYS: ${{ inputs.kustomize-overlays }}
         TAG: ${{ inputs.component-tag }}
         COMPONENT: ${{ inputs.component-name }}
+        CUSTOM_TAGS: ${{ inputs.component-custom-tags }}
         ECR_REGION: ${{ inputs.ecr-region }}
         ECR_REGISTRY: ${{ inputs.ecr-registry-code }}
+        EXTERNAL_OVERLAYS_JSON: ${{ steps.external-overlays-info.outputs.external_overlays_info }}
       run: |
+        source ./github-actions/lib/docker-image-utils.sh
+        cd kustomize-base
+        
         TAG_REGEX='^([0-9]+)\.([0-9]+)\.([0-9]+)$'
-
-        # Function to compare semantic versions
-        compare_versions() {
-          # Returns 0 if $1 >= $2, otherwise returns 1
-          [ "$(printf '%s\n' "$1" "$2" | sort -V | head -n 1)" != "$1" ]
-        }
+        RED='\033[0;31m'
         
         # Remove 'qa' from KUSTOMIZE_OVERLAYS if it contains it
         OVERLAYS=${OVERLAYS//qa/}
@@ -94,26 +122,55 @@ runs:
                 echo "Skip $KUSTOMIZE_OVERLAY_PATH overlay."
                 continue
               fi
-
+              
               (
                 cd ${KUSTOMIZE_OVERLAY_PATH}
 
-                CURRENT_TAG=$(kustomize build . | grep -E "${IMAGE_NAME}:" | awk -F':' '{print $NF}' | tr -d '[:space:]')
+                MATCHED_TAG=$(get_tag "$METADATA" "$module" "$KUSTOMIZE_OVERLAYS" "$CUSTOM_TAGS")
+                echo -e "${RED}MATCHED_TAG=$MATCHED_TAG"
 
-                # Check if the new tag is greater than the current tag
-                if [[ $CURRENT_TAG =~ $TAG_REGEX ]] && [[ $TAG =~ $TAG_REGEX ]]; then
-                  echo "Both tags are valid SemVer. Comparing versions..."
+                # When MATCHED_TAG is empty, which means we are trying to find the tag name for the single module  
+                if [[ -z "$MATCHED_TAG" ]]; then
+                  MATCHED_TAG="${CUSTOM_TAGS// /}"
+                  echo -e "${RED}Matching tag for a single module"
+                fi
 
-                  if compare_versions "$TAG" "$CURRENT_TAG"; then
-                      kustomize edit set image ${IMAGE_NAME}:${TAG}
-                      echo "Updated overlay ${overlay} of ${ECR_REPOSITORY} from $CURRENT_TAG to ${TAG}"
-                  else
-                      echo "No update needed. Current tag '$CURRENT_TAG' is equal to or newer than '$TAG'."
+                echo "MATCHED_TAG=$MATCHED_TAG"
+                MATCHED_EXTERNAL_OVERLAY=0
+
+                while read -r item; do
+                  OVERLAY_NAME=$(echo "$item" | jq -r '.overlay')
+                  NEW_IMAGE_NAME=$(echo "$item" | jq -r '."image-path"')
+
+                  # Update tag if external overlay matches current overlay
+                  if [[ "$OVERLAY_NAME" == "$overlay" && -n "$MATCHED_TAG" && $KUSTOMIZE_OVERLAYS == "prod" ]]; then
+                    kustomize edit set image ${IMAGE_NAME}=${NEW_IMAGE_NAME}:${MATCHED_TAG}
+                    MATCHED_EXTERNAL_OVERLAY=$((MATCHED_EXTERNAL_OVERLAY + 1))
+                    echo "Updated overlay ${overlay} of ${ECR_REPOSITORY} to ${MATCHED_TAG}"
+                    break
                   fi
-                else
-                  echo "For non-SemVer tags, direct update will be applied."
-                  kustomize edit set image ${IMAGE_NAME}:${TAG}
-                  echo "Updated overlay ${overlay} of ${ECR_REPOSITORY} from $CURRENT_TAG to ${TAG}"
+                done < <(echo "$EXTERNAL_OVERLAYS_JSON" | jq -c '.[]')
+
+                # Update tag if external overlay is not matched with current overlay (dev, test, prod, ...)
+                echo "MATCHED_EXTERNAL_OVERLAY=$MATCHED_EXTERNAL_OVERLAY"
+                if [ "$MATCHED_EXTERNAL_OVERLAY" -eq 0 ]; then
+                  CURRENT_TAG=$(kustomize build . | grep -E "${IMAGE_NAME}:" | awk -F':' '{print $NF}' | tr -d '[:space:]')
+
+                  # Check if the new tag is greater than the current tag
+                  if [[ $CURRENT_TAG =~ $TAG_REGEX ]] && [[ $TAG =~ $TAG_REGEX ]]; then
+                    echo "Both tags are valid SemVer. Comparing versions..."
+
+                    if compare_versions "$TAG" "$CURRENT_TAG"; then
+                        kustomize edit set image ${IMAGE_NAME}:${TAG}
+                        echo "Updated overlay ${overlay} of ${ECR_REPOSITORY} from $CURRENT_TAG to ${TAG}"
+                    else
+                        echo "No update needed. Current tag '$CURRENT_TAG' is equal to or newer than '$TAG'."
+                    fi
+                  else
+                    echo "For non-SemVer tags, direct update will be applied."
+                    kustomize edit set image ${IMAGE_NAME}:${TAG}
+                    echo "Updated overlay ${overlay} of ${ECR_REPOSITORY} from $CURRENT_TAG to ${TAG}"
+                  fi
                 fi
               )
             done
