@@ -16,6 +16,13 @@ on:
         description: "The indicated overlays (dev, test, qa, prod)"
         type: string
         required: false
+
+      skipBuild:
+        description: "Skip the build process"
+        type: boolean
+        required: false
+        default: false
+
       component:
         description: "Name of the repository"
         type: string
@@ -283,7 +290,7 @@ jobs:
           echo "matched_tag=$MATCHED_TAG" >> $GITHUB_OUTPUT
 
       - name: Build Docker Image
-        if: ${{ github.workflow != 'pr' && steps.ecr-info.outputs.module_ecr_repo != 'null' }}
+        if: ${{ github.workflow != 'pr' && steps.ecr-info.outputs.module_ecr_repo != 'null' && inputs.skipBuild == false }}
         uses: hawk-ai-aml/github-actions/build-docker-image-java@master
         with:
           multiple-modules: "true"
@@ -349,7 +356,7 @@ jobs:
 
   # Vulternability check not done since the decommissioning of Lacework
   # but future vulnerability check with a different tool is possible
-  # 
+  #
   # vulnerability-check-run:
   #  if: ${{ inputs.vulnerabilityCheck == true }}
   #  needs: [ init, build ]

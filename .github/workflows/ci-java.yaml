@@ -16,6 +16,12 @@ on:
         description: "The indicated overlays (dev, test, qa, prod)"
         type: string
         required: false
+
+      skipBuild:
+        description: "Skip the build process"
+        type: boolean
+        required: false
+        default: false
       component:
         description: "Name of the repository"
         type: string
@@ -160,7 +166,7 @@ jobs:
           registries: ${{ needs.init.outputs.ecr-registry-code }}
 
       - name: Build Docker image
-        if: ${{ github.workflow != 'pr' }}
+        if: ${{ github.workflow != 'pr' && inputs.skipBuild == false }}
         env:
           ARTIFACTORY_CONTEXT_URL: ${{ secrets.ARTIFACTORY_CONTEXT_URL }}
           ARTIFACTORY_USERNAME: ${{ secrets.ARTIFACTORY_USERNAME }}
