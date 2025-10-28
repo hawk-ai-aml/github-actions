@@ -10,6 +10,11 @@ on:
         description: "Overlays to update"
         type: string
         required: false
+      skipBuild:
+        description: "Skip the build process"
+        type: boolean
+        required: false
+        default: false
       component:
         description: "Name of the repository"
         type: string
@@ -130,7 +135,7 @@ jobs:
           echo "matched_tag=$MATCHED_TAG" >> $GITHUB_OUTPUT
 
       - name: Build Docker Image
-        if: ${{ github.workflow != 'pr' }}
+        if: ${{ github.workflow != 'pr' && inputs.skipBuild == false }}
         uses: hawk-ai-aml/github-actions/build-docker-image-python@master
         with:
           multiple-modules: "true"

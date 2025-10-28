@@ -11,6 +11,11 @@ on:
         description: "Overlays to update"
         type: string
         required: false
+      skipBuild:
+        description: "Skip the build process"
+        type: boolean
+        required: false
+        default: false
       component:
         type: string
         required: false
@@ -208,7 +213,7 @@ jobs:
           echo "matched_tag=$MATCHED_TAG" >> $GITHUB_OUTPUT
 
       - name: Build Docker Image
-        if: ${{ github.workflow != 'pr' }}
+        if: ${{ github.workflow != 'pr' && inputs.skipBuild == false }}
         uses: hawk-ai-aml/github-actions/build-docker-image-reactjs@master
         with:
           image-tag: ${{ needs.init.outputs.image-tag }}
@@ -233,7 +238,7 @@ jobs:
 
   # Vulternability check not done since the decommissioning of Lacework
   # but future vulnerability check with a different tool is possible
-  # 
+  #
   # vulnerability-check-run:
   #   if: ${{ inputs.vulnerabilityCheck == true }}
   #   needs: [ init, build ]
