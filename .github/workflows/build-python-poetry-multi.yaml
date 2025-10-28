@@ -17,7 +17,7 @@ on:
         type: string
         required: false
 
-      skipBuild:
+      skipDockerBuild:
         description: "Skip the build process"
         type: boolean
         required: false
@@ -259,7 +259,7 @@ jobs:
           echo "module_ecr=$MODULE_ECR" >> $GITHUB_OUTPUT
 
       - name: Build and tag images
-        if: ${{ github.workflow != 'pr' && steps.ecr-info.outputs.module_ecr != 'null' && inputs.skipBuild == false }}
+        if: ${{ github.workflow != 'pr' && steps.ecr-info.outputs.module_ecr != 'null' && inputs.skipDockerBuild == false }}
         uses: hawk-ai-aml/github-actions/build-docker-image-python@master
         with:
           multiple-modules: "true"

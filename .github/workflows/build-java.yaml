@@ -17,7 +17,7 @@ on:
         type: string
         required: false
 
-      skipBuild:
+      skipDockerBuild:
         description: "Skip the build process"
         type: boolean
         required: false
@@ -241,7 +241,7 @@ jobs:
 
       - name: Build Docker Image
         id: build-docker-image
-        if: ${{ github.workflow != 'pr' && inputs.skipBuild == false }}
+        if: ${{ github.workflow != 'pr' && inputs.skipDockerBuild == false }}
         uses: hawk-ai-aml/github-actions/build-docker-image-java@master
         with:
           multiple-modules: "false"

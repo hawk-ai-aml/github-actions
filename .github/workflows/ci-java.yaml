@@ -17,7 +17,7 @@ on:
         type: string
         required: false
 
-      skipBuild:
+      skipDockerBuild:
         description: "Skip the build process"
         type: boolean
         required: false
@@ -166,7 +166,7 @@ jobs:
           registries: ${{ needs.init.outputs.ecr-registry-code }}
 
       - name: Build Docker image
-        if: ${{ github.workflow != 'pr' && inputs.skipBuild == false }}
+        if: ${{ github.workflow != 'pr' && inputs.skipDockerBuild == false }}
         env:
           ARTIFACTORY_CONTEXT_URL: ${{ secrets.ARTIFACTORY_CONTEXT_URL }}
           ARTIFACTORY_USERNAME: ${{ secrets.ARTIFACTORY_USERNAME }}
