@@ -10,6 +10,10 @@ inputs:
     description: Flag indicating that the Python project has multiple modules
     required: true
 
+  module-isolated:
+    description: Flag indicating that the modules from Python project are isolated (separate Dockerfile)
+    required: false
+
   image-tag:
     description: Tag name
     required: true
@@ -28,7 +32,7 @@ inputs:
 
   ecr-registry:
     description: ECR registry
-    required: true
+    required: false
 
   ecr-repository:
     description: ECR repository
@@ -83,7 +87,7 @@ runs:
         chmod +x action.sh
 
     - name: Configure AWS credentials
-      uses: aws-actions/configure-aws-credentials@v1
+      uses: aws-actions/configure-aws-credentials@v4
       with:
         aws-access-key-id: ${{ inputs.aws-org-ecr-access-key-id }}
         aws-secret-access-key: ${{ inputs.aws-org-ecr-secret-access-key }}
@@ -125,10 +129,15 @@ runs:
         CUSTOM_IMAGE_TAG: ${{ inputs.custom-image-tag }}
         PY_UTILS_PAT: ${{ inputs.py-utils-pat }}
         DISABLED_CACHE: ${{ inputs.disabled-cache }}
+        MODULE_ISOLATED: ${{ inputs.module-isolated }}
       run: |
         source ./action.sh
         echo -e "${GREEN}✅ Building images for modules...${NC}"
 
+        if [[ "$MODULE_ISOLATED" == "true" ]]; then
+          cd $MODULE
+        fi
+        
         REPOSITORY_FOLDER=$(echo "${MODULE}" | sed 's/_/-/g')
         REPOSITORY_FULL_NAME="${ECR_REGISTRY}/${ECR_REPOSITORY_PREFIX}${REPOSITORY_FOLDER}"
         

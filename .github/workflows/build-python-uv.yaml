@@ -12,10 +12,21 @@ on:
         type: boolean
         required: false
         default: false
+      runPreCommit:
+        description: "Run pre-commit to lint the entire repository"
+        type: boolean
+        required: false
+        default: false
       kustomizeOverlays:
         description: "The indicated overlays (dev, test, qa, prod)"
         type: string
         required: false
+
+      skipDockerBuild:
+        description: "Skip the build process"
+        type: boolean
+        required: false
+        default: false
       component:
         description: "Name of the repository"
         type: string
@@ -35,11 +46,7 @@ on:
         type: boolean
         required: false
         default: false
-      skipDockerBuild:
-        description: "Skip the Docker build step"
-        type: boolean
-        required: false
-        default: false
+
       authorizedRepos:
         description: "Authorized private repositories"
         type: string
@@ -184,6 +191,11 @@ jobs:
             git config --global url."https://${{ secrets.PY_UTILS_PAT }}@github.com/hawk-ai-aml/${REPO}".insteadOf "https://github.com/hawk-ai-aml/${REPO}"
           done
 
+      - name: Lint
+        if: inputs.runPreCommit == 'true' && success()
+        run: |
+          uv run pre-commit run --all-files
+
       - name: Run tests
         if: needs.init.outputs.skip-tests != 'true' && success()
         env:
@@ -241,7 +253,7 @@ jobs:
           echo "matched_tag=$MATCHED_TAG" >> $GITHUB_OUTPUT
 
       - name: Build Docker Image
-        if: ${{ github.workflow != 'pr' && inputs.skipDockerBuild != true }}
+        if: ${{ github.workflow != 'pr' && inputs.skipDockerBuild == false }}
         uses: hawk-ai-aml/github-actions/build-docker-image-python@master
         with:
           multiple-modules: "false"
@@ -272,7 +284,7 @@ jobs:
 
   # Vulternability check not done since the decommissioning of Lacework
   # but future vulnerability check with a different tool is possible
-  # 
+  #
   # vulnerability-check-run:
   #   if: ${{ inputs.vulnerabilityCheck == true }}
   #   needs: [init, build]
