@@ -272,23 +272,18 @@ jobs:
           slack-access-token: ${{ secrets.SLACK_RELEASE_BOT_ACCESS_TOKEN }}
           github-users-access-token: ${{ secrets.USER_GITHUB_ACCESS }}
 
-  vulnerability-check-run:
-    if: ${{ inputs.vulnerabilityCheck == true }}
-    needs: [ init, build ]
-    runs-on: [ "self-hosted", "small-builder" ]
-
-    steps:
-     - name: Scan Docker image for vulnerabilities
-       uses: hawk-ai-aml/github-actions/wiz-check@pe-5289
-       with:
-         ecr-region: ${{ needs.init.outputs.ecr-region }}
-         ecr-registry-code: ${{ needs.init.outputs.ecr-registry-code }}
-         ecr-repository: ${{ fromJson(needs.init.outputs.metadata).ecr.repository }}
-         image-tag: ${{ needs.init.outputs.image-tag }}
-         aws-access-key-id: ${{ secrets.AWS_ORG_ECR_ACCESS_KEY_ID }}
-         aws-secret-access-key: ${{ secrets.AWS_ORG_ECR_SECRET_ACCESS_KEY }}
-         wiz-client-id: ${{ secrets.WIZ_CLIENT_ID }}
-         wiz-client-secret: ${{ secrets.WIZ_CLIENT_SECRET }}
+      - name: Scan Docker image for vulnerabilities
+        if: ${{ inputs.vulnerabilityCheck == true }}
+        uses: hawk-ai-aml/github-actions/wiz-check@pe-5289
+        with:
+          ecr-region: ${{ needs.init.outputs.ecr-region }}
+          ecr-registry-code: ${{ needs.init.outputs.ecr-registry-code }}
+          ecr-repository: ${{ fromJson(needs.init.outputs.metadata).ecr.repository }}
+          image-tag: ${{ needs.init.outputs.image-tag }}
+          aws-access-key-id: ${{ secrets.AWS_ORG_ECR_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_ORG_ECR_SECRET_ACCESS_KEY }}
+          wiz-client-id: ${{ secrets.WIZ_CLIENT_ID }}
+          wiz-client-secret: ${{ secrets.WIZ_CLIENT_SECRET }}
 
   update-overlays:
     needs: [ init, build ]
