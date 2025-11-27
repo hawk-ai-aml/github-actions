@@ -238,8 +238,8 @@ jobs:
           MODULE: ${{ matrix.module }}
           KUSTOMIZE_OVERLAYS: ${{ inputs.kustomizeOverlays }}
         run: |
-          MODULE_ECR=$(echo ${METADATA} | jq -cr --arg MODULE ${{ matrix.module }} '.modules[$MODULE].ecr')
-          echo "ECR=$MODULE_ECR"
+          MODULE_ECR_REPO=$(echo "${METADATA}" | jq -cr --arg MODULE "${{ matrix.module }}" '.modules[$MODULE].ecr.repository')
+          echo "MODULE_ECR_REPO=$MODULE_ECR_REPO"
 
           echo "CUSTOM_TAGS=$CUSTOM_TAGS"
           if [[ "$MODULE" == *"_"* ]]; then
@@ -255,10 +255,10 @@ jobs:
             MATCHED_TAG="${CUSTOM_TAGS// /}"
           fi
           echo "matched_tag=$MATCHED_TAG" >> $GITHUB_OUTPUT
-          echo "module_ecr=$MODULE_ECR" >> $GITHUB_OUTPUT
+          echo "module_ecr_repo=$MODULE_ECR_REPO" >> $GITHUB_OUTPUT
 
       - name: Build and tag images
-        if: ${{ github.workflow != 'pr' && steps.ecr-info.outputs.module_ecr != 'null' && inputs.skipDockerBuild == false }}
+        if: ${{ github.workflow != 'pr' && steps.ecr-info.outputs.module_ecr_repo != 'null' && inputs.skipDockerBuild == false }}
         uses: hawk-ai-aml/github-actions/build-docker-image-python@master
         with:
           multiple-modules: "true"
@@ -303,7 +303,7 @@ jobs:
         with:
           ecr-region: ${{ needs.init.outputs.ecr-region }}
           ecr-registry-code: ${{ needs.init.outputs.ecr-registry-code }}
-          ecr-repository: ${{ steps.ecr-info.outputs.module_ecr.repository }}
+          ecr-repository: ${{ steps.ecr-info.outputs.module_ecr_repo }}
           image-tag: ${{ needs.init.outputs.image-tag }}
           aws-access-key-id: ${{ secrets.AWS_ORG_ECR_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_ORG_ECR_SECRET_ACCESS_KEY }}
