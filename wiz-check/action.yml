@@ -73,6 +73,7 @@ runs:
         IMAGE_TAG: ${{ inputs.image-tag }}
       run: |
         IMAGE_PATH=${ECR_REGISTRY}/${ECR_REPOSITORY}:${IMAGE_TAG}
+        docker pull $IMAGE_PATH
         wizcli docker scan --image "$IMAGE_PATH"
 
 # End of file
