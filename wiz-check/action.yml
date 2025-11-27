@@ -50,18 +50,6 @@ runs:
       with:
         registries: ${{ inputs.ecr-registry-code }}
 
-    - name: Pull image from ECR
-      shell: bash -l -ET -eo pipefail {0}
-      id: pull-image
-      env:
-        ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
-        ECR_REPOSITORY: ${{ inputs.ecr-repository }}
-        IMAGE_TAG: ${{ inputs.image-tag }}
-      run: |
-        ECR_REPO_URL=${ECR_REGISTRY}/${ECR_REPOSITORY}:${IMAGE_TAG}
-        docker pull $ECR_REPO_URL
-        echo "image_path=$ECR_REPO_URL" >> $GITHUB_OUTPUT
-
     - name: Install latest Wiz CLI
       shell: bash -l -ET -eo pipefail {0}
       run: |
@@ -80,8 +68,11 @@ runs:
     - name: Scan Docker image with Wiz
       shell: bash -l -ET -eo pipefail {0}
       env:
-        IMAGE_PATH: ${{ steps.pull-image.outputs.image_path }}
+        ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+        ECR_REPOSITORY: ${{ inputs.ecr-repository }}
+        IMAGE_TAG: ${{ inputs.image-tag }}
       run: |
+        IMAGE_PATH=${ECR_REGISTRY}/${ECR_REPOSITORY}:${IMAGE_TAG}
         wizcli docker scan --image "$IMAGE_PATH"
 
 # End of file
