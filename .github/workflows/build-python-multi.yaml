@@ -284,7 +284,7 @@ jobs:
           df -h
 
       - name: Scan Docker image for vulnerabilities
-        if: ${{ inputs.vulnerabilityCheck == true && steps.ecr-info.outputs.module_ecr != 'null' }}
+        if: ${{ inputs.vulnerabilityCheck == true && steps.ecr-info.outputs.module_ecr_repo != 'null' }}
         uses: hawk-ai-aml/github-actions/wiz-check@pe-5289
         with:
           ecr-region: ${{ needs.init.outputs.ecr-region }}
