@@ -303,7 +303,7 @@ jobs:
         with:
           ecr-region: ${{ needs.init.outputs.ecr-region }}
           ecr-registry-code: ${{ needs.init.outputs.ecr-registry-code }}
-          ecr-repository: ${{ steps.ecr-info.outputs.module_ecr }}
+          ecr-repository: ${{ steps.ecr-info.outputs.module_ecr.repository }}
           image-tag: ${{ needs.init.outputs.image-tag }}
           aws-access-key-id: ${{ secrets.AWS_ORG_ECR_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_ORG_ECR_SECRET_ACCESS_KEY }}
