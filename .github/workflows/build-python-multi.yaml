@@ -317,7 +317,7 @@ jobs:
             DOCKER_IMAGES+="${img}:${IMAGE_TAG} "
           done          
           DOCKER_IMAGES="${DOCKER_IMAGES%" "}"          
-          echo "images=$DOCKER_IMAGES" >> $GITHUB_ENV
+          echo "images=$DOCKER_IMAGES" >> $GITHUB_OUTPUT
 
       - name: Scan Docker image for vulnerabilities
         uses: hawk-ai-aml/github-actions/wiz-check@pe-5289
