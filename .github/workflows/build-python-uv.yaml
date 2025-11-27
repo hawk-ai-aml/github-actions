@@ -281,7 +281,7 @@ jobs:
           github-users-access-token: ${{ secrets.USER_GITHUB_ACCESS }}
 
       - name: Scan Docker image for vulnerabilities
-        if: ${{ inputs.vulnerabilityCheck == true }}
+        if: ${{ inputs.vulnerabilityCheck == true && inputs.skipDockerBuild == false }}
         uses: hawk-ai-aml/github-actions/wiz-check@pe-5289
         with:
           ecr-region: ${{ needs.init.outputs.ecr-region }}
