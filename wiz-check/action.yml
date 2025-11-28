@@ -1,0 +1,76 @@
+name: wiz-check
+description: Vulnerability scan using Wiz CLI
+
+inputs:
+  ecr-region:
+    description: "ECR region"
+    required: true
+
+  ecr-registry-code:
+    description: "ECR registry code"
+    required: true
+
+  images:
+    description: "List of Docker image names"
+    required: true
+
+  aws-access-key-id:
+    description: "AWS access key id"
+    required: true
+
+  aws-secret-access-key:
+    description: "AWS secret access key"
+    required: true
+
+  wiz-client-id:
+    description: "Wiz Client ID"
+    required: true
+
+  wiz-client-secret:
+    description: "Wiz Client Secret"
+    required: true
+
+runs:
+  using: composite
+  steps:
+    - name: Configure AWS credentials
+      uses: aws-actions/configure-aws-credentials@v4
+      with:
+        aws-access-key-id: ${{ inputs.aws-access-key-id }}
+        aws-secret-access-key: ${{ inputs.aws-secret-access-key }}
+        aws-region: ${{ inputs.ecr-region }}
+
+    - name: Login to Amazon ECR
+      id: login-ecr
+      uses: aws-actions/amazon-ecr-login@v2
+      with:
+        registries: ${{ inputs.ecr-registry-code }}
+
+    - name: Install latest Wiz CLI
+      shell: bash -l -ET -eo pipefail {0}
+      run: |
+        mkdir -p $HOME/.local/bin
+        curl -fsSL https://downloads.wiz.io/wizcli/latest/wizcli-linux-amd64 -o $HOME/.local/bin/wizcli
+        chmod +x $HOME/.local/bin/wizcli
+        $HOME/.local/bin/wizcli version
+
+    - name: Wiz CLI Auth
+      shell: bash -l -ET -eo pipefail {0}
+      env:
+        WIZ_CLIENT_ID: ${{ inputs.wiz-client-id }}
+        WIZ_CLIENT_SECRET: ${{ inputs.wiz-client-secret }}
+      run: wizcli auth
+
+    - name: Scan Docker image with Wiz
+      shell: bash -l -ET -eo pipefail {0}
+      env:
+        IMAGES: ${{ inputs.images }}
+      run: |        
+        for image in $IMAGES; do
+          echo "Scan vulnerabilities for image: $image"
+          docker pull $image
+          wizcli docker scan --image "$image"
+          echo "-------------------------------"
+        done
+
+# End of file
