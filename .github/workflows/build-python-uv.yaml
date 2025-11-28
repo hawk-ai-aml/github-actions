@@ -60,7 +60,7 @@ defaults:
 
 jobs:
   init:
-    runs-on: ["self-hosted", "small-builder"]
+    runs-on: ["self-hosted", "builder"]
     outputs:
       overlays: ${{ steps.init.outputs.overlays }}
       update-kustomize: ${{ steps.init.outputs.update-kustomize }}
