@@ -229,7 +229,7 @@ jobs:
 
       - name: Build Docker Image
         if: ${{ github.workflow != 'pr' && inputs.skipDockerBuild != true }}
-        uses: hawk-ai-aml/github-actions/build-docker-image-python@master
+        uses: hawk-ai-aml/github-actions/build-docker-image-python@ci-inline-docker-build
         with:
           multiple-modules: "false"
           module: ${{ inputs.component }}
