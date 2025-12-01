@@ -126,6 +126,9 @@ jobs:
     needs: init
     runs-on: ubuntu-latest
     steps:
+      - name: Check disk usage (initial)
+        run: df -h
+
       - name: Checkout master
         uses: actions/checkout@v4
         with:
@@ -249,6 +252,9 @@ jobs:
             MATCHED_TAG="${CUSTOM_TAGS// /}"
           fi
           echo "matched_tag=$MATCHED_TAG" >> $GITHUB_OUTPUT
+
+      - name: Check disk usage (before docker build)
+        run: df -h
 
       - name: Build Docker Image
         if: ${{ github.workflow != 'pr' && inputs.skipDockerBuild == false }}
