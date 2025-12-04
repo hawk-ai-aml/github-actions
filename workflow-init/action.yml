@@ -186,7 +186,9 @@ runs:
             ECR_REPOSITORY_LIST="${ECR_REPOSITORY_LIST} ${MODULE_REPOSITORY}"
           fi
         done
-
+        
+        echo "Modules done"
+        
         LENGTH_OF_MODULE_LIST=$(echo ${#MODULE_LIST})
         MODULE_LIST=${MODULE_LIST:0:${LENGTH_OF_MODULE_LIST}-1}
         KUSTOMIZE_MODULES="[${MODULE_LIST}]"
