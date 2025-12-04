@@ -171,7 +171,7 @@ runs:
       run: |
         source ./action.sh
         echo -e "${GREEN}✅ Building images for single build...${NC}"
-        echo $ECR_REPOSITORY
+        echo ${ECR_REPOSITORY}
         if [ -n "$ECR_REPOSITORY" ]; then
           IMAGE_NAME="${ECR_REGISTRY}/${ECR_REPOSITORY}"
         
