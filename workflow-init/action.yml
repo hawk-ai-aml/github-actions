@@ -197,13 +197,13 @@ runs:
         IMAGE_LIST=${IMAGE_LIST:0:${LENGTH_OF_IMAGE_LIST}-1}
         IMAGE_LIST="[${IMAGE_LIST}]"
         ECR_IMAGES="${IMAGE_LIST}"
-
+        echo "Start overlays"
         if [[ ${KUSTOMIZE_OVERLAYS} != "null" ]]; then
           OVERLAYS_JSON=$(echo ${METADATA} | jq -cr --arg OVERLAYS ${KUSTOMIZE_OVERLAYS} '.overlays[$OVERLAYS]')
         fi
-
+        echo "Finish overlays if"
         OVERLAYS_STRING=$(echo ${OVERLAYS_JSON} | jq -r 'join(" ")')
-
+        echo "Start overlays"
         USE_SONARCLOUD=${{ inputs.use-sonarcloud }}
 
         AUTHORIZED_REPOS="${{ inputs.authorized-repos }}"
