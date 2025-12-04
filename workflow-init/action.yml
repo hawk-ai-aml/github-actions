@@ -198,6 +198,7 @@ runs:
         IMAGE_LIST="[${IMAGE_LIST}]"
         ECR_IMAGES="${IMAGE_LIST}"
         echo "Start overlays"
+        echo ${KUSTOMIZE_OVERLAYS}
         if [[ ${KUSTOMIZE_OVERLAYS} != "null" ]]; then
           OVERLAYS_JSON=$(echo ${METADATA} | jq -cr --arg OVERLAYS ${KUSTOMIZE_OVERLAYS} '.overlays[$OVERLAYS]')
         fi
