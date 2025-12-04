@@ -85,7 +85,7 @@ jobs:
     steps:
       - id: init
         name: Init workflow
-        uses: hawk-ai-aml/github-actions/workflow-init@master
+        uses: hawk-ai-aml/github-actions/workflow-init@debug-pct
         with:
           skip-tests: ${{ inputs.skipTests }}
           update-kustomize: ${{ inputs.updateKustomize }}

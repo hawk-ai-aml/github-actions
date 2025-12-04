@@ -144,7 +144,9 @@ runs:
 
         SKIP_TESTS=${{ inputs.skip-tests }}
         SKIP_TESTS=${SKIP_TESTS:-false}
-
+        
+        echo "Building image"
+        
         # Build image tag
         BUILD_BRANCH=$(echo ${GITHUB_REF_NAME} | sed 's,\/,-,g; s,\#,,g')
         GIT_SHA_SHORT=${GITHUB_SHA:0:7}
@@ -160,6 +162,10 @@ runs:
             IMAGE_TAG=${BUILD_BRANCH}-${GIT_SHA_SHORT}
           ;;
         esac
+        
+        echo "Setup ECR"
+        echo ${METADATA}
+        echo "It was metadata"
 
         ECR_REGION=$(echo ${METADATA} | jq -r '.ecr.region')
         ECR_REGISTRY_CODE=$(echo ${METADATA} | jq -r '.ecr."registry-code"')
