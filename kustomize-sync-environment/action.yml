@@ -18,8 +18,19 @@ runs:
   using: composite
   steps:
 
-    - name: Checkout local repository
+    - name: Checkout github-actions repo to load the script
       uses: actions/checkout@v4
+      with:
+        repository: hawk-ai-aml/github-actions
+        ref: pe-5399
+        path: github-actions
+
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      with:
+        repository: ${{ github.repository }}
+        ref: pe-5399
+        token: ${{ inputs.github-token }}
 
     - name: Set up Python
       uses: actions/setup-python@v5
@@ -50,8 +61,12 @@ runs:
     - name: Process environments
       run: |
         set -e
+        RED='\033[0;31m'
+        GREEN='\033[0;32m'
+        
+        ls *
 
-        echo "Processing environment files from properties/static..."
+        echo -e "${GREEN}Processing environment files from properties/static..."
 
         # Track if any changes were made
         CHANGES_MADE=false
@@ -83,7 +98,7 @@ runs:
           for dir in ${{ inputs.directories }}; do
             if [ -d "$dir" ]; then
               echo "--- Processing platform directory ---"
-              python3 copy_environment.py "$dir"
+              python3 ./github-actions/kustomize-sync-environment/copy_environment.py "$dir"
               echo "-------------------------------------"
               echo ""
             fi
