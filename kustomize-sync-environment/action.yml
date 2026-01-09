@@ -68,7 +68,6 @@ runs:
         GREEN='\033[0;32m'
         
         ls *
-        cd ${REPOSITORY}
         echo -e "${GREEN}Processing environment files from properties/static..."
 
         # Track if any changes were made
