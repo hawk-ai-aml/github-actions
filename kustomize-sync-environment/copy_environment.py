@@ -116,7 +116,7 @@ def copy_and_rename_environment(source_dir: str, new_env_type: str | None, new_e
 if __name__ == "__main__":
     import sys
     from dotenv import load_dotenv
-    load_dotenv()
+    load_dotenv(verbose=True)
 
     if len(sys.argv) != 2:
         print("Usage: python copy_environment.py <source_dir>")
@@ -124,8 +124,7 @@ if __name__ == "__main__":
         print("  python copy_environment.py ./platform")
         sys.exit(1)
 
-    # Print environment variables for debugging
-    print(os.environ)
+    
     
     source_dir = sys.argv[1]
     env_type = os.environ.get('environment_type')
