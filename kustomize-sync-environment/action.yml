@@ -30,6 +30,7 @@ runs:
       with:
         repository: ${{ github.repository }}
         ref: pe-5399
+        token: ${{ inputs.github-token }}
         path: ${{ github.repository }}
 
     - name: Copy scripts
@@ -167,6 +168,7 @@ runs:
       env:
         GH_TOKEN: ${{ inputs.github-token }}
         REPOSITORY: ${{ github.repository }}
+        NEW_BRANCH: ${{ steps.branch.outputs.branch_name }}
       run: |
         cd ${REPOSITORY}
         git config --global user.name "github-actions[bot]"
@@ -204,7 +206,7 @@ runs:
         ---
         *This is an automated pull request. Review carefully before merging.*" \
           --base master \
-          --head "${{ steps.branch.outputs.branch_name }}"
+          --head "$NEW_BRANCH"
 
         echo "✅ Pull request created successfully!"
       shell: bash
