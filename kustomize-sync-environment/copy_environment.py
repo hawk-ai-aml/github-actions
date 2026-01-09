@@ -48,7 +48,7 @@ def copy_and_rename_environment(source_dir: str, new_env_type: str | None, new_e
         for file in files:
             file_path = dir / file
 
-            if "_template" in stPath(__file__).resolve().parentr(file_path):
+            if "_template" in str(file_path):
                 try:
                     print(f"Processing file: {file_path}")
                     file_template = file_path.read_text()
