@@ -118,11 +118,11 @@ if __name__ == "__main__":
     from dotenv import load_dotenv
     load_dotenv()
 
-    # if len(sys.argv) != 4:
-    #     print("Usage: python copy_environment.py <source_dir> <dest_dir> <new_env_name>")
-    #     print("\nExample:")
-    #     print("  python copy_environment.py ./platform /path/to/kustomize/platform staging")
-    #     sys.exit(1)
+    if len(sys.argv) != 4:
+        print("Usage: python copy_environment.py <source_dir> <dest_dir> <new_env_name>")
+        print("\nExample:")
+        print("  python copy_environment.py ./platform /path/to/kustomize/platform staging")
+        sys.exit(1)
     
     source_dir = sys.argv[1]
 

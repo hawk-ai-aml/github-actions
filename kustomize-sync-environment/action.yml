@@ -53,6 +53,7 @@ runs:
     - name: Process environments
       env:
         REPOSITORY: ${{ github.repository }}
+        NEW_ENVIRONMENT: ${{ github.environment }}
       run: |
         set -e
         RED='\033[0;31m'
@@ -99,7 +100,7 @@ runs:
           for dir in ${{ inputs.directories }}; do
             if [ -d "$dir" ]; then
               echo "--- Processing platform directory ---"
-              python3 copy_environment.py "$dir"
+              python3 copy_environment.py "$dir" "prod" "$NEW_ENVIRONMENT"
               echo "-------------------------------------"
               echo ""
             fi
@@ -138,8 +139,8 @@ runs:
       run: |
         cd ${REPOSITORY}
 
-        git config --global user.name "GitHub Actions"
-        git config --global user.email "github-actions@hawk.ai"
+        git config --global user.name "github-actions[bot]"
+        git config --global user.email "github-actions[bot]@users.noreply.github.com"
         
         echo "Changes detected, creating commit..."
 
@@ -160,7 +161,6 @@ runs:
         echo "Pushing branch to remote..."
         REMOTE=${1:-origin}
         git push ${REMOTE} "${NEW_BRANCH}"
-#        git push https://x-access-token:${GH_TOKEN}@github.com/${REPOSITORY} "${{ steps.branch.outputs.branch_name }}"
       shell: bash
 
     - name: Create Pull Request
