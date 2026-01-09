@@ -85,6 +85,7 @@ runs:
               python3 copy_environment.py "$dir"
               echo "-------------------------------------"
               echo ""
+            fi
           done
           
           echo ""
