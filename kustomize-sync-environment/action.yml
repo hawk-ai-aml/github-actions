@@ -8,7 +8,7 @@ inputs:
   directories:
     description: "List of directories to sync environments in (separated by a space)"
     required: true
-  GITHUB_TOKEN:
+  github-token:
     description: "GitHub Token for authentication"
     required: true
 
@@ -128,7 +128,7 @@ runs:
       if: env.has_changes == 'true'
       shell: bash
       env:
-        GH_TOKEN: ${{ inputs.GITHUB_TOKEN }}
+        GH_TOKEN: ${{ inputs.github-token }}
       run: |
         echo "Creating pull request..."
         gh pr create \
