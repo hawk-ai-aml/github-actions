@@ -132,6 +132,7 @@ runs:
     - name: Commit and push changes
       if: env.has_changes == 'true'
       env:
+        GH_TOKEN: ${{ inputs.github-token }}
         REPOSITORY: ${{ github.repository }}
       run: |
         cd ${REPOSITORY}
@@ -156,7 +157,7 @@ runs:
         Triggered by: ${{ github.actor }}"
 
         echo "Pushing branch to remote..."
-        git push origin "${{ steps.branch.outputs.branch_name }}"
+        git push https://x-access-token:${GH_TOKEN}@github.com/${REPOSITORY} "${{ steps.branch.outputs.branch_name }}"
       shell: bash
 
     - name: Create Pull Request
