@@ -123,6 +123,9 @@ if __name__ == "__main__":
         print("\nExample:")
         print("  python copy_environment.py ./platform")
         sys.exit(1)
+
+    # Print environment variables for debugging
+    print(os.environ)
     
     source_dir = sys.argv[1]
     env_type = os.environ.get('environment_type')
