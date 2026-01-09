@@ -70,6 +70,7 @@ def copy_and_rename_environment(source_dir: str, new_env_type: str | None, new_e
     region_dirs_renamed = 0
     print(f"\nSearching for '_region' subdirectories to rename to '{new_env_region}'...")
     for root, dirs, files in os.walk(temp_path):
+        dir = Path(root)
         if dir.name =='_region':
             region_dirs_found += 1
             new_dir = dir.parent / new_env_region
@@ -89,6 +90,7 @@ def copy_and_rename_environment(source_dir: str, new_env_type: str | None, new_e
     template_dirs_renamed = 0
     print(f"\nSearching for '_template' subdirectories to rename to '{new_env_type}'...")
     for root, dirs, files in os.walk(temp_path):
+        dir = Path(root)
         if dir.name =='_template':
             template_dirs_found += 1
             new_dir = dir.parent / new_env_type
@@ -116,18 +118,24 @@ def copy_and_rename_environment(source_dir: str, new_env_type: str | None, new_e
 if __name__ == "__main__":
     import sys
     from dotenv import load_dotenv
-    load_dotenv()
-
-    if len(sys.argv) != 4:
-        print("Usage: python copy_environment.py <source_dir> <dest_dir> <new_env_name>")
-        print("\nExample:")
-        print("  python copy_environment.py ./platform /path/to/kustomize/platform staging")
+    if not load_dotenv(Path(__file__).resolve().parent / '.env'):
+        print("Error: .env file not found or could not be loaded.")
         sys.exit(1)
+
+    if len(sys.argv) != 2:
+        print("Usage: python copy_environment.py <source_dir>")
+        print("\nExample:")
+        print("  python copy_environment.py ./platform")
+        sys.exit(1)
+
+    
     
     source_dir = sys.argv[1]
+    env_type = os.environ.get('environment_type')
+    env_region = os.environ.get('aws_region')
 
     try:
-        copy_and_rename_environment(source_dir, os.environ.get('environment_type'), os.environ.get('aws_region'))
+        copy_and_rename_environment(source_dir, env_type, env_region)
         sys.exit(0)
     except Exception as e:
         print(f"\nError: {e}")

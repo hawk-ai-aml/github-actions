@@ -55,7 +55,7 @@ runs:
         CHANGES_MADE=false
         
         # Iterate through each file in properties/static directory
-        env_name="${{ inputs.directories }}"
+        env_name="${{ inputs.environment }}"
         env_file="properties/static/$env_name.env"
         if [ -f "$env_file" ]; then
           # Get the base filename (e.g., "sandbox.env")
@@ -73,18 +73,19 @@ runs:
             jq -r '[paths(scalars) as $path | {"key": $path | join("."), "value": getpath($path)}] | from_entries | to_entries[] | "\(.key | gsub("[\\.-]"; "_"))=\"\(.value)\""' "$output_file" \
               | fgrep '_value' \
               |  sed -E 's/\_value//' \
-              | cat - $env_file > .env
+              | cat - $env_file > ${{ github.action_path }}/.env
           else
-            cp "$env_file" .env
+            cp "$env_file" ${{ github.action_path }}/.env
           fi
           
           
           for dir in ${{ inputs.directories }}; do
             if [ -d "$dir" ]; then
               echo "--- Processing platform directory ---"
-              python3 copy_environment.py "$dir"
+              python3 ${{ github.action_path }}/copy_environment.py "$dir"
               echo "-------------------------------------"
               echo ""
+            fi
           done
           
           echo ""
