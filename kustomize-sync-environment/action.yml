@@ -122,23 +122,11 @@ runs:
         fi
       shell: bash
 
-    - name: Configure Git
-      run: |
-        git config --global user.name "GitHub Actions"
-        git config --global user.email "github-actions@hawk.ai"
-      shell: bash
-
     - name: Create feature branch
       id: branch
-      env:
-        REPOSITORY: ${{ github.repository }}
       run: |
-        cd ${REPOSITORY}
-        
         BRANCH_NAME="sync-environments-$(date +%Y%m%d-%H%M%S)"
-        git checkout -b "$BRANCH_NAME"
         echo "branch_name=$BRANCH_NAME" >> $GITHUB_OUTPUT
-        echo "Created branch: $BRANCH_NAME"
       shell: bash
 
     - name: Commit and push changes
@@ -147,9 +135,15 @@ runs:
         REPOSITORY: ${{ github.repository }}
       run: |
         cd ${REPOSITORY}
+
+        git config --global user.name "github-actions[bot]"
+        git config --global user.email "github-actions[bot]@users.noreply.github.com"
         
         echo "Changes detected, creating commit..."
 
+        git checkout -b "${{ steps.branch.outputs.branch_name }}"
+        echo "Created branch: ${{ steps.branch.outputs.branch_name }}"
+        
         git add -A
         git commit -m "Sync environments from kustomize-template
 
@@ -172,6 +166,8 @@ runs:
         REPOSITORY: ${{ github.repository }}
       run: |
         cd ${REPOSITORY}
+        git config --global user.name "github-actions[bot]"
+        git config --global user.email "github-actions[bot]@users.noreply.github.com"
         
         echo "Creating pull request..."
         gh pr create \
@@ -208,16 +204,4 @@ runs:
           --head "${{ steps.branch.outputs.branch_name }}"
 
         echo "✅ Pull request created successfully!"
-      shell: bash
-
-    - name: Cleanup on no changes
-      if: env.has_changes == 'false'
-      env:
-        REPOSITORY: ${{ github.repository }}
-      run: |
-        cd ${REPOSITORY}
-        
-        echo "ℹ️  No changes detected. Cleaning up branch."
-        git checkout master
-        git branch -D "${{ steps.branch.outputs.branch_name }}" || true
       shell: bash
