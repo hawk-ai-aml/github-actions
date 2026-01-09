@@ -33,6 +33,12 @@ runs:
         token: ${{ inputs.github-token }}
         path: ${{ github.repository }}
 
+    - name: Copy scripts
+      run: |
+        cp -R github-actions/kustomize-sync-environment/* ./${{ github.repository }}
+        ls *
+      shell: bash
+
     - name: Set up Python
       uses: actions/setup-python@v5
       with:
@@ -50,15 +56,6 @@ runs:
         git config --global user.email "github-actions[bot]@users.noreply.github.com"
       shell: bash
 
-    - name: Create feature branch
-      id: branch
-      run: |
-        BRANCH_NAME="sync-environments-$(date +%Y%m%d-%H%M%S)"
-        git checkout -b "$BRANCH_NAME"
-        echo "branch_name=$BRANCH_NAME" >> $GITHUB_OUTPUT
-        echo "Created branch: $BRANCH_NAME"
-      shell: bash
-
     - name: Process environments
       env:
         REPOSITORY: ${{ github.repository }}
@@ -67,7 +64,7 @@ runs:
         RED='\033[0;31m'
         GREEN='\033[0;32m'
         
-        ls *
+        cd ${REPOSITORY}
         echo -e "${GREEN}Processing environment files from properties/static..."
 
         # Track if any changes were made
@@ -121,6 +118,15 @@ runs:
         else
           echo "has_changes=false" >> $GITHUB_ENV
         fi
+      shell: bash
+
+    - name: Create feature branch
+      id: branch
+      run: |
+        BRANCH_NAME="sync-environments-$(date +%Y%m%d-%H%M%S)"
+        git checkout -b "$BRANCH_NAME"
+        echo "branch_name=$BRANCH_NAME" >> $GITHUB_OUTPUT
+        echo "Created branch: $BRANCH_NAME"
       shell: bash
 
     - name: Commit and push changes
