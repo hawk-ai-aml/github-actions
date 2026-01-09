@@ -133,6 +133,7 @@ runs:
       env:
         GH_TOKEN: ${{ inputs.github-token }}
         REPOSITORY: ${{ github.repository }}
+        NEW_BRANCH: ${{ steps.branch.outputs.branch_name }}
       run: |
         cd ${REPOSITORY}
 
@@ -141,8 +142,8 @@ runs:
         
         echo "Changes detected, creating commit..."
 
-        git checkout -b "${{ steps.branch.outputs.branch_name }}"
-        echo "Created branch: ${{ steps.branch.outputs.branch_name }}"
+        git checkout -b "$NEW_BRANCH"
+        echo "Created branch: $NEW_BRANCH"
         
         git add -A
         git commit -m "Sync environments from kustomize-template
@@ -156,7 +157,8 @@ runs:
         Triggered by: ${{ github.actor }}"
 
         echo "Pushing branch to remote..."
-        git push origin "${{ steps.branch.outputs.branch_name }}"
+        REMOTE=${1:-origin}
+        git push ${REMOTE} "${NEW_BRANCH}"
 #        git push https://x-access-token:${GH_TOKEN}@github.com/${REPOSITORY} "${{ steps.branch.outputs.branch_name }}"
       shell: bash
 
