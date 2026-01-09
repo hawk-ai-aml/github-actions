@@ -30,7 +30,6 @@ runs:
       with:
         repository: ${{ github.repository }}
         ref: pe-5399
-        token: ${{ inputs.github-token }}
         path: ${{ github.repository }}
 
     - name: Copy scripts
