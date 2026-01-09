@@ -31,6 +31,7 @@ runs:
         repository: ${{ github.repository }}
         ref: pe-5399
         token: ${{ inputs.github-token }}
+        path: ${{ github.repository }}
 
     - name: Set up Python
       uses: actions/setup-python@v5
@@ -59,13 +60,15 @@ runs:
       shell: bash
 
     - name: Process environments
+      env:
+        repository: ${{ github.repository }}
       run: |
         set -e
         RED='\033[0;31m'
         GREEN='\033[0;32m'
         
         ls *
-
+        cd ${{ github.repository }}
         echo -e "${GREEN}Processing environment files from properties/static..."
 
         # Track if any changes were made
