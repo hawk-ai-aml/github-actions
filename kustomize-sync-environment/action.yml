@@ -136,8 +136,8 @@ runs:
       run: |
         cd ${REPOSITORY}
 
-        git config --global user.name "github-actions[bot]"
-        git config --global user.email "github-actions[bot]@users.noreply.github.com"
+        git config --global user.name "GitHub Actions"
+        git config --global user.email "github-actions@hawk.ai"
         
         echo "Changes detected, creating commit..."
 
@@ -156,7 +156,8 @@ runs:
         Triggered by: ${{ github.actor }}"
 
         echo "Pushing branch to remote..."
-        git push https://x-access-token:${GH_TOKEN}@github.com/${REPOSITORY} "${{ steps.branch.outputs.branch_name }}"
+        git push origin "${{ steps.branch.outputs.branch_name }}"
+#        git push https://x-access-token:${GH_TOKEN}@github.com/${REPOSITORY} "${{ steps.branch.outputs.branch_name }}"
       shell: bash
 
     - name: Create Pull Request
