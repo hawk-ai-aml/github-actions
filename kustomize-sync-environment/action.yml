@@ -82,10 +82,6 @@ runs:
           # Make the output json into an env format and
           # concat the env file to working directory as .env
           output_file="properties/output/${env_name}.json"
-          echo -e "${GREEN}Content of ${output_file}:"
-          cat ${output_file}
-          echo -e "${GREEN}++++++++++++++++++++++++"
-        
           if [ -f "$output_file" ]; then
             jq -r '[paths(scalars) as $path | {"key": $path | join("."), "value": getpath($path)}] | from_entries | to_entries[] | "\(.key | gsub("[\\.-]"; "_"))=\"\(.value)\""' "$output_file" \
               | fgrep '_value' \
@@ -95,6 +91,10 @@ runs:
             cp "$env_file" .env
           fi
 
+          echo -e "${GREEN}Content of .env"
+          cat .env
+          echo -e "${GREEN}++++++++++++++++++++++++"
+        
           for dir in ${{ inputs.directories }}; do
             if [ -d "$dir" ]; then
               echo "--- Processing platform directory ---"
