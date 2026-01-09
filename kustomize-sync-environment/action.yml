@@ -75,7 +75,7 @@ runs:
               |  sed -E 's/\_value//' \
               | cat - $env_file > .env
           else
-            cp "$env_file" .env
+            cp "$env_file" ${{ github.action_path }}/.env
           fi
           
           
