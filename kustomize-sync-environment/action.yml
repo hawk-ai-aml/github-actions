@@ -73,7 +73,7 @@ runs:
             jq -r '[paths(scalars) as $path | {"key": $path | join("."), "value": getpath($path)}] | from_entries | to_entries[] | "\(.key | gsub("[\\.-]"; "_"))=\"\(.value)\""' "$output_file" \
               | fgrep '_value' \
               |  sed -E 's/\_value//' \
-              | cat - $env_file > .env
+              | cat - $env_file > ${{ github.action_path }}/.env
           else
             cp "$env_file" ${{ github.action_path }}/.env
           fi
