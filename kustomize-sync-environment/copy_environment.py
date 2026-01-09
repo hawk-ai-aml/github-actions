@@ -37,6 +37,10 @@ def copy_and_rename_environment(source_dir: str, new_env_type: str | None, new_e
     if not new_env_region:
         raise ValueError("New environment region is not provided or is empty.")
 
+    print(f"source_dir: {source_dir}")
+    print(f"new_env_type: {new_env_type}")
+    print(f"new_env_region: {new_env_region}")
+
     # Create a temporary copy to avoid partial copies in case of errors
     # and to stage the files for templating
     temp_path = Path(f"/tmp/{path.relative_to(path.parent)}").resolve()    
