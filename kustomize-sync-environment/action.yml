@@ -29,7 +29,7 @@ runs:
       uses: actions/checkout@v4
       with:
         repository: ${{ github.repository }}
-        ref: pe-5399
+        ref: master
         token: ${{ inputs.github-token }}
         path: ${{ github.repository }}
 
