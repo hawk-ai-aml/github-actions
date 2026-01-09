@@ -125,9 +125,11 @@ if __name__ == "__main__":
         sys.exit(1)
     
     source_dir = sys.argv[1]
+    environment_type = sys.argv[2]
+    aws_region = sys.argv[3]
 
     try:
-        copy_and_rename_environment(source_dir, os.environ.get('environment_type'), os.environ.get('aws_region'))
+        copy_and_rename_environment(source_dir, environment_type, aws_region)
         sys.exit(0)
     except Exception as e:
         print(f"\nError: {e}")
