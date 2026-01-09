@@ -5,8 +5,13 @@ inputs:
   environment:
     description: "Environments to sync"
     required: true
+
   directories:
     description: "List of directories to sync environments in (separated by a space)"
+    required: true
+
+  github-token:
+    description: "Access token to GitHub users"
     required: true
 
 runs:
@@ -124,7 +129,7 @@ runs:
     - name: Create Pull Request
       if: env.has_changes == 'true'
       env:
-        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        GH_TOKEN: ${{ inputs.github-token }}
       run: |
         echo "Creating pull request..."
         gh pr create \
