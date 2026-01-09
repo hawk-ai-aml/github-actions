@@ -47,7 +47,7 @@ runs:
     - name: Install Python dependencies
       run: |
         python -m pip install --upgrade pip
-        pip install dotenv envsubst pathlib shutil os
+        pip install dotenv envsubst
       shell: bash
 
     - name: Process environments
