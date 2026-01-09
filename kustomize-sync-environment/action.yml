@@ -82,7 +82,7 @@ runs:
           for dir in ${{ inputs.directories }}; do
             if [ -d "$dir" ]; then
               echo "--- Processing platform directory ---"
-              python3 copy_environment.py "$dir"
+              python3 ${{ github.action_path }}/copy_environment.py "$dir"
               echo "-------------------------------------"
               echo ""
             fi
