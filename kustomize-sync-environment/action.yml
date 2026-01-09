@@ -65,6 +65,7 @@ runs:
         GREEN='\033[0;32m'
         
         cd ${REPOSITORY}
+        ls *
         echo -e "${GREEN}Processing environment files from properties/static..."
 
         # Track if any changes were made
@@ -97,7 +98,7 @@ runs:
           for dir in ${{ inputs.directories }}; do
             if [ -d "$dir" ]; then
               echo "--- Processing platform directory ---"
-              python3 ./github-actions/kustomize-sync-environment/copy_environment.py "$dir"
+              python3 copy_environment.py "$dir"
               echo "-------------------------------------"
               echo ""
             fi
