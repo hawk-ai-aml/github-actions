@@ -93,6 +93,7 @@ runs:
 
           echo -e "${GREEN}Content of .env"
           cat .env
+          echo ""
           echo -e "${GREEN}++++++++++++++++++++++++"
         
           for dir in ${{ inputs.directories }}; do
@@ -129,7 +130,11 @@ runs:
 
     - name: Create feature branch
       id: branch
+      env:
+        REPOSITORY: ${{ github.repository }}
       run: |
+        cd ${REPOSITORY}
+        
         BRANCH_NAME="sync-environments-$(date +%Y%m%d-%H%M%S)"
         git checkout -b "$BRANCH_NAME"
         echo "branch_name=$BRANCH_NAME" >> $GITHUB_OUTPUT
@@ -138,7 +143,11 @@ runs:
 
     - name: Commit and push changes
       if: env.has_changes == 'true'
+      env:
+        REPOSITORY: ${{ github.repository }}
       run: |
+        cd ${REPOSITORY}
+        
         echo "Changes detected, creating commit..."
 
         git add -A
@@ -160,7 +169,10 @@ runs:
       if: env.has_changes == 'true'
       env:
         GH_TOKEN: ${{ inputs.github-token }}
+        REPOSITORY: ${{ github.repository }}
       run: |
+        cd ${REPOSITORY}
+        
         echo "Creating pull request..."
         gh pr create \
           --title "🔄 Sync environment ${{ inputs.environment }} from template" \
@@ -200,7 +212,11 @@ runs:
 
     - name: Cleanup on no changes
       if: env.has_changes == 'false'
+      env:
+        REPOSITORY: ${{ github.repository }}
       run: |
+        cd ${REPOSITORY}
+        
         echo "ℹ️  No changes detected. Cleaning up branch."
         git checkout master
         git branch -D "${{ steps.branch.outputs.branch_name }}" || true
