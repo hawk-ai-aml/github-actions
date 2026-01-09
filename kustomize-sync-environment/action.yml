@@ -8,6 +8,9 @@ inputs:
   directories:
     description: "List of directories to sync environments in (separated by a space)"
     required: true
+  GITHUB_TOKEN:
+    description: "GitHub Token for authentication"
+    required: true
 
 runs:
   using: composite
@@ -21,17 +24,20 @@ runs:
         python-version: '3.11'
 
     - name: Install Python dependencies
+      shell: bash
       run: |
         python -m pip install --upgrade pip
         pip install dotenv envsubst
     
     - name: Configure Git
+      shell: bash
       run: |
         git config --global user.name "github-actions[bot]"
         git config --global user.email "github-actions[bot]@users.noreply.github.com"
     
     - name: Create feature branch
       id: branch
+      shell: bash
       run: |
         BRANCH_NAME="sync-environments-$(date +%Y%m%d-%H%M%S)"
         git checkout -b "$BRANCH_NAME"
@@ -39,6 +45,7 @@ runs:
         echo "Created branch: $BRANCH_NAME"
     
     - name: Process environments
+      shell: bash
       run: |
         set -e
         
@@ -98,6 +105,7 @@ runs:
     
     - name: Commit and push changes
       if: env.has_changes == 'true'
+      shell: bash
       run: |
         
         echo "Changes detected, creating commit..."
@@ -118,8 +126,9 @@ runs:
     
     - name: Create Pull Request
       if: env.has_changes == 'true'
+      shell: bash
       env:
-        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        GH_TOKEN: ${{ inputs.GITHUB_TOKEN }}
       run: |
         echo "Creating pull request..."
         gh pr create \
@@ -159,6 +168,7 @@ runs:
     
     - name: Cleanup on no changes
       if: env.has_changes == 'false'
+      shell: bash
       run: |
         echo "ℹ️  No changes detected. Cleaning up branch."
         git checkout master
