@@ -47,13 +47,7 @@ runs:
     - name: Install Python dependencies
       run: |
         python -m pip install --upgrade pip
-        pip install dotenv envsubst
-      shell: bash
-
-    - name: Configure Git
-      run: |
-        git config --global user.name "github-actions[bot]"
-        git config --global user.email "github-actions[bot]@users.noreply.github.com"
+        pip install dotenv envsubst pathlib shutil os
       shell: bash
 
     - name: Process environments
@@ -65,9 +59,11 @@ runs:
         GREEN='\033[0;32m'
         
         cd ${REPOSITORY}
-        ls *
         echo -e "${GREEN}Processing environment files from properties/static..."
-
+        echo -e "${REPOSITORY} structure:"
+        ls *
+        echo -e "End of structure"
+        
         # Track if any changes were made
         CHANGES_MADE=false
 
@@ -119,6 +115,12 @@ runs:
         else
           echo "has_changes=false" >> $GITHUB_ENV
         fi
+      shell: bash
+
+    - name: Configure Git
+      run: |
+        git config --global user.name "github-actions[bot]"
+        git config --global user.email "github-actions[bot]@users.noreply.github.com"
       shell: bash
 
     - name: Create feature branch
