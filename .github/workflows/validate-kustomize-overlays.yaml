@@ -16,7 +16,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
         with:
-          ref: ${{ inputs.branch || master }}
+          ref: ${{ inputs.branch != '' && inputs.branch || 'master' }}
 
       - name: Validation
         shell: bash
