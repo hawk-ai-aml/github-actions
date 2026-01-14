@@ -6,6 +6,7 @@ on:
         description: "Branch name"
         type: string
         required: false
+        default: "master"
 
 jobs:
   build-image:
@@ -16,7 +17,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
         with:
-          ref: ${{ inputs.branch != '' && inputs.branch || 'master' }}
+          ref: ${{ inputs.branch }}
 
       - name: Validation
         shell: bash
