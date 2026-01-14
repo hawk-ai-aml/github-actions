@@ -6,10 +6,9 @@ to a new environment name.
 
 import os
 import shutil
-import json
 from pathlib import Path
+from shutil import move
 from envsubst import envsubst
-
 def copy_and_rename_environment(source_dir: str, new_env_type: str | None, new_env_region: str | None) -> None:
     """
     Copy a source directory to a destination and rename all 'env' subdirectories
@@ -94,13 +93,19 @@ def copy_and_rename_environment(source_dir: str, new_env_type: str | None, new_e
         if dir.name =='_template':
             template_dirs_found += 1
             new_dir = dir.parent / new_env_type
-            
+            print(f" new_dir = {new_dir}")
+
             try:
-                dir.rename(new_dir)
-                print(f"  Renamed: {dir.relative_to(temp_path)} -> {new_dir.relative_to(temp_path)}")
+                if new_dir.exists():
+                    print(f"  Merging contents of {dir} into existing directory {new_dir}")
+                    for item in dir.iterdir():
+                        move(str(item), str(new_dir))
+                    dir.rmdir()  # Remove the empty source directory
+                else:
+                    dir.rename(new_dir)
+                    print(f"  Renamed: {dir.relative_to(temp_path)} -> {new_dir.relative_to(temp_path)}")
+
                 template_dirs_renamed += 1
-                
-                # Update dirs list to reflect the rename for os.walk
                 
             except Exception as e:
                 print(f"  ERROR renaming {dir}: {e}")
