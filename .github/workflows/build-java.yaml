@@ -34,7 +34,7 @@ on:
         description: "Conduct a vulnerability check using Lacework"
         type: boolean
         required: false
-        default: false
+        default: true
       useSonarCloud:
         description: "Use SonarCloud for code quality checks"
         type: boolean
