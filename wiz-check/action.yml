@@ -49,7 +49,10 @@ runs:
     - name: Install latest Wiz CLI
       shell: bash -l -ET -eo pipefail {0}
       run: |
-        curl -o wizcli https://downloads.wiz.io/v1/wizcli/latest/wizcli-linux-amd64 && chmod +x wizcli
+        mkdir -p $HOME/.local/bin
+        curl -fsSL https://downloads.wiz.io/wizcli/latest/wizcli-linux-amd64 -o $HOME/.local/bin/wizcli
+        chmod +x $HOME/.local/bin/wizcli
+        $HOME/.local/bin/wizcli version
 
     - name: Wiz CLI Auth
       shell: bash -l -ET -eo pipefail {0}
@@ -69,8 +72,8 @@ runs:
         for image in $IMAGES; do
           echo "Scan vulnerabilities for image: $image"
           docker pull $image
-          ./wizcli scan container-image $image --policies "$POLICY"
-          ./wizcli tag $image
+          wizcli scan container-image $image --policies "$POLICY"
+          wizcli tag $image
           echo "-------------------------------"
         done
 
