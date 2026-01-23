@@ -72,7 +72,8 @@ runs:
         for image in $IMAGES; do
           echo "Scan vulnerabilities for image: $image"
           docker pull $image
-          wizcli docker scan --image "$image" --policies "$POLICY"
+          wizcli docker scan --image "$image"
+          wizcli docker scan --policies "$POLICY"
           echo "-------------------------------"
         done
 
