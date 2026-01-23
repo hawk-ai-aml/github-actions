@@ -241,7 +241,7 @@ jobs:
 
       - name: Build Docker Image
         id: build-docker-image
-        if: ${{ github.workflow != 'pr' && inputs.skipDockerBuild == false }}
+        if: ${{ inputs.skipDockerBuild == false }}
         uses: hawk-ai-aml/github-actions/build-docker-image-java@master
         with:
           multiple-modules: "false"
