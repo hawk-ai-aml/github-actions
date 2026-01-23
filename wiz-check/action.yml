@@ -49,10 +49,7 @@ runs:
     - name: Install latest Wiz CLI
       shell: bash -l -ET -eo pipefail {0}
       run: |
-        mkdir -p $HOME/.local/bin
-        curl -fsSL https://downloads.wiz.io/wizcli/latest/wizcli-linux-amd64 -o $HOME/.local/bin/wizcli
-        chmod +x $HOME/.local/bin/wizcli
-        $HOME/.local/bin/wizcli version
+        curl -o wizcli https://downloads.wiz.io/v1/wizcli/latest/wizcli-linux-amd64 && chmod +x wizcli
 
     - name: Wiz CLI Auth
       shell: bash -l -ET -eo pipefail {0}
@@ -65,11 +62,13 @@ runs:
       shell: bash -l -ET -eo pipefail {0}
       env:
         IMAGES: ${{ inputs.images }}
+        POLICY: "BBK vulnerabilities policy"
       run: |        
         for image in $IMAGES; do
           echo "Scan vulnerabilities for image: $image"
           docker pull $image
-          wizcli docker scan --image "$image"
+#          wizcli docker scan --image "$image"
+          ./wizcli scan container-image $image --policies "$POLICY"
           echo "-------------------------------"
         done
 

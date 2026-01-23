@@ -242,7 +242,7 @@ jobs:
       - name: Build Docker Image
         id: build-docker-image
         if: ${{ inputs.skipDockerBuild == false }}
-        uses: hawk-ai-aml/github-actions/build-docker-image-java@master
+        uses: hawk-ai-aml/github-actions/build-docker-image-java@pe-5428
         with:
           multiple-modules: "false"
           module: ${{ inputs.component }}
