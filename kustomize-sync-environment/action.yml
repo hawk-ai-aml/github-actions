@@ -11,6 +11,10 @@ inputs:
   github-token:
     description: "GitHub Token for authentication"
     required: true
+  target-revision:
+    description: "Target revision (branch or commit SHA) to sync from"
+    required: false
+    default: "HEAD"
 
 runs:
   using: composite
@@ -60,6 +64,10 @@ runs:
         if [ -f "$env_file" ]; then
           # Get the base filename (e.g., "sandbox.env")
           filename=$(basename "$env_file")
+
+          # Add target_revision to environment variables
+          echo "" >> $env_file
+          echo "target_revision=${{ inputs.target-revision }}" >> $env_file
           
           echo ""
           echo "=========================================="
