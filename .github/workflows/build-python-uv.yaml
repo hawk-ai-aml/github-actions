@@ -55,11 +55,6 @@ on:
         type: string
         required: false
         default: ""
-      dependencyGroups:
-        description: "Dependency groups to install (comma-separated, e.g., 'dev,test'). Use 'all' for all groups, empty for none."
-        type: string
-        required: false
-        default: "dev"
 
 env:
   UV_VERSION: 0.6.1
@@ -195,15 +190,7 @@ jobs:
           done <<< "${{ inputs.subPackagesDirs }}"
 
       - name: Install dependencies
-        run: |
-          if [ "${{ inputs.dependencyGroups }}" = "all" ]; then
-            uv sync --all-groups
-          elif [ -n "${{ inputs.dependencyGroups }}" ]; then
-            GROUPS=$(echo "${{ inputs.dependencyGroups }}" | tr ',' '\n' | sed 's/^/--group /' | tr '\n' ' ')
-            uv sync $GROUPS
-          else
-            uv sync
-          fi
+        run: uv sync
 
       - name: Lint
         if: inputs.runPreCommit == 'true' && success()
