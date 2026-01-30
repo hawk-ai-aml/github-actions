@@ -55,6 +55,11 @@ on:
         type: string
         required: false
         default: ""
+      dependencyGroups:
+        description: "Dependency groups to install (comma-separated, e.g., 'dev,test'). Use 'all' for all groups, empty for none."
+        type: string
+        required: false
+        default: "dev"
 
 env:
   UV_VERSION: 0.6.1
@@ -155,18 +160,6 @@ jobs:
       - name: Create virtual environment
         run: uv venv
 
-      - name: Install sub-packages (if defined)
-        if: ${{ inputs.subPackagesDirs != '' }}
-        run: |
-          echo "Installing packages:"
-          while read -r package; do
-            if [[ -n "$package" ]]; then
-              resolved_path=$(realpath --relative-to=. "$package")
-              echo "  → $resolved_path"
-              uv pip install -e "$resolved_path"[dev]
-            fi
-          done <<< "${{ inputs.subPackagesDirs }}"
-
       - name: Cache dependencies
         uses: actions/cache@v4
         with:
@@ -188,6 +181,29 @@ jobs:
             echo "Setting credentials for $REPO"
             git config --global url."https://${{ secrets.PY_UTILS_PAT }}@github.com/hawk-ai-aml/${REPO}".insteadOf "https://github.com/hawk-ai-aml/${REPO}"
           done
+
+      - name: Install sub-packages (if defined)
+        if: ${{ inputs.subPackagesDirs != '' }}
+        run: |
+          echo "Installing packages:"
+          while read -r package; do
+            if [[ -n "$package" ]]; then
+              resolved_path=$(realpath --relative-to=. "$package")
+              echo "  → $resolved_path"
+              uv pip install -e "$resolved_path"[dev]
+            fi
+          done <<< "${{ inputs.subPackagesDirs }}"
+
+      - name: Install dependencies
+        run: |
+          if [ "${{ inputs.dependencyGroups }}" = "all" ]; then
+            uv sync --all-groups
+          elif [ -n "${{ inputs.dependencyGroups }}" ]; then
+            GROUPS=$(echo "${{ inputs.dependencyGroups }}" | tr ',' '\n' | sed 's/^/--group /' | tr '\n' ' ')
+            uv sync $GROUPS
+          else
+            uv sync
+          fi
 
       - name: Lint
         if: inputs.runPreCommit == 'true' && success()
