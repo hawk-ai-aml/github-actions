@@ -31,7 +31,7 @@ on:
         type: string
         required: false
       vulnerabilityCheck:
-        description: "Conduct a vulnerability check using Lacework"
+        description: "Conduct a vulnerability check using Wiz"
         type: boolean
         required: false
         default: false
