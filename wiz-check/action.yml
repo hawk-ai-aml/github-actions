@@ -46,30 +46,26 @@ runs:
       with:
         registries: ${{ inputs.ecr-registry-code }}
 
-    - name: Install latest Wiz CLI
+    - name: Install Wiz CLI
       shell: bash -l -ET -eo pipefail {0}
       run: |
-        mkdir -p $HOME/.local/bin
-        curl -fsSL https://downloads.wiz.io/wizcli/latest/wizcli-linux-amd64 -o $HOME/.local/bin/wizcli
-        chmod +x $HOME/.local/bin/wizcli
-        $HOME/.local/bin/wizcli version
-
-    - name: Wiz CLI Auth
-      shell: bash -l -ET -eo pipefail {0}
-      env:
-        WIZ_CLIENT_ID: ${{ inputs.wiz-client-id }}
-        WIZ_CLIENT_SECRET: ${{ inputs.wiz-client-secret }}
-      run: wizcli auth
+        curl -o wizcli https://downloads.wiz.io/v1/wizcli/latest/wizcli-linux-amd64
+        chmod +x wizcli
+        sudo mv wizcli /usr/local/bin/
+        wizcli version
 
     - name: Scan Docker image with Wiz
       shell: bash -l -ET -eo pipefail {0}
       env:
         IMAGES: ${{ inputs.images }}
+        POLICIES: "BBK vulnerabilities policy"
+        WIZ_CLIENT_ID: ${{ inputs.wiz-client-id }}
+        WIZ_CLIENT_SECRET: ${{ inputs.wiz-client-secret }}
       run: |        
         for image in $IMAGES; do
           echo "Scan vulnerabilities for image: $image"
           docker pull $image
-          wizcli docker scan --image "$image"
+          wizcli scan container-image "$image" --policies "$POLICIES" --client-id "$WIZ_CLIENT_ID" --client-secret "$WIZ_CLIENT_SECRET"
           echo "-------------------------------"
         done
 
