@@ -192,6 +192,15 @@ jobs:
       - name: Install dependencies
         run: uv sync
 
+      - name: Run project checks (if available)
+        run: |
+          if grep -q "^check:" Makefile 2>/dev/null; then
+            echo "Found 'check' target in Makefile, running..."
+            make check
+          else
+            echo "No 'check' target in Makefile, skipping"
+          fi
+
       - name: Lint
         if: inputs.runPreCommit == 'true' && success()
         run: |
