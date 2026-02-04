@@ -58,14 +58,14 @@ runs:
       shell: bash -l -ET -eo pipefail {0}
       env:
         IMAGES: ${{ inputs.images }}
-        POLICIES: "BBK vulnerabilities policy"
+        POLICIES: "default"
         WIZ_CLIENT_ID: ${{ inputs.wiz-client-id }}
         WIZ_CLIENT_SECRET: ${{ inputs.wiz-client-secret }}
       run: |        
         for image in $IMAGES; do
           echo "Scan vulnerabilities for image: $image"
           docker pull $image
-          wizcli scan container-image "$image" --client-id "$WIZ_CLIENT_ID" --client-secret "$WIZ_CLIENT_SECRET"
+          wizcli scan container-image "$image" --policies "$POLICIES" --client-id "$WIZ_CLIENT_ID" --client-secret "$WIZ_CLIENT_SECRET"
           echo "-------------------------------"
         done
 
