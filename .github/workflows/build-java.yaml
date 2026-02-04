@@ -293,7 +293,7 @@ jobs:
           echo "images=$DOCKER_IMAGES" >> $GITHUB_OUTPUT
 
       - name: Scan Docker image for vulnerabilities
-        uses: hawk-ai-aml/github-actions/wiz-check@master
+        uses: hawk-ai-aml/github-actions/wiz-check@wiz-default-policy
         with:
           ecr-region: ${{ needs.init.outputs.ecr-region }}
           ecr-registry-code: ${{ needs.init.outputs.ecr-registry-code }}
