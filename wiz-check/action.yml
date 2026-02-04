@@ -65,7 +65,7 @@ runs:
         for image in $IMAGES; do
           echo "Scan vulnerabilities for image: $image"
           docker pull $image
-          wizcli scan container-image "$image" --policies "$POLICIES" --client-id "$WIZ_CLIENT_ID" --client-secret "$WIZ_CLIENT_SECRET"
+          wizcli scan container-image "$image" --client-id "$WIZ_CLIENT_ID" --client-secret "$WIZ_CLIENT_SECRET"
           echo "-------------------------------"
         done
 
