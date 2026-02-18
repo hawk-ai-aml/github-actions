@@ -202,7 +202,7 @@ jobs:
           fi
 
       - name: Lint
-        if: inputs.runPreCommit == 'true' && success()
+        if: inputs.runPreCommit && success()
         run: |
           uv run pre-commit run --all-files
 
