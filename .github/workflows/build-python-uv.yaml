@@ -239,6 +239,37 @@ jobs:
           sonarToken: ${{ secrets.SONAR_TOKEN }}
           sonarHostUrl: ${{ secrets.SONAR_HOST_URL }}
 
+      - name: Cleanup workspace
+        run: |
+          echo "Current disk usage:"
+          df -h /
+          
+          echo "Cleaning up caches..."
+          uv cache clean
+          rm -rf ~/.cache/uv
+
+          echo "Current disk usage:"
+          df -h /
+
+          echo "Removing app cache"
+          rm -rf cache_dir
+          rm -rf tests/cache_dir
+
+          echo "Current disk usage:"
+          df -h /
+
+          echo "Pruning all unused Docker data (images, build cache, networks, etc.)..."
+          docker system prune -a --volumes -f || true
+
+          echo "Current disk usage"
+          df -h /
+
+          echo "Clear random stuff"
+          sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /opt/hostedtoolcache/CodeQL
+
+          echo "Current disk usage"
+          df -h /
+
       - name: Get ECR info
         id: ecr-info
         env:
