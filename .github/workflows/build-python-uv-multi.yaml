@@ -1,0 +1,409 @@
+name: build
+
+on:
+  workflow_call:
+    inputs:
+      updateKustomize:
+        description: "Update kustomize overlays"
+        type: boolean
+        required: false
+      skipTests:
+        description: "Skip extended testing (unit and other tests), only build artifacts"
+        type: boolean
+        required: false
+        default: false
+      runPreCommit:
+        description: "Run pre-commit to lint the entire repository"
+        type: boolean
+        required: false
+        default: false
+      kustomizeOverlays:
+        description: "The indicated overlays (dev, test, qa, prod)"
+        type: string
+        required: false
+      skipDockerBuild:
+        description: "Skip the build process"
+        type: boolean
+        required: false
+        default: false
+      component:
+        description: "Name of the repository"
+        type: string
+        required: false
+      vulnerabilityCheck:
+        description: "Conduct a vulnerability check using Wiz"
+        type: boolean
+        required: false
+        default: false
+      useSonarCloud:
+        description: "Use SonarCloud for code quality checks"
+        type: boolean
+        required: false
+        default: true
+      blockPullRequestIfSonarFails:
+        description: "Block the pull request if SonarCloud check fails"
+        type: boolean
+        required: false
+        default: false
+      caller-workflow-type:
+        type: string
+        required: true
+      authorizedRepos:
+        description: "Authorized private repositories"
+        type: string
+        required: false
+        default: ""
+      jira-label-prefix:
+        type: string
+        required: false
+        default: ""
+
+env:
+  UV_VERSION: 0.6.1
+
+defaults:
+  run:
+    shell: bash -l -ET -eo pipefail {0}
+
+jobs:
+  init:
+    runs-on: ["self-hosted", "small-builder"]
+    outputs:
+      overlays: ${{ steps.init.outputs.overlays }}
+      update-kustomize: ${{ steps.init.outputs.update-kustomize }}
+      skip-tests: ${{ steps.init.outputs.skip-tests }}
+      image-tag: ${{ steps.init.outputs.image-tag }}
+      ecr-url: ${{ steps.init.outputs.ecr-url }}
+      kustomize-modules: ${{ steps.init.outputs.kustomize-modules }}
+      kustomize-modules-string: ${{ steps.init.outputs.kustomize-modules-string }}
+      ecr-images: ${{ steps.init.outputs.ecr-images }}
+      ecr-registry-code: ${{ steps.init.outputs.ecr-registry-code }}
+      ecr-region: ${{ steps.init.outputs.ecr-region }}
+      metadata: ${{ steps.init.outputs.metadata }}
+      updated-modules: ${{ steps.detect-changes.outputs.updated-modules }}
+      updated-modules-string: ${{ steps.detect-changes.outputs.updated-modules-string }}
+      custom-tags: ${{ steps.custom-tags.outputs.custom_tags }}
+      use-sonarcloud: ${{ steps.init.outputs.use-sonarcloud }}
+      authorized-repos: ${{ steps.init.outputs.authorized-repos }}
+
+    steps:
+      - id: init
+        name: Init workflow
+        uses: hawk-ai-aml/github-actions/workflow-init@master
+        with:
+          skip-tests: ${{ inputs.skipTests }}
+          update-kustomize: ${{ inputs.updateKustomize }}
+          overlays: ${{ inputs.kustomizeOverlays }}
+          repository-name: hawk-ai-aml/${{ inputs.component }}
+          repository-ref: ${{ env.GITHUB_REF_NAME }}
+          repository-access-token: ${{ secrets.REPO_ACCESS_PAT }}
+          use-sonarcloud: ${{ inputs.useSonarCloud }}
+          authorized-repos: ${{ inputs.authorizedRepos }}
+
+      - id: detect-changes
+        name: Detect changes
+        uses: hawk-ai-aml/github-actions/repository-detect-changes@master
+        with:
+          repository: hawk-ai-aml/${{ inputs.component }}
+          repository-ref: ${{ env.GITHUB_REF_NAME }}
+          repository-user: ${{ secrets.RECREATE_DEVELOP_GITHUB_USER }}
+          repository-access-token: ${{ secrets.REPO_ACCESS_PAT }}
+          modules-string: ${{ steps.init.outputs.kustomize-modules-string }}
+
+      - id: custom-tags
+        name: Generate a list of Docker tags for all modules
+        env:
+          ECR_REPOSITORIES: ${{ steps.init.outputs.ecr-repositories }}
+          IMAGE_TAG: ${{ steps.init.outputs.image-tag }}
+        run: |
+          CUSTOM_TAGS=""
+          for repo in $ECR_REPOSITORIES; do
+            NEW_TAG=${repo}-${IMAGE_TAG}
+            CUSTOM_TAGS="$CUSTOM_TAGS $NEW_TAG"
+          done
+          echo "custom_tags=$CUSTOM_TAGS" >> $GITHUB_OUTPUT
+
+      - name: Update Jira ticket labels
+        if: ${{ github.workflow == 'pr' }}
+        uses: hawk-ai-aml/github-actions/update-jira-ticket-label@master
+        continue-on-error: true
+        with:
+          repository: ${{ inputs.component }}
+          github-branch: ${{ github.head_ref }}
+          pr-title: ${{ github.event.pull_request.title }}
+          modules-string: ${{ steps.detect-changes.outputs.updated-modules-string }}
+          multiple-modules: "true"
+          label-prefix: ${{ inputs.jira-label-prefix }}
+          jira-user: ${{ secrets.JIRA_ACCOUNT_NAME }}
+          jira-token: ${{ secrets.JIRA_TOKEN }}
+
+  build:
+    needs: init
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        module: ${{ fromJson(needs.init.outputs.updated-modules) }}
+
+    steps:
+      - name: Checkout master
+        uses: actions/checkout@v4
+        with:
+          ref: master
+          fetch-depth: 1000
+          persist-credentials: ${{ needs.init.outputs.authorized-repos == '' }}
+
+      - name: Checkout current branch
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ env.GITHUB_REF_NAME }}
+          fetch-depth: 1000
+          persist-credentials: ${{ needs.init.outputs.authorized-repos == '' }}
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ fromJson(needs.init.outputs.metadata).python-version }}
+
+      - name: Install uv
+        run: pipx install uv==${{ env.UV_VERSION }}
+
+      - name: Create virtual environment
+        run: uv venv
+
+      - name: Cache dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/uv
+          key: ${{ runner.os }}-uv-${{ hashFiles('**/uv.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-uv-
+
+      - name: Authorize to GCP
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCP_CLOUD_STORAGE_SERVICE_ACCOUNT_KEY }}
+
+      - name: Authorize uv
+        if: needs.init.outputs.authorized-repos != ''
+        run: |
+          IFS=',' read -ra REPOS <<< "${{ needs.init.outputs.authorized-repos }}"
+          for REPO in "${REPOS[@]}"; do
+            echo "Setting credentials for $REPO"
+            git config --global url."https://${{ secrets.PY_UTILS_PAT }}@github.com/hawk-ai-aml/${REPO}".insteadOf "https://github.com/hawk-ai-aml/${REPO}"
+          done
+
+      - name: Install dependencies
+        run: uv sync
+
+      - name: Lint
+        if: inputs.runPreCommit && success()
+        run: |
+          uv run pre-commit run --all-files
+
+      - name: Run tests for module
+        if: needs.init.outputs.skip-tests != 'true' && success()
+        env:
+          SCHEMA_REGISTRY_URL: "http://internal-aed0c439480b011ea821006d55bdfaa3-2040159056.eu-central-1.elb.amazonaws.com:8081"
+          KAFKA_SERVICE: "kafka-service:9092"
+          KAFKA_CONSUMER_THREADS: 1
+          KAFKA_AUTO_OFFSET_RESET: "latest"
+          FILES_STORAGE: "files.dev.aml-ai.net"
+          APP_CONFIG_YAML_PATH: "tests"
+        run: |
+          uv run pytest \
+            --config-file=${{ matrix.module }}/pytest.ini \
+            tests/${{ matrix.module }}
+
+      - name: Generate reports for module
+        if: needs.init.outputs.skip-tests != 'true' && (success() || failure())
+        working-directory: ${{ matrix.module }}
+        run: |
+          uv run junit2html report.xml report.html
+          mkdir report-dir && mv report.html ./report-dir/report.html
+
+      - name: Upload reports to S3 for module
+        if: needs.init.outputs.skip-tests != 'true' && (success() || failure())
+        uses: hawk-ai-aml/github-actions/upload-to-s3@master
+        with:
+          module: ${{ matrix.module }}
+          aws_access_key_id: ${{ secrets.AWS_DEV_ACCESS_KEY_ID }}
+          aws_secret_access_key: ${{ secrets.AWS_DEV_SECRET_ACCESS_KEY }}
+          aws_bucket: github-actions-static-html-2
+          source_dir: ${{ matrix.module }}/report-dir
+          destination_dir: ${{ github.event.repository.name }}-${{ matrix.module }}-${{ github.run_id }}
+
+      - name: SonarCloud scan
+        if: needs.init.outputs.skip-tests != 'true' && (success() || failure()) && inputs.useSonarCloud
+        uses: hawk-ai-aml/github-actions/sonarqube@master
+        with:
+          args: >
+            -Dsonar.python.version=${{ fromJson(needs.init.outputs.metadata).python-version }}
+          projectBaseDir: ${{ matrix.module }}/
+          sonarToken: ${{ secrets.SONAR_TOKEN }}
+          sonarHostUrl: ${{ secrets.SONAR_HOST_URL }}
+
+      - name: Cleanup workspace
+        run: |
+          echo "Current disk usage:"
+          df -h /
+
+          echo "Cleaning up caches..."
+          uv cache clean
+          rm -rf ~/.cache/uv
+
+          echo "Current disk usage:"
+          df -h /
+
+          echo "Pruning all unused Docker data (images, build cache, networks, etc.)..."
+          docker system prune -a --volumes -f || true
+
+          echo "Current disk usage:"
+          df -h /
+
+          echo "Clear random stuff"
+          sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /opt/hostedtoolcache/CodeQL
+
+          echo "Current disk usage:"
+          df -h /
+
+      - name: Get ECR info
+        id: ecr-info
+        env:
+          METADATA: ${{ needs.init.outputs.metadata }}
+          CUSTOM_TAGS: ${{ needs.init.outputs.custom-tags }}
+          MODULE: ${{ matrix.module }}
+          KUSTOMIZE_OVERLAYS: ${{ inputs.kustomizeOverlays }}
+        run: |
+          MODULE_ECR_REPO=$(echo "${METADATA}" | jq -cr --arg MODULE "${{ matrix.module }}" '.modules[$MODULE].ecr.repository')
+          echo "MODULE_ECR_REPO=$MODULE_ECR_REPO"
+
+          echo "CUSTOM_TAGS=$CUSTOM_TAGS"
+          if [[ "$MODULE" == *"_"* ]]; then
+            MODULE="${MODULE//_/-}"
+          fi
+
+          if [[ $KUSTOMIZE_OVERLAYS == "prod" ]]; then
+            MATCHED_TAG=$(echo "$CUSTOM_TAGS" | tr ' ' '\n' | grep "^$MODULE-[0-9]"  | head -n 1 || true)
+          else
+            MATCHED_TAG=$(echo "$CUSTOM_TAGS" | tr ' ' '\n' | grep -E "(^|[-])${MODULE}([-]|$)" | head -n 1 || true)
+          fi
+          if [[ -z "$MATCHED_TAG" ]]; then
+            MATCHED_TAG="${CUSTOM_TAGS// /}"
+          fi
+          echo "matched_tag=$MATCHED_TAG" >> $GITHUB_OUTPUT
+          echo "module_ecr_repo=$MODULE_ECR_REPO" >> $GITHUB_OUTPUT
+
+      - name: Build and tag images
+        if: ${{ github.workflow != 'pr' && steps.ecr-info.outputs.module_ecr_repo != 'null' && inputs.skipDockerBuild == false }}
+        uses: hawk-ai-aml/github-actions/build-docker-image-python@master
+        with:
+          multiple-modules: "true"
+          module: ${{ matrix.module }}
+          image-tag: ${{ needs.init.outputs.image-tag }}
+          custom-image-tag: ${{ steps.ecr-info.outputs.matched_tag }}
+          kustomize-overlays: ${{ inputs.kustomizeOverlays }}
+          ecr-registry: ${{ steps.login-ecr.outputs.registry }}
+          ecr-repository: ${{ fromJson(needs.init.outputs.metadata).ecr.repository }}
+          hawk-platform-repository: "hawk-platform"
+          aws-org-ecr-access-key-id: ${{ secrets.AWS_ORG_ECR_ACCESS_KEY_ID }}
+          aws-org-ecr-secret-access-key: ${{ secrets.AWS_ORG_ECR_SECRET_ACCESS_KEY }}
+          ecr-region: ${{ needs.init.outputs.ecr-region }}
+          ecr-registry-code: ${{ needs.init.outputs.ecr-registry-code }}
+          py-utils-pat: ${{ secrets.PY_UTILS_PAT }}
+
+      - name: Check if SonarCloud code analysis has passed
+        if: needs.init.outputs.skip-tests != 'true' && (success() || failure()) && inputs.useSonarCloud && inputs.blockPullRequestIfSonarFails
+        env:
+          PR_NUMBER: ${{ github.event.number }}
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
+          SONAR_ORGANIZATION: ${{ secrets.SONAR_ORGANIZATION }}
+        run: |
+          PROJECT_KEY=$(grep '^sonar.projectKey=' sonar-project.properties | cut -d '=' -f 2)
+          RESPONSE=$(curl -s -H 'Authorization: Bearer ${{env.SONAR_TOKEN}}' ${{env.SONAR_HOST_URL}}/api/qualitygates/project_status?projectKey=${PROJECT_KEY}\&pullRequest=${{env.PR_NUMBER}})
+          STATUS=$(echo $RESPONSE | jq -r '.projectStatus.status')
+
+          echo "SonarQuality status: $STATUS"
+
+          if [ "$STATUS" == "OK" ]; then
+            exit 0
+          else
+            exit 1
+          fi
+
+  check-if-all-builds-passed:
+    if: always()
+    needs: [build]
+    runs-on: ["self-hosted", "small-builder"]
+    steps:
+      - name: Check build job failure
+        if: ${{ needs.build.result == 'failure' }}
+        run: exit 1
+
+      - name: Check build job success
+        if: ${{ needs.build.result == 'success' }}
+        run: exit 0
+
+      - name: Slack notification for failed build status
+        uses: hawk-ai-aml/github-actions/send-slack-notification@master
+        if: failure()
+        with:
+          notify-pr-author: true
+          slack-message: ":x: Your build failed. Please check the reason for it."
+          slack-access-token: ${{ secrets.SLACK_RELEASE_BOT_ACCESS_TOKEN }}
+          github-users-access-token: ${{ secrets.USER_GITHUB_ACCESS }}
+
+  vulnerability-check-run:
+    if: ${{ inputs.vulnerabilityCheck == true }}
+    needs: [init, build]
+    runs-on: ["self-hosted", "small-builder"]
+
+    steps:
+      - name: Collect Docker images
+        id: docker-images
+        env:
+          ECR_IMAGES: ${{ needs.init.outputs.ecr-images }}
+          IMAGE_TAG: ${{ needs.init.outputs.image-tag }}
+        run: |
+          IMAGES=$(echo "$ECR_IMAGES" | jq -r '.[]')
+          DOCKER_IMAGES=""
+          for img in $IMAGES; do
+            DOCKER_IMAGES+="${img}:${IMAGE_TAG} "
+          done
+          DOCKER_IMAGES="${DOCKER_IMAGES%" "}"
+          echo "images=$DOCKER_IMAGES" >> $GITHUB_OUTPUT
+
+      - name: Scan Docker image for vulnerabilities
+        uses: hawk-ai-aml/github-actions/wiz-check@master
+        with:
+          ecr-region: ${{ needs.init.outputs.ecr-region }}
+          ecr-registry-code: ${{ needs.init.outputs.ecr-registry-code }}
+          images: ${{ steps.docker-images.outputs.images }}
+          aws-access-key-id: ${{ secrets.AWS_ORG_ECR_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_ORG_ECR_SECRET_ACCESS_KEY }}
+          wiz-client-id: ${{ secrets.WIZ_CLIENT_ID }}
+          wiz-client-secret: ${{ secrets.WIZ_CLIENT_SECRET }}
+
+  update-overlays:
+    needs: [init, build]
+    if: ${{ needs.init.outputs.update-kustomize == 'true' && github.workflow != 'pr' }}
+    runs-on: ["self-hosted", "small-builder"]
+
+    steps:
+      - name: Update kustomize overlay
+        uses: hawk-ai-aml/github-actions/kustomize-overlay@master
+        with:
+          slack-access-token: ${{ secrets.SLACK_RELEASE_BOT_ACCESS_TOKEN }}
+          github-users-access-token: ${{ secrets.USER_GITHUB_ACCESS }}
+          overlays: ${{ needs.init.outputs.overlays }}
+          kustomize-overlays: ${{ inputs.kustomizeOverlays }}
+          modules: ${{ needs.init.outputs.updated-modules-string }}
+          component-name: ${{ inputs.component }}
+          component-tag: ${{ needs.init.outputs.image-tag }}
+          component-custom-tags: ${{ needs.init.outputs.custom-tags }}
+          kustomize-repo: hawk-ai-aml/kustomize.git
+          kustomize-access-token: ${{ secrets.REPO_ACCESS_PAT }}
+          ecr-region: ${{ needs.init.outputs.ecr-region }}
+          ecr-registry-code: ${{ needs.init.outputs.ecr-registry-code }}
+          metadata: ${{ needs.init.outputs.metadata }}
