@@ -206,7 +206,14 @@ jobs:
           done
 
       - name: Install dependencies
-        run: uv sync
+        run: |
+          if [ "${{ steps.cache-venv.outputs.cache-hit }}" == "true" ]; then
+            echo "venv restored from cache, skipping workspace package builds"
+            uv sync --no-install-workspace
+          else
+            echo "No venv cache, running full sync"
+            uv sync
+          fi
 
       - name: Install sub-packages (if defined)
         if: ${{ inputs.subPackagesDirs != '' }}
