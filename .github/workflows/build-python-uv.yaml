@@ -145,6 +145,7 @@ jobs:
           persist-credentials: ${{ needs.init.outputs.authorized-repos == '' }}
 
       - name: Set up Python
+        id: setup-python
         uses: actions/setup-python@v5
         with:
           python-version: ${{ fromJson(needs.init.outputs.metadata).python-version }}
@@ -152,7 +153,7 @@ jobs:
       - name: Install uv
         run: pipx install uv==${{ env.UV_VERSION }}
 
-      - name: Cache dependencies
+      - name: Cache uv download cache
         id: cache-uv
         uses: actions/cache@v4
         with:
@@ -161,18 +162,31 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-uv-
 
+      - name: Cache virtual environment
+        id: cache-venv
+        uses: actions/cache@v4
+        with:
+          path: .venv
+          key: ${{ runner.os }}-venv-py${{ steps.setup-python.outputs.python-version }}-${{ hashFiles('uv.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-venv-py${{ steps.setup-python.outputs.python-version }}-
+
       - name: Debug cache status
         run: |
-          echo "Cache hit: ${{ steps.cache-uv.outputs.cache-hit }}"
-          echo "Cache key: ${{ runner.os }}-uv-${{ hashFiles('uv.lock') }}"
+          echo "uv cache hit: ${{ steps.cache-uv.outputs.cache-hit }}"
+          echo "venv cache hit: ${{ steps.cache-venv.outputs.cache-hit }}"
           echo "uv.lock hash: ${{ hashFiles('uv.lock') }}"
           if [ -d ~/.cache/uv ]; then
-            echo "Cache directory exists, size: $(du -sh ~/.cache/uv 2>/dev/null || echo 'unknown')"
+            echo "uv cache size: $(du -sh ~/.cache/uv 2>/dev/null || echo 'unknown')"
+          fi
+          if [ -d .venv ]; then
+            echo "venv exists, size: $(du -sh .venv 2>/dev/null || echo 'unknown')"
           else
-            echo "Cache directory does not exist"
+            echo "venv does not exist"
           fi
 
       - name: Create virtual environment
+        if: steps.cache-venv.outputs.cache-hit != 'true'
         run: uv venv
 
       - name: Authorize to GCP
