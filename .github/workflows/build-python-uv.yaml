@@ -152,16 +152,28 @@ jobs:
       - name: Install uv
         run: pipx install uv==${{ env.UV_VERSION }}
 
-      - name: Create virtual environment
-        run: uv venv
-
       - name: Cache dependencies
+        id: cache-uv
         uses: actions/cache@v4
         with:
           path: ~/.cache/uv
-          key: ${{ runner.os }}-uv-${{ hashFiles('**/uv.lock') }}
+          key: ${{ runner.os }}-uv-${{ hashFiles('uv.lock') }}
           restore-keys: |
             ${{ runner.os }}-uv-
+
+      - name: Debug cache status
+        run: |
+          echo "Cache hit: ${{ steps.cache-uv.outputs.cache-hit }}"
+          echo "Cache key: ${{ runner.os }}-uv-${{ hashFiles('uv.lock') }}"
+          echo "uv.lock hash: ${{ hashFiles('uv.lock') }}"
+          if [ -d ~/.cache/uv ]; then
+            echo "Cache directory exists, size: $(du -sh ~/.cache/uv 2>/dev/null || echo 'unknown')"
+          else
+            echo "Cache directory does not exist"
+          fi
+
+      - name: Create virtual environment
+        run: uv venv
 
       - name: Authorize to GCP
         uses: google-github-actions/auth@v2
@@ -177,6 +189,9 @@ jobs:
             git config --global url."https://${{ secrets.PY_UTILS_PAT }}@github.com/hawk-ai-aml/${REPO}".insteadOf "https://github.com/hawk-ai-aml/${REPO}"
           done
 
+      - name: Install dependencies
+        run: uv sync
+
       - name: Install sub-packages (if defined)
         if: ${{ inputs.subPackagesDirs != '' }}
         run: |
@@ -188,9 +203,6 @@ jobs:
               uv pip install -e "$resolved_path"[dev]
             fi
           done <<< "${{ inputs.subPackagesDirs }}"
-
-      - name: Install dependencies
-        run: uv sync
 
       - name: Lint
         if: inputs.runPreCommit == 'true' && success()
