@@ -12,6 +12,11 @@ on:
         type: boolean
         required: false
         default: false
+      runPreCommit:
+        description: "Run pre-commit to lint the entire repository"
+        type: boolean
+        required: false
+        default: false
       kustomizeOverlays:
         description: "The indicated overlays (dev, test, qa, prod)"
         type: string
@@ -21,12 +26,6 @@ on:
         type: boolean
         required: false
         default: false
-      ecr-prefix:
-        type: string
-        required: false
-      caller-workflow-type:
-        type: string
-        required: true
       component:
         description: "Name of the repository"
         type: string
@@ -46,23 +45,21 @@ on:
         type: boolean
         required: false
         default: false
-      buildRustLibraries:
-        description: "Build rust libraries into python"
-        type: boolean
+      caller-workflow-type:
+        type: string
+        required: true
+      authorizedRepos:
+        description: "Authorized private repositories"
+        type: string
         required: false
-        default: false
-      disableDockerBuildCache:
-        description: "Disable Docker build cache"
-        type: boolean
-        required: false
-        default: false
+        default: ""
       jira-label-prefix:
         type: string
         required: false
         default: ""
 
 env:
-  POETRY_VERSION: 1.8.4
+  UV_VERSION: 0.6.1
 
 defaults:
   run:
@@ -70,7 +67,7 @@ defaults:
 
 jobs:
   init:
-    runs-on: [ "self-hosted", "small-builder" ]
+    runs-on: ["self-hosted", "small-builder"]
     outputs:
       overlays: ${{ steps.init.outputs.overlays }}
       update-kustomize: ${{ steps.init.outputs.update-kustomize }}
@@ -86,6 +83,8 @@ jobs:
       updated-modules: ${{ steps.detect-changes.outputs.updated-modules }}
       updated-modules-string: ${{ steps.detect-changes.outputs.updated-modules-string }}
       custom-tags: ${{ steps.custom-tags.outputs.custom_tags }}
+      use-sonarcloud: ${{ steps.init.outputs.use-sonarcloud }}
+      authorized-repos: ${{ steps.init.outputs.authorized-repos }}
 
     steps:
       - id: init
@@ -98,6 +97,8 @@ jobs:
           repository-name: hawk-ai-aml/${{ inputs.component }}
           repository-ref: ${{ env.GITHUB_REF_NAME }}
           repository-access-token: ${{ secrets.REPO_ACCESS_PAT }}
+          use-sonarcloud: ${{ inputs.useSonarCloud }}
+          authorized-repos: ${{ inputs.authorizedRepos }}
 
       - id: detect-changes
         name: Detect changes
@@ -136,7 +137,6 @@ jobs:
           jira-user: ${{ secrets.JIRA_ACCOUNT_NAME }}
           jira-token: ${{ secrets.JIRA_TOKEN }}
 
-
   build:
     needs: init
     runs-on: ubuntu-latest
@@ -150,67 +150,80 @@ jobs:
         uses: actions/checkout@v4
         with:
           ref: master
-          # From SonarCloud Scan GitHub Action
-          # Disabling shallow clone is recommended for improving relevancy of reporting
           fetch-depth: 1000
+          persist-credentials: ${{ needs.init.outputs.authorized-repos == '' }}
 
       - name: Checkout current branch
         uses: actions/checkout@v4
         with:
           ref: ${{ env.GITHUB_REF_NAME }}
-          # From SonarCloud Scan GitHub Action
-          # Disabling shallow clone is recommended for improving relevancy of reporting
           fetch-depth: 1000
-
-      - name: Install Poetry
-        run: pipx install "poetry==${{ env.POETRY_VERSION }}"
+          persist-credentials: ${{ needs.init.outputs.authorized-repos == '' }}
 
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: ${{ fromJson(needs.init.outputs.metadata).python-version }}
-          cache: poetry
+
+      - name: Install uv
+        run: pipx install uv==${{ env.UV_VERSION }}
+
+      - name: Create virtual environment
+        run: uv venv
+
+      - name: Cache dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/uv
+          key: ${{ runner.os }}-uv-${{ hashFiles('**/uv.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-uv-
 
       - name: Authorize to GCP
         uses: google-github-actions/auth@v2
         with:
           credentials_json: ${{ secrets.GCP_CLOUD_STORAGE_SERVICE_ACCOUNT_KEY }}
 
-      - name: Authorize Poetry
-        run: scripts/authorize_poetry.sh
-        env:
-          PY_UTILS_PAT: ${{ secrets.PY_UTILS_PAT }}
+      - name: Authorize uv
+        if: needs.init.outputs.authorized-repos != ''
+        run: |
+          IFS=',' read -ra REPOS <<< "${{ needs.init.outputs.authorized-repos }}"
+          for REPO in "${REPOS[@]}"; do
+            echo "Setting credentials for $REPO"
+            git config --global url."https://${{ secrets.PY_UTILS_PAT }}@github.com/hawk-ai-aml/${REPO}".insteadOf "https://github.com/hawk-ai-aml/${REPO}"
+          done
 
       - name: Install dependencies
-        run: poetry install
+        run: uv sync
 
-      - name: Build Rust libraries
-        if: ${{ inputs.buildRustLibraries == true }}
-        run: source scripts/build_rust_libraries.sh
-        env:
-          PY_UTILS_PAT: ${{ secrets.PY_UTILS_PAT }}
+      - name: Lint
+        if: inputs.runPreCommit && success()
+        run: |
+          uv run pre-commit run --all-files
 
       - name: Run tests for module
-        if: inputs.skipTests != true && (success() || failure())
+        if: needs.init.outputs.skip-tests != 'true' && success()
         env:
-          JENKINS: true
-          IS_JENKINS: true
-          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_DEV_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_DEV_SECRET_ACCESS_KEY }}
+          SCHEMA_REGISTRY_URL: "http://internal-aed0c439480b011ea821006d55bdfaa3-2040159056.eu-central-1.elb.amazonaws.com:8081"
+          KAFKA_SERVICE: "kafka-service:9092"
+          KAFKA_CONSUMER_THREADS: 1
+          KAFKA_AUTO_OFFSET_RESET: "latest"
+          FILES_STORAGE: "files.dev.aml-ai.net"
+          APP_CONFIG_YAML_PATH: "tests"
         run: |
-          poetry run pytest \
+          uv run pytest \
             --config-file=${{ matrix.module }}/pytest.ini \
             tests/${{ matrix.module }}
 
       - name: Generate reports for module
-        if: inputs.skipTests != true && (success() || failure())
+        if: needs.init.outputs.skip-tests != 'true' && (success() || failure())
         working-directory: ${{ matrix.module }}
         run: |
-          poetry run junit2html report.xml report.html
+          uv run junit2html report.xml report.html
           mkdir report-dir && mv report.html ./report-dir/report.html
 
       - name: Upload reports to S3 for module
-        if: inputs.skipTests != true && (success() || failure())
+        if: needs.init.outputs.skip-tests != 'true' && (success() || failure())
         uses: hawk-ai-aml/github-actions/upload-to-s3@master
         with:
           module: ${{ matrix.module }}
@@ -221,7 +234,7 @@ jobs:
           destination_dir: ${{ github.event.repository.name }}-${{ matrix.module }}-${{ github.run_id }}
 
       - name: SonarCloud scan
-        if: inputs.skipTests != true && (success() || failure()) && inputs.useSonarCloud
+        if: needs.init.outputs.skip-tests != 'true' && (success() || failure()) && inputs.useSonarCloud
         uses: hawk-ai-aml/github-actions/sonarqube@master
         with:
           args: >
@@ -229,6 +242,30 @@ jobs:
           projectBaseDir: ${{ matrix.module }}/
           sonarToken: ${{ secrets.SONAR_TOKEN }}
           sonarHostUrl: ${{ secrets.SONAR_HOST_URL }}
+
+      - name: Cleanup workspace
+        run: |
+          echo "Current disk usage:"
+          df -h /
+
+          echo "Cleaning up caches..."
+          uv cache clean
+          rm -rf ~/.cache/uv
+
+          echo "Current disk usage:"
+          df -h /
+
+          echo "Pruning all unused Docker data (images, build cache, networks, etc.)..."
+          docker system prune -a --volumes -f || true
+
+          echo "Current disk usage:"
+          df -h /
+
+          echo "Clear random stuff"
+          sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /opt/hostedtoolcache/CodeQL
+
+          echo "Current disk usage:"
+          df -h /
 
       - name: Get ECR info
         id: ecr-info
@@ -264,7 +301,6 @@ jobs:
           multiple-modules: "true"
           module: ${{ matrix.module }}
           image-tag: ${{ needs.init.outputs.image-tag }}
-          ecr-repository-prefix: ${{ inputs.ecr-prefix }}
           custom-image-tag: ${{ steps.ecr-info.outputs.matched_tag }}
           kustomize-overlays: ${{ inputs.kustomizeOverlays }}
           ecr-registry: ${{ steps.login-ecr.outputs.registry }}
@@ -275,10 +311,9 @@ jobs:
           ecr-region: ${{ needs.init.outputs.ecr-region }}
           ecr-registry-code: ${{ needs.init.outputs.ecr-registry-code }}
           py-utils-pat: ${{ secrets.PY_UTILS_PAT }}
-          disabled-cache: ${{ inputs.disableDockerBuildCache }}
 
       - name: Check if SonarCloud code analysis has passed
-        if: inputs.skipTests != true && (success() || failure()) && inputs.useSonarCloud && inputs.blockPullRequestIfSonarFails
+        if: needs.init.outputs.skip-tests != 'true' && (success() || failure()) && inputs.useSonarCloud && inputs.blockPullRequestIfSonarFails
         env:
           PR_NUMBER: ${{ github.event.number }}
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
@@ -299,8 +334,8 @@ jobs:
 
   check-if-all-builds-passed:
     if: always()
-    needs: [ build ]
-    runs-on: [ "self-hosted", "small-builder" ]
+    needs: [build]
+    runs-on: ["self-hosted", "small-builder"]
     steps:
       - name: Check build job failure
         if: ${{ needs.build.result == 'failure' }}
@@ -321,8 +356,8 @@ jobs:
 
   vulnerability-check-run:
     if: ${{ inputs.vulnerabilityCheck == true }}
-    needs: [ init, build ]
-    runs-on: [ "self-hosted", "small-builder" ]
+    needs: [init, build]
+    runs-on: ["self-hosted", "small-builder"]
 
     steps:
       - name: Collect Docker images
@@ -335,8 +370,8 @@ jobs:
           DOCKER_IMAGES=""
           for img in $IMAGES; do
             DOCKER_IMAGES+="${img}:${IMAGE_TAG} "
-          done          
-          DOCKER_IMAGES="${DOCKER_IMAGES%" "}"          
+          done
+          DOCKER_IMAGES="${DOCKER_IMAGES%" "}"
           echo "images=$DOCKER_IMAGES" >> $GITHUB_OUTPUT
 
       - name: Scan Docker image for vulnerabilities
@@ -351,9 +386,9 @@ jobs:
           wiz-client-secret: ${{ secrets.WIZ_CLIENT_SECRET }}
 
   update-overlays:
-    needs: [ init, build ]
+    needs: [init, build]
     if: ${{ needs.init.outputs.update-kustomize == 'true' && github.workflow != 'pr' }}
-    runs-on: [ "self-hosted", "small-builder" ]
+    runs-on: ["self-hosted", "small-builder"]
 
     steps:
       - name: Update kustomize overlay
