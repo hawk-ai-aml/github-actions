@@ -153,11 +153,13 @@ jobs:
       - name: Install uv
         run: pipx install uv==${{ env.UV_VERSION }}
 
-      - name: Cache uv download cache
+      - name: Cache uv and build artifacts
         id: cache-uv
         uses: actions/cache@v4
         with:
-          path: ~/.cache/uv
+          path: |
+            ~/.cache/uv
+            ~/.cache/boost
           key: ${{ runner.os }}-uv-${{ hashFiles('uv.lock') }}
           restore-keys: |
             ${{ runner.os }}-uv-
