@@ -145,6 +145,7 @@ jobs:
           persist-credentials: ${{ needs.init.outputs.authorized-repos == '' }}
 
       - name: Set up Python
+        id: setup-python
         uses: actions/setup-python@v5
         with:
           python-version: ${{ fromJson(needs.init.outputs.metadata).python-version }}
@@ -152,16 +153,43 @@ jobs:
       - name: Install uv
         run: pipx install uv==${{ env.UV_VERSION }}
 
-      - name: Create virtual environment
-        run: uv venv
-
-      - name: Cache dependencies
+      - name: Cache uv and build artifacts
+        id: cache-uv
         uses: actions/cache@v4
         with:
-          path: ~/.cache/uv
-          key: ${{ runner.os }}-uv-${{ hashFiles('**/uv.lock') }}
+          path: |
+            ~/.cache/uv
+            ~/.cache/boost
+          key: ${{ runner.os }}-uv-${{ hashFiles('uv.lock') }}
           restore-keys: |
             ${{ runner.os }}-uv-
+
+      - name: Cache virtual environment
+        id: cache-venv
+        uses: actions/cache@v4
+        with:
+          path: .venv
+          key: ${{ runner.os }}-venv-py${{ steps.setup-python.outputs.python-version }}-${{ hashFiles('uv.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-venv-py${{ steps.setup-python.outputs.python-version }}-
+
+      - name: Debug cache status
+        run: |
+          echo "uv cache hit: ${{ steps.cache-uv.outputs.cache-hit }}"
+          echo "venv cache hit: ${{ steps.cache-venv.outputs.cache-hit }}"
+          echo "uv.lock hash: ${{ hashFiles('uv.lock') }}"
+          if [ -d ~/.cache/uv ]; then
+            echo "uv cache size: $(du -sh ~/.cache/uv 2>/dev/null || echo 'unknown')"
+          fi
+          if [ -d .venv ]; then
+            echo "venv exists, size: $(du -sh .venv 2>/dev/null || echo 'unknown')"
+          else
+            echo "venv does not exist"
+          fi
+
+      - name: Create virtual environment
+        if: steps.cache-venv.outputs.cache-hit != 'true'
+        run: uv venv
 
       - name: Authorize to GCP
         uses: google-github-actions/auth@v2
@@ -177,6 +205,16 @@ jobs:
             git config --global url."https://${{ secrets.PY_UTILS_PAT }}@github.com/hawk-ai-aml/${REPO}".insteadOf "https://github.com/hawk-ai-aml/${REPO}"
           done
 
+      - name: Install dependencies
+        run: |
+          if [ "${{ steps.cache-venv.outputs.cache-hit }}" == "true" ]; then
+            echo "venv restored from cache, skipping workspace package builds"
+            uv sync --no-install-workspace
+          else
+            echo "No venv cache, running full sync"
+            uv sync
+          fi
+
       - name: Install sub-packages (if defined)
         if: ${{ inputs.subPackagesDirs != '' }}
         run: |
@@ -188,9 +226,6 @@ jobs:
               uv pip install -e "$resolved_path"[dev]
             fi
           done <<< "${{ inputs.subPackagesDirs }}"
-
-      - name: Install dependencies
-        run: uv sync
 
       - name: Run project checks (if available)
         run: |
