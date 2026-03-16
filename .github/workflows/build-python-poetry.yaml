@@ -56,7 +56,6 @@ on:
         type: string
         default: ubuntu-latest
 
-
 env:
   POETRY_VERSION: 2.1.4
 
@@ -66,7 +65,7 @@ defaults:
 
 jobs:
   init:
-    runs-on: [ "self-hosted", "small-builder" ]
+    runs-on: ["self-hosted", "small-builder"]
     outputs:
       overlays: ${{ steps.init.outputs.overlays }}
       update-kustomize: ${{ steps.init.outputs.update-kustomize }}
@@ -122,7 +121,6 @@ jobs:
           multiple-modules: "false"
           jira-user: ${{ secrets.JIRA_ACCOUNT_NAME }}
           jira-token: ${{ secrets.JIRA_TOKEN }}
-
 
   build:
     needs: init
@@ -256,7 +254,7 @@ jobs:
 
       - name: Build Docker Image
         if: ${{ github.workflow != 'pr' && inputs.skipDockerBuild == false }}
-        uses: hawk-ai-aml/github-actions/build-docker-image-python@master
+        uses: hawk-ai-aml/github-actions/build-docker-image-python@fix_github_actions_private_switch
         with:
           multiple-modules: "false"
           module: ${{ inputs.component }}
@@ -285,8 +283,8 @@ jobs:
 
   vulnerability-check-run:
     if: ${{ inputs.vulnerabilityCheck == true }}
-    needs: [ init, build ]
-    runs-on: [ "self-hosted", "small-builder" ]
+    needs: [init, build]
+    runs-on: ["self-hosted", "small-builder"]
 
     steps:
       - name: Collect Docker images
@@ -315,9 +313,9 @@ jobs:
           wiz-client-secret: ${{ secrets.WIZ_CLIENT_SECRET }}
 
   update-overlays:
-    needs: [ init, build ]
+    needs: [init, build]
     if: ${{ needs.init.outputs.update-kustomize == 'true' && github.workflow != 'pr' }}
-    runs-on: [ "self-hosted", "small-builder" ]
+    runs-on: ["self-hosted", "small-builder"]
 
     steps:
       - name: Update kustomize overlay

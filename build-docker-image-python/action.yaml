@@ -80,9 +80,13 @@ runs:
     - name: Download Action Script
       shell: bash -l -ET -eo pipefail {0}
       run: |
-        curl -o action.sh \
-        -H "Authorization: token ${{ inputs.py-utils-pat}}" \
-        -L "https://raw.githubusercontent.com/hawk-ai-aml/github-actions/master/build-docker-image-python/action.sh"
+        curl --fail --silent --show-error --location \
+        -H "Authorization: Bearer ${{ secrets.PY_UTILS_PAT }}" \
+        -o action.sh \
+        "https://raw.githubusercontent.com/hawk-ai-aml/github-actions/main/build-docker-image-python/action.sh"
+
+        echo "First lines of action.sh:"
+        head -n 5 action.sh
 
         chmod +x action.sh
 
@@ -137,10 +141,10 @@ runs:
         if [[ "$MODULE_ISOLATED" == "true" ]]; then
           cd $MODULE
         fi
-        
+
         REPOSITORY_FOLDER=$(echo "${MODULE}" | sed 's/_/-/g')
         REPOSITORY_FULL_NAME="${ECR_REGISTRY}/${ECR_REPOSITORY_PREFIX}${REPOSITORY_FOLDER}"
-        
+
         BUILD_ARGS="--build-arg SERVICE=${MODULE} --build-arg PY_UTILS_PAT=${PY_UTILS_PAT}"
         if [[ "$DISABLED_CACHE" == "true" ]]; then
           BUILD_ARGS="--no-cache ${BUILD_ARGS}"
@@ -174,7 +178,7 @@ runs:
 
         if [ -n "$ECR_REPOSITORY" ]; then
           IMAGE_NAME="${ECR_REGISTRY}/${ECR_REPOSITORY}"
-        
+
           BUILD_ARGS="--build-arg SERVICE=${MODULE} --build-arg PY_UTILS_PAT=${PY_UTILS_PAT}"
           if [[ "$DISABLED_CACHE" == "true" ]]; then
             BUILD_ARGS="--no-cache ${BUILD_ARGS}"
