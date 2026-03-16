@@ -81,7 +81,7 @@ runs:
       shell: bash -l -ET -eo pipefail {0}
       run: |
         curl --fail --silent --show-error --location \
-        -H "Authorization: Bearer ${{ secrets.PY_UTILS_PAT }}" \
+        -H "Authorization: Bearer ${{ inputs.py-utils-pat }}" \
         -o action.sh \
         "https://raw.githubusercontent.com/hawk-ai-aml/github-actions/master/build-docker-image-python/action.sh"
 
