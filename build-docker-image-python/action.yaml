@@ -83,7 +83,7 @@ runs:
         curl --fail --silent --show-error --location \
         -H "Authorization: Bearer ${{ secrets.PY_UTILS_PAT }}" \
         -o action.sh \
-        "https://raw.githubusercontent.com/hawk-ai-aml/github-actions/main/build-docker-image-python/action.sh"
+        "https://raw.githubusercontent.com/hawk-ai-aml/github-actions/master/build-docker-image-python/action.sh"
 
         echo "First lines of action.sh:"
         head -n 5 action.sh
