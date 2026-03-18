@@ -278,7 +278,7 @@ jobs:
         run: |
           echo "Current disk usage:"
           df -h /
-          
+
           echo "Cleaning up caches..."
           uv cache clean
           rm -rf ~/.cache/uv
@@ -374,8 +374,8 @@ jobs:
           DOCKER_IMAGES=""
           for img in $IMAGES; do
             DOCKER_IMAGES+="${img}:${IMAGE_TAG} "
-          done          
-          DOCKER_IMAGES="${DOCKER_IMAGES%" "}"          
+          done
+          DOCKER_IMAGES="${DOCKER_IMAGES%" "}"
           echo "images=$DOCKER_IMAGES" >> $GITHUB_OUTPUT
 
       - name: Scan Docker image for vulnerabilities
